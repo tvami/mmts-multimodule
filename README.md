@@ -45,6 +45,10 @@ them. Snapshotted 2026-08-29:
 | `2026-08-29/hexactrl-script_backup/` | same tree in `hexactrl-sw_backup`, incl. its own `initLD-trophyV3-3b_mux*.yaml` |
 | `zmq_i2c_backup_20260827_130857/` | pre-change backup of `zmq_i2c` taken on the Kria |
 | `hexactrl-sw_robustness-fixes.bundle` | six commits on `robustness-fixes` that exist on **no remote** — `fix fifo_latency mask and unaligned links`, `rebuild HwInterface when uhal_device changes`, `skip trg elink with no daq elink`, `use boost sleep for sub-second waits`, `bump zmq_i2c to robustness fixes`, `skip unreachable links in offset finder` |
+| `zmq_i2c_robustness-fixes.bundle` | `zmq_i2c` commits on **no remote**, including `fix repr, raise, and ROC probing` (`004290d`, the pointer `hexactrl-sw` actually records) and `retry ROC type read before raising` (`e62e243`, what is checked out) |
+
+Note `hexactrl-sw` records `zmq_i2c` at `004290d` while the working tree has
+`e62e243` checked out — that mismatch is the ` M zmq_i2c` in `git status`.
 
 Restore the bundle with:
 
