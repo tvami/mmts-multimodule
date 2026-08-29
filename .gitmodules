@@ -1,0 +1,20 @@
+[submodule "gui-hexmap"]
+	path = gui-hexmap
+	url = ssh://git@gitlab.cern.ch:7999/acrobert/hgcal-module-testing-gui.git
+	branch = master
+[submodule "hexactrl-sw"]
+	path = hexactrl-sw
+	url = https://gitlab.cern.ch/hgcal-daq-sw/hexactrl-sw.git
+	branch = robustness-fixes
+[submodule "hexactrl-sw_backup"]
+	path = hexactrl-sw_backup
+	url = https://gitlab.cern.ch/hgcal-daq-sw/hexactrl-sw.git
+	branch = ROCv3
+[submodule "hexmap"]
+	path = hexmap
+	url = ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/hexmap.git
+	branch = master
+[submodule "hgc-test-systems"]
+	path = hgc-test-systems
+	url = ssh://git@gitlab.cern.ch:7999/cms-hgcal-firmware/hgc-test-systems.git
+	branch = feature/multiplexer_board_v2
