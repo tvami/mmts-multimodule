@@ -58,11 +58,18 @@ git -C hexactrl-sw fetch ../_snapshots/hexactrl-sw_robustness-fixes.bundle robus
 
 ### Outstanding
 
-- `hexactrl-sw` `robustness-fixes` should be pushed to a CERN fork so the
-  submodule pointer resolves on a fresh clone. Until then the bundle is the only
-  copy.
-- The dirty `hexactrl-script` tree should be committed to a branch on a fork; the
-  snapshot is a stopgap, not version control.
+- ✅ `robustness-fixes` pushed to the `tvami` forks of both `hexactrl-sw` and
+  `zmq_i2c` on 2026-08-29, so every submodule pointer now resolves. The
+  `hexactrl-sw` submodule URL therefore points at the **fork**, not
+  `hgcal-daq-sw`; move it back once the MR merges.
+- Two MRs still to open, **in this order** (`zmq_i2c` first, or the submodule
+  bump lands pointing at a commit upstream cannot fetch), both targeting
+  `ROCv3-alper-dev`:
+  - <https://gitlab.cern.ch/tvami/zmq_i2c/-/merge_requests/new?merge_request%5Bsource_branch%5D=robustness-fixes>
+  - <https://gitlab.cern.ch/tvami/hexactrl-sw/-/merge_requests/new?merge_request%5Bsource_branch%5D=robustness-fixes>
+- The dirty `hexactrl-script` tree is still uncommitted — 46 files, including the
+  `initLD-trophyV3-3b_mux*.yaml` configs. The snapshot is a stopgap, not version
+  control; it should get a branch on a fork.
 - `gui-hexmap` has ~50 files staged as deleted. Left as found — not cleaned up
   here, since it may be deliberate.
 
