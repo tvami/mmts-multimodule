@@ -1,0 +1,51 @@
+roc_s0:
+  sc:
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        ExtCtest: 1
+        IntCtest: 1
+        Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50 
+    ch:
+      all:
+        LowRange: 0
+roc_s1:
+  sc:
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        ExtCtest: 1
+        IntCtest: 1
+        Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50 
+    ch:
+      all:
+        LowRange: 0
+roc_s2:
+  sc:
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        ExtCtest: 1
+        IntCtest: 1
+        Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50 
+    ch:
+      all:
+        LowRange: 0

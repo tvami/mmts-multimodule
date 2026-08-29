@@ -1,0 +1,161 @@
+roc_s0:
+  sc:
+    ch:
+      0:
+        0:
+          Ref_dac_inv: 0
+        1:
+          Ref_dac_inv: 6
+        2:
+          Ref_dac_inv: 11
+        3:
+          Ref_dac_inv: 10
+        4:
+          Ref_dac_inv: 7
+        5:
+          Ref_dac_inv: 13
+        6:
+          Ref_dac_inv: 10
+        7:
+          Ref_dac_inv: 7
+        8:
+          Ref_dac_inv: 11
+        9:
+          Ref_dac_inv: 8
+        10:
+          Ref_dac_inv: 17
+        11:
+          Ref_dac_inv: 3
+        12:
+          Ref_dac_inv: 8
+        13:
+          Ref_dac_inv: 5
+        14:
+          Ref_dac_inv: 5
+        15:
+          Ref_dac_inv: 10
+        16:
+          Ref_dac_inv: 12
+        17:
+          Ref_dac_inv: 12
+        18:
+          Ref_dac_inv: 7
+        19:
+          Ref_dac_inv: 7
+        20:
+          Ref_dac_inv: 2
+        21:
+          Ref_dac_inv: 7
+        22:
+          Ref_dac_inv: 8
+        23:
+          Ref_dac_inv: 10
+        24:
+          Ref_dac_inv: 5
+        25:
+          Ref_dac_inv: 11
+        26:
+          Ref_dac_inv: 3
+        27:
+          Ref_dac_inv: 11
+        28:
+          Ref_dac_inv: 13
+        29:
+          Ref_dac_inv: 18
+        30:
+          Ref_dac_inv: 9
+        31:
+          Ref_dac_inv: 7
+        32:
+          Ref_dac_inv: 9
+        33:
+          Ref_dac_inv: 13
+        34:
+          Ref_dac_inv: 7
+        35:
+          Ref_dac_inv: 9
+        36:
+          Ref_dac_inv: 9
+        37:
+          Ref_dac_inv: 11
+        38:
+          Ref_dac_inv: 12
+      1:
+        0:
+          Ref_dac_inv: 7
+        1:
+          Ref_dac_inv: 7
+        2:
+          Ref_dac_inv: 11
+        3:
+          Ref_dac_inv: 3
+        4:
+          Ref_dac_inv: 5
+        5:
+          Ref_dac_inv: 5
+        6:
+          Ref_dac_inv: 3
+        7:
+          Ref_dac_inv: 3
+        8:
+          Ref_dac_inv: 9
+        9:
+          Ref_dac_inv: 8
+        10:
+          Ref_dac_inv: 9
+        11:
+          Ref_dac_inv: 9
+        12:
+          Ref_dac_inv: 13
+        13:
+          Ref_dac_inv: 10
+        14:
+          Ref_dac_inv: 7
+        15:
+          Ref_dac_inv: 12
+        16:
+          Ref_dac_inv: 10
+        17:
+          Ref_dac_inv: 6
+        18:
+          Ref_dac_inv: 12
+        19:
+          Ref_dac_inv: 7
+        20:
+          Ref_dac_inv: 5
+        21:
+          Ref_dac_inv: 7
+        22:
+          Ref_dac_inv: 8
+        23:
+          Ref_dac_inv: 7
+        24:
+          Ref_dac_inv: 7
+        25:
+          Ref_dac_inv: 12
+        26:
+          Ref_dac_inv: 4
+        27:
+          Ref_dac_inv: 6
+        28:
+          Ref_dac_inv: 14
+        29:
+          Ref_dac_inv: 10
+        30:
+          Ref_dac_inv: 14
+        31:
+          Ref_dac_inv: 5
+        32:
+          Ref_dac_inv: 8
+        33:
+          Ref_dac_inv: 10
+        34:
+          Ref_dac_inv: 6
+        35:
+          Ref_dac_inv: 9
+        36:
+          Ref_dac_inv: 14
+        37:
+          Ref_dac_inv: 12
+        38:
+          Ref_dac_inv: 13

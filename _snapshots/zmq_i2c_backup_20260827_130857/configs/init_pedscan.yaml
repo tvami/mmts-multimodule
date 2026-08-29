@@ -1,0 +1,47 @@
+daq:
+  IdelayStep: '8'
+  L1A_A:
+    BX: '0x10'
+    prescale: '0x0'
+  L1A_B:
+    BX: '0x100'
+    prescale: '0x0'
+  L1A_type: AB
+  NChips: '1'
+  NEvents: '2000'
+  calib:
+    BX_l1a: '0x114'
+    BX_req: '0x100'
+    l1a_notcalib: '0x1'
+  zmqPushPull_port: '8888'
+global:
+  data_push_port: '8888'
+  hw_type: single_chip
+  outputDirectory: data/pedestal_scan
+  run_type: data_pedDAC_
+  serverIP: 192.168.200.100
+roc_s0:
+  sc:
+    DigitalHalf:
+      all:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+    GlobalAnalog:
+      all:
+        Delay87: 1
+        Delay9: 2
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50 
+    Top:
+      all:
+        BIAS_I_PLL_D: 63
+        EN_HIGH_CAPA: 1
+        EN_LOCK_CONTROL: 0
+        ERROR_LIMIT_SC: 0

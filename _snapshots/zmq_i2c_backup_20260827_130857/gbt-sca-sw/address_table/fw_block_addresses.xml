@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<node id="TOP">
+<node id="fastcontrol_axi"	    module="file://modules/fastcontrol_axi.xml"	          address="0x80001000"/>
+<node id="fastcontrol_recv_axi"	    module="file://modules/fastcontrol_recv_axi.xml"      address="0x80005000"/>
+<node id="link_capture_1"	    module="file://modules/link_capture_axi.xml"	  address="0x80240000"/>
+<node id="axi_bram_ctrl_1"	    module="file://modules/axi_bram_ctrl.xml"	          address="0x80200000"/>
+<node id="link_capture_0"	    module="file://modules/link_capture_axi.xml"	  address="0x80140000"/>
+<node id="axi_bram_ctrl_0"	    module="file://modules/axi_bram_ctrl.xml"	          address="0x80100000"/>
+<node id="gbt_sca_com_0_GBT_SCA_rx"      module="file://modules/GBT_SCA_rx.xml"           address="0x80010000"/>
+<node id="gbt_sca_com_0_GBT_SCA_tx"      module="file://modules/GBT_SCA_tx.xml"           address="0x80020000"/>
+<node id="gbt_sca_com_0_GBT_SCA_reset"   module="file://modules/GBT_SCA_axi_gpio.xml"     address="0x80030000"/>
+</node>

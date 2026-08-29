@@ -1,0 +1,18 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/fast-control/blob/master/decode/src/hdl/manager/hgcal_fc_recv_manager.v -->
+
+<node>    
+  <node id="reg0" address="0x0">
+    <node id="edge_select"             mask="0x1"        permission="rw" description="edge select"/>
+    <node id="polarity"                mask="0x2"        permission="rw" description="polarity"/>
+    <node id="reset_counters_io"       mask="0x1000000"  permission="rw" description="reset_counters_io"/>
+    <node id="reset_decoder_io"        mask="0x2000000"  permission="rw" description="reset_decoder_io"/>
+  </node>
+  <node id="fw_version"            address="0x4"  permission="rw" description="firmware version"/>
+  <node id="stream_character"      address="0x5"  permission="rw" description="fast control stream character"/>
+  <node id="orbit_sync_count"      address="0x6"  permission="rw" description="orbit sync count"/>
+  <node id="orbit_count_rst_count" address="0x7"  permission="rw" description="orbit count reset count"/>
+  <node id="calib_req_count"       address="0x8"  permission="rw" description="calibrtion required count"/>
+  <node id="calib_l1a_count"       address="0x9"  permission="rw" description="calibration l1a count"/>
+  <node id="link_reset_count"      address="0xa" permission="rw" description="link reset count"/>
+  <node id="l1a_count"             address="0xd" permission="rw" description="l1a count"/>
+</node>

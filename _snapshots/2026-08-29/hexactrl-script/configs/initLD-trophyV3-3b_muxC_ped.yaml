@@ -1,0 +1,456 @@
+# temporary config file for LD V3 hexaboard connected to trophy V3; missing links because of bug (1 full sector + 1 trg link) in 1st version trophy V3
+daq:
+  uhal_device: 'TOP_C'
+  zmqPushPull_port: 8888
+  active_menu : 'randomL1A'
+  l1aOffsetFinder:
+    method: 'automatic'
+    # valid options for 'method' :
+    #  'automatic' : BX_or_L1A_OffsetFinder class will try to find 'fifo_latency' and 'L1A_offset_or_BX' for all DAQ linsk by checking the position of the BCR idle pattern for fifo_latency and by looking for the position of the header in the FIFO when running with L1A
+    #  'manual' : BX_or_L1A_OffsetFinder class will set 'fifo_latency' and 'L1A_offset_or_BX' of all DAQ links with the values below
+    fifo_latency: 0 #
+    # 20 was a leftover from an abandoned scan (scratchpad/l1ascan.sh edits this
+    # value in place).  Measured 2026-08-27, 6 pedestals at each on slot C, using
+    # per-half-ROC corruption: 13 gives 18/36 halves below 1.0 with two halves at
+    # exactly 0.000 in every run; 20 gives 0/36 -- every half fully corrupt.
+    L1A_offset_or_BX: 13
+  ## trophy v3 with LD hexaboards
+  ## id code = (sector<<5) | (chip<<2) | link
+  ## with sector in [0,1,2]; chip in [0,1,2] for LD and [0,1,2,3,4,5] for HD and half in [0,1]
+  elinks_daq:
+    - { name : 'link0', polarity: 1, idcode: 0 }
+    - { name : 'link1', polarity: 1, idcode: 1 }
+    - { name : 'link4', polarity: 1, idcode: 36 }
+    - { name : 'link5', polarity: 1, idcode: 37 }
+    - { name : 'link8', polarity: 1, idcode: 72 }
+    - { name : 'link9', polarity: 1, idcode: 73 }
+  elinks_trg:
+    - { name : 'link0',  polarity: 1, idcode: 2 }
+    - { name : 'link1',  polarity: 1, idcode: 1 }
+    - { name : 'link2',  polarity: 1, idcode: 0 }
+    - { name : 'link3',  polarity: 1, idcode: 3 }
+    - { name : 'link4',  polarity: 1, idcode: 36 }
+    - { name : 'link5',  polarity: 1, idcode: 37 }
+    - { name : 'link6',  polarity: 1, idcode: 38 }
+    - { name : 'link7',  polarity: 1, idcode: 39 }
+    - { name : 'link8',  polarity: 1, idcode: 72 }
+    - { name : 'link9',  polarity: 1, idcode: 73 }
+    - { name : 'link10', polarity: 1, idcode: 74 }
+    - { name : 'link11', polarity: 1, idcode: 75 }
+  elinks_trg_phase: ##only needed when using external L1A source 
+    - { name : 'link0', polarity: 1, idcode: 1 }
+  menus:
+    # dummy:
+    #   NEvents: 10000
+    #   NEventsPerPush: 200
+    randomL1A:
+      NEvents: 10000
+      log2_rand_bx_period: 10
+      bx_min: 45
+    randomL1AplusTPG:
+      NEvents: 10000
+      log2_rand_bx_period: 10
+      bx_min: 45
+      trg_fifo_latency: 3
+    externalL1A:
+      NEvents: 10000
+      trg_fifo_latency: 3
+      trgphase_fifo_latency: 15
+      loopBack: true
+      bxCalibExt: 10
+      lengthCalibExt: 2
+      prescale: 0
+    externalL1AOnlyDAQ:
+      NEvents: 10000
+      trgphase_fifo_latency: 15
+      loopBack: true
+      bxCalibExt: 10
+      lengthCalibExt: 2
+      prescale: 0
+    calibAndL1A:
+      NEvents: 1000
+      bxCalib: 10
+      bxL1A: 33
+      lengthCalib: 1
+      lengthL1A: 1
+      prescale: 0
+      repeatOffset: 700
+    calibExtAndcalibIntAndL1A:
+      NEvents: 1000
+      bxCalibExt: 0
+      lengthCalibExt: 1
+      bxCalibInt: 10
+      lengthCalibExt: 1
+      bxL1A: 33
+      lengthL1A: 1
+      prescale: 0
+      repeatOffset: 700
+    calibAndL1AplusTPG:
+      NEvents: 1000
+      bxCalib: 10
+      bxL1A: 33
+      lengthCalib: 1
+      lengthL1A: 1
+      prescale: 0
+      trg_fifo_latency: 3
+    delayScan:
+      maxDelay: 512
+      delayStep: 1
+      idlePattern: '0XACCCCCCC'
+      acquireLength: 1000
+    marsRndL1A:
+      log2_rand_bx_period: 10
+      bx_min: 45
+    marsCalibAndL1A:
+      bxCalib: 10
+      bxL1A: 45
+      prescale: 0
+      repeatOffset: 200
+client:
+  zmqPushPull_port: 8888
+  hw_type: LD
+  outputDirectory: data
+  run_type: default
+  serverIP: hexactrl564610
+roc_s0:
+  sc:
+    DigitalHalf:
+      0:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+        CalibrationSC: 1
+        Bx_offset: 2
+      1:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+        CalibrationSC: 1
+        Bx_offset: 2
+    GlobalAnalog:
+      0:
+        Delay40: 2
+        Delay65: 3
+        Delay87: 3
+        Delay9: 3
+        Ibi_inv_buf: 0
+        Ibi_noinv_buf: 0
+        Ibo_inv_buf: 12
+        Ibo_noinv_buf: 12
+        dac_pol: 0
+        range_inv: 6
+        range_tot: 7
+        trim_vbi_pa: 15
+        Rf: 5
+        Cf: 4
+        Cf_comp: 2
+        en_deglitcher: 1
+        dac_hyst_toa: 15
+      1:
+        Delay40: 2
+        Delay65: 3
+        Delay87: 3
+        Delay9: 3
+        Ibi_inv_buf: 0
+        Ibi_noinv_buf: 0
+        Ibo_inv_buf: 12
+        Ibo_noinv_buf: 12
+        dac_pol: 0
+        range_inv: 6
+        range_tot: 7
+        trim_vbi_pa: 15
+        Rf: 5
+        Cf: 4
+        Cf_comp: 2
+        en_deglitcher: 1
+        dac_hyst_toa: 15
+    ReferenceVoltage:
+      0:
+        Vbg_1v: 3
+        Refi: 1
+        Inv_vref: 400
+        Noinv_vref: 250
+        Tot_vref: 500
+        Toa_vref: 140
+      1:
+        Vbg_1v: 3
+        Refi: 1
+        Inv_vref: 400
+        Noinv_vref: 250
+        Tot_vref: 500
+        Toa_vref: 140
+    Top:
+      0:
+        BIAS_I_PLL_D: 63
+        EN_HIGH_CAPA: 1
+        RunL: 1
+        RunR: 1
+        in_inv_cmd_rx: 1
+        phase_ck: 0
+    MasterTdc:
+      0:
+        # GLOBAL_FORCE_EN_CLK: 0 # 0 by default
+        BIAS_I_CTDC_D: 8 # 24 by default
+        FOLLOWER_CTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_CTDC: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_EN: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_D: 2 # 0 by default
+        BIAS_I_FTDC_D: 8 # 24 by default
+        FOLLOWER_FTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_FTDC: 1 # 0 by default
+        CTDC_CALIB_FREQUENCY: 2 # 2 by default
+        FTDC_CALIB_FREQUENCY: 2 # 2 by default
+        CTRL_IN_CTDC_P_D: 0 # 0 by default
+        CTRL_IN_CTDC_P_EN: 0 # 0 by default
+        GLOBAL_SYNC_OUT: 1
+        GLOBAL_LATENCY_TIME: 9 
+      1:
+        # GLOBAL_FORCE_EN_CLK: 0 # 0 by default
+        BIAS_I_CTDC_D: 8 # 24 by default
+        FOLLOWER_CTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_CTDC: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_EN: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_D: 2 # 0 by default
+        BIAS_I_FTDC_D: 8 # 24 by default
+        FOLLOWER_FTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_FTDC: 1 # 0 by default
+        CTDC_CALIB_FREQUENCY: 2 # 2 by default
+        FTDC_CALIB_FREQUENCY: 2 # 2 by default
+        CTRL_IN_CTDC_P_D: 0 # 0 by default
+        CTRL_IN_CTDC_P_EN: 0 # 0 by default
+        GLOBAL_SYNC_OUT: 1
+        GLOBAL_LATENCY_TIME: 9 
+roc_s1:
+  sc:
+    DigitalHalf:
+      0:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+        CalibrationSC: 1
+        Bx_offset: 2
+      1:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+        CalibrationSC: 1
+        Bx_offset: 2
+    GlobalAnalog:
+      0:
+        Delay40: 2
+        Delay65: 3
+        Delay87: 3
+        Delay9: 3
+        Ibi_inv_buf: 0
+        Ibi_noinv_buf: 0
+        Ibo_inv_buf: 12
+        Ibo_noinv_buf: 12
+        dac_pol: 0
+        range_inv: 6
+        range_tot: 7
+        trim_vbi_pa: 15
+        Rf: 5
+        Cf: 4
+        Cf_comp: 2
+        en_deglitcher: 1
+        dac_hyst_toa: 15
+      1:
+        Delay40: 2
+        Delay65: 3
+        Delay87: 3
+        Delay9: 3
+        Ibi_inv_buf: 0
+        Ibi_noinv_buf: 0
+        Ibo_inv_buf: 12
+        Ibo_noinv_buf: 12
+        dac_pol: 0
+        range_inv: 6
+        range_tot: 7
+        trim_vbi_pa: 15
+        Rf: 5
+        Cf: 4
+        Cf_comp: 2
+        en_deglitcher: 1
+        dac_hyst_toa: 15
+    ReferenceVoltage:
+      0:
+        Vbg_1v: 3
+        Refi: 1
+        Inv_vref: 400
+        Noinv_vref: 250
+        Tot_vref: 500
+        Toa_vref: 140
+      1:
+        Vbg_1v: 3
+        Refi: 1
+        Inv_vref: 400
+        Noinv_vref: 250
+        Tot_vref: 500
+        Toa_vref: 140
+    Top:
+      0:
+        BIAS_I_PLL_D: 63
+        EN_HIGH_CAPA: 1
+        RunL: 1
+        RunR: 1
+        in_inv_cmd_rx: 1
+        phase_ck: 0
+    MasterTdc:
+      0:
+        # GLOBAL_FORCE_EN_CLK: 0 # 0 by default
+        BIAS_I_CTDC_D: 8 # 24 by default
+        FOLLOWER_CTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_CTDC: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_EN: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_D: 2 # 0 by default
+        BIAS_I_FTDC_D: 8 # 24 by default
+        FOLLOWER_FTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_FTDC: 1 # 0 by default
+        CTDC_CALIB_FREQUENCY: 2 # 2 by default
+        FTDC_CALIB_FREQUENCY: 2 # 2 by default
+        CTRL_IN_CTDC_P_D: 0 # 0 by default
+        CTRL_IN_CTDC_P_EN: 0 # 0 by default
+        GLOBAL_SYNC_OUT: 1
+        GLOBAL_LATENCY_TIME: 9 
+      1:
+        # GLOBAL_FORCE_EN_CLK: 0 # 0 by default
+        BIAS_I_CTDC_D: 8 # 24 by default
+        FOLLOWER_CTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_CTDC: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_EN: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_D: 2 # 0 by default
+        BIAS_I_FTDC_D: 8 # 24 by default
+        FOLLOWER_FTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_FTDC: 1 # 0 by default
+        CTDC_CALIB_FREQUENCY: 2 # 2 by default
+        FTDC_CALIB_FREQUENCY: 2 # 2 by default
+        CTRL_IN_CTDC_P_D: 0 # 0 by default
+        CTRL_IN_CTDC_P_EN: 0 # 0 by default
+        GLOBAL_SYNC_OUT: 1
+        GLOBAL_LATENCY_TIME: 9 
+roc_s2:
+  sc:
+    DigitalHalf:
+      0:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+        CalibrationSC: 1
+        Bx_offset: 2
+      1:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+        CalibrationSC: 1
+        Bx_offset: 2
+    GlobalAnalog:
+      0:
+        Delay40: 2
+        Delay65: 3
+        Delay87: 3
+        Delay9: 3
+        Ibi_inv_buf: 0
+        Ibi_noinv_buf: 0
+        Ibo_inv_buf: 12
+        Ibo_noinv_buf: 12
+        dac_pol: 0
+        range_inv: 6
+        range_tot: 7
+        trim_vbi_pa: 15
+        Rf: 5
+        Cf: 4
+        Cf_comp: 2
+        en_deglitcher: 1
+        dac_hyst_toa: 15
+      1:
+        Delay40: 2
+        Delay65: 3
+        Delay87: 3
+        Delay9: 3
+        Ibi_inv_buf: 0
+        Ibi_noinv_buf: 0
+        Ibo_inv_buf: 12
+        Ibo_noinv_buf: 12
+        dac_pol: 0
+        range_inv: 6
+        range_tot: 7
+        trim_vbi_pa: 15
+        Rf: 5
+        Cf: 4
+        Cf_comp: 2
+        en_deglitcher: 1
+        dac_hyst_toa: 15
+    ReferenceVoltage:
+      0:
+        Vbg_1v: 3
+        Refi: 1
+        Inv_vref: 400
+        Noinv_vref: 250
+        Tot_vref: 500
+        Toa_vref: 140
+      1:
+        Vbg_1v: 3
+        Refi: 1
+        Inv_vref: 400
+        Noinv_vref: 250
+        Tot_vref: 500
+        Toa_vref: 140
+    Top:
+      0:
+        BIAS_I_PLL_D: 63
+        EN_HIGH_CAPA: 1
+        RunL: 1
+        RunR: 1
+        in_inv_cmd_rx: 1
+        phase_ck: 0
+    MasterTdc:
+      0:
+        # GLOBAL_FORCE_EN_CLK: 0 # 0 by default
+        BIAS_I_CTDC_D: 8 # 24 by default
+        FOLLOWER_CTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_CTDC: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_EN: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_D: 2 # 0 by default
+        BIAS_I_FTDC_D: 8 # 24 by default
+        FOLLOWER_FTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_FTDC: 1 # 0 by default
+        CTDC_CALIB_FREQUENCY: 2 # 2 by default
+        FTDC_CALIB_FREQUENCY: 2 # 2 by default
+        CTRL_IN_CTDC_P_D: 0 # 0 by default
+        CTRL_IN_CTDC_P_EN: 0 # 0 by default
+        GLOBAL_SYNC_OUT: 1
+        GLOBAL_LATENCY_TIME: 9 
+      1:
+        # GLOBAL_FORCE_EN_CLK: 0 # 0 by default
+        BIAS_I_CTDC_D: 8 # 24 by default
+        FOLLOWER_CTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_CTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_CTDC: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_EN: 1 # 0 by default
+        BIAS_CAL_DAC_CTDC_P_D: 2 # 0 by default
+        BIAS_I_FTDC_D: 8 # 24 by default
+        FOLLOWER_FTDC_EN: 1 # 1 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_EN: 1 # 0 by default
+        BIAS_FOLLOWER_CAL_P_FTDC_D: 4 # 0 by default
+        GLOBAL_EN_BUFFER_FTDC: 1 # 0 by default
+        CTDC_CALIB_FREQUENCY: 2 # 2 by default
+        FTDC_CALIB_FREQUENCY: 2 # 2 by default
+        CTRL_IN_CTDC_P_D: 0 # 0 by default
+        CTRL_IN_CTDC_P_EN: 0 # 0 by default
+        GLOBAL_SYNC_OUT: 1
+        GLOBAL_LATENCY_TIME: 9 

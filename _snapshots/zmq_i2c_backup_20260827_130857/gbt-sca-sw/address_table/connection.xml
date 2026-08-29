@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<connections>
+  <connection id="jeremylittlememory"    uri="uioaxi-1.0://${UHAL_ADDRESS_TABLE}/gbtsca.xml" address_table="file://gbtsca.xml" />
+  <connection id="mylittlememory"    uri="uioaxi-1.0:///opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml/fw_block_addresses.xml" address_table="file:///opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml/fw_block_addresses.xml" />
+  <connection id="mylittleudp"       uri="ipbusudp-2.0://localhost:50001" address_table="file://address_hexactrl.xml" />
+</connections>
+

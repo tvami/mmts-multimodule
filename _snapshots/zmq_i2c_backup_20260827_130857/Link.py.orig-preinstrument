@@ -1,0 +1,937 @@
+from smbus2 import SMBus
+import gpiod
+import os
+import subprocess
+from typing import Union
+from time import sleep
+
+DEBUG = False
+
+def i2cdetect(msg: str):
+    """Debugging utility. Usage: `i2cdetect("Message printed before and after")`"""
+    if not DEBUG:
+        return
+    print("\n", msg, sep="")
+    print(subprocess.run("i2cdetect -y 2", shell=True, capture_output=True, text=True).stdout.rstrip())
+    print(msg, "\n", sep="")
+
+def reap_multiplex_holders():
+    """Kill any leftover `gpioset -m signal -b` Multiplex holder from a previous
+    LinkBuilder. That holder is backgrounded/detached (-b), so it OUTLIVES the
+    server -- if the server crashed or was restarted, the stale holder keeps
+    Multiplex_A/B busy and the next launch dies with 'Device or resource busy'.
+    Matches this code's own invocation pattern (the manual B/C workflow uses the
+    long-form `--mode=signal`, so an intentional external hold is left alone).
+    Runs as daq, which owns these holders -- no sudo. No-op if none are running."""
+    subprocess.run("pkill -f 'gpioset -m signal -b'", shell=True)
+    sleep(0.2)  # let the kernel release the lines before we re-grab them
+
+class LinkBuilder:
+    def __init__(self, slot: Union[None, str] = None):
+        """
+        Args:
+            slot (None | str):
+                If not `None`, specifies which slot ("A", "B", or "C")
+                in the multiplexed configuration
+        """
+
+        i2cs = {}
+        gpios = {}
+
+        multimodule = slot in ["A", "B", "C"]
+        if multimodule:
+            slot_int = ["A", "B", "C"].index(slot)
+            if DEBUG:
+                print(f"[MUX] slot = {repr(slot)}")
+                print(f"[MUX] slot_int = {slot_int:#02b}")
+
+            # Set the state of `Multiplex_A` and `Multiplex_B` digital outputs so that
+            # the hexacontroller board reads the DAQ lines from the right slot (A, B, or C)
+            multiplex_a = 1 & (slot_int >> 0) # Least significant bit
+            multiplex_b = 1 & (slot_int >> 1) # 2nd least significant bit
+            if DEBUG:
+                print(f"[MUX] gpioset Multiplex_A = {multiplex_a}")
+                print(f"[MUX] gpioset Multiplex_B = {multiplex_b}")
+            reap_multiplex_holders()  # release any stale holder from a crashed/prior server
+            subprocess.run(f"gpioset -m signal -b $(gpiofind Multiplex_A)={multiplex_a}", shell=True, check=True)
+            subprocess.run(f"gpioset -m signal -b $(gpiofind Multiplex_B)={multiplex_b}", shell=True, check=True)
+        try:
+            i2cs.update(mux_i2c_discover(slot) if multimodule else xil_i2c_discover())
+            gpios.update(mux_gpio_discover(slot) if multimodule else xil_gpio_discover())
+        except (IOError):
+            pass
+
+        try:
+            import gbtsca_bus
+            try:
+                self.sca = gbtsca_bus.GBTSCA("gbt_sca_com_0","file://${UHAL_ADDRESS_TABLE}/connection.xml", "mylittlememory")
+                self.sca.reset_gbtsca()
+            except(gbtsca_bus.sca.gbtsca_exception.GBT_SCA_Exception):
+                pass
+
+            try:
+                gpios.update(sca_gpio_discover(self.sca))
+                for gpio_name, gpio in gpios.items():
+                    gpio.write(1)
+                i2cs.update(sca_i2c_discover(self.sca))
+            except(gbtsca_bus.sca.gbtsca_exception.GBT_SCA_Exception):
+                pass
+
+        except(ImportError):
+            pass
+
+        self.links = {}
+        for gpio_name, gpio in gpios.items():
+            for i2c_name, i2c in i2cs.items():
+                if gpio_name in i2c_name:
+                    self.links[i2c_name] = Link(i2c, gpio)
+
+class Link:
+    def __init__(self, i2c, gpio):
+        self.i2c = i2c
+        self.gpio = gpio
+
+class i2c():
+    def __init__(self, addr, bus, sca=0):
+        self._addr = addr
+        self._bus = bus
+        self._sca = sca
+
+    def write(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def read(self, *args, **kwargs):
+        raise NotImplementedError
+
+class sca_i2c(i2c):
+    def write(self, offset, byte):
+       with self._sca.scabus(self._bus) as bus:
+            bus.write_byte(self._addr + offset, byte)
+       return None
+    
+    def read(self, offset):
+       with self._sca.scabus(self._bus) as bus:
+            ret = bus.read_byte(self._addr + offset)
+       return ret
+
+def sca_i2c_discover(sca):
+    """ Discover all ROCs on gbtsca i2c """
+
+    rocs = []
+    sca.enableI2C(0xffff)
+    for bus_id in range(15):  # 8 i2c bus lines
+        try:
+            with sca.scabus(bus_id) as bus:
+                addrs = []
+                for addr in range(128):  # 128 addrs per bus line
+                    try:
+                        bus.read_byte(addr)
+                        addrs.append(addr)
+                    except Exception as e:
+                        pass # skip non-existing addr
+                print('[I2C] Found %d address(es) on bus %d' % (len(addrs),bus_id))
+                if len(addrs) >= 8: 
+                    rocs.append((addrs[0], bus_id))
+                if len(addrs) == 16:
+                    rocs.append((addrs[8], bus_id))
+        except Exception as e:
+            pass  # skip undefined i2c busses
+    return sca_i2c_create(rocs,sca)
+
+def sca_i2c_create(rocs,sca):
+    """ Detect board type & create i2c objects """
+
+    # n = len(rocs)
+    # if n == 1:   
+    #     print('[I2C] Identified Single-Chip (Char) board')
+    #     roc_map = i2c_char_map
+    # elif n == 3: 
+    #     print('[I2C] Identified LD HexaBoard')
+    #     roc_map = i2c_ld_map
+    # elif n == 6: 
+    #     print('[I2C] Identified HD HexaBoard')
+    #     roc_map = i2c_hd_map
+
+    board_name, roc_map = get_i2c_map_for_rocs(rocs)
+    print(f'[I2C] Board identification: {board_name}')
+
+    return {roc_map[addr]:sca_i2c(addr,bus,sca) for (addr, bus) in rocs}
+
+class xil_i2c(i2c):
+    def write(self, offset, byte):
+        with SMBus(self._bus) as bus:
+            bus.write_byte(self._addr + offset, byte)
+        return None
+
+    def read(self, offset):
+        with SMBus(self._bus) as bus:
+            ret = bus.read_byte(self._addr + offset)
+        return ret
+
+i2c_maps = {
+    'Characterisation Board':
+        {0x0: 'roc_s0'},
+    'Old ROCv2 LD HB':
+        {0x00: 'roc_s0', 0x40: 'roc_s1', 0x20: 'roc_s2'},
+    'NSH HB':
+        {0x60: 'roc_s0', 0x40: 'roc_s1', 0x20: 'roc_s2'},
+    'V3 LD Full HB':
+        {0x08: 'roc_s0', 0x18: 'roc_s1', 0x28: 'roc_s2'},
+    'V3 LD Five HB':
+        {0x48: 'roc_s0', 0x58: 'roc_s1', 0x68: 'roc_s2'},
+    'V3 LD Semi or Half HB':
+        {0x48: 'roc_s0', 0x58: 'roc_s1'},
+    'V3 HD Full HB':
+        {0x08: 'roc_s0_0', 0x48: 'roc_s0_1',
+         0x18: 'roc_s1_0', 0x58: 'roc_s1_1',
+         0x28: 'roc_s2_0', 0x68: 'roc_s2_1'},
+    'V3 HD Semi-left or HD Semi-right HB':
+        {0x08: 'roc_s0_0', 0x18: 'roc_s1_0'},
+     'V3 HD Bottom HB':
+        {0x18: 'roc_s0_0', 0x58: 'roc_s0_1',
+         0x28: 'roc_s1_0', 0x68: 'roc_s1_1'},
+     'V3 HD Top HB':
+        {0x18: 'roc_s0_0', 0x58: 'roc_s0_1', 0x28: 'roc_s1_0'},
+}
+
+def find_board_for_rocs(detected_roc_addrs):
+    for board_name, board_map in i2c_maps.items():
+        board_roc_addrs = board_map.keys()
+        if set(board_roc_addrs) == set([addr for (addr, bus) in detected_roc_addrs]):
+            return board_name
+    else:
+            return None
+
+def get_i2c_map_for_rocs(roc_addrs):
+    board_name = find_board_for_rocs(roc_addrs)
+    try:
+        return board_name, i2c_maps[board_name]
+    except:
+        return f"ROC addresses {['0x%02X'%addr for addr, sub_bus in roc_addrs]} do not match a known board", {}
+
+def xil_i2c_discover():
+    """ Discover all ROCs on i2c """
+
+    rocs = []
+    for bus_id in range(8):  # 8 i2c bus lines
+        try:
+            with SMBus(bus_id) as bus:
+                addrs = []
+                for addr in range(128):  # 128 addrs per bus line
+                    try:
+                        bus.read_byte(addr)
+                        addrs.append(addr)
+                    except IOError as e: 
+                        pass # skip non-existing addr
+                print('[I2C] Found %d address(es) on bus %d' % (len(addrs),bus_id))
+                if len(addrs) >= 8:
+                    rocs.append((addrs[0], bus_id))
+                if len(addrs) >= 16:
+                    rocs.append((addrs[8], bus_id))
+                if len(addrs) >= 24:
+                    rocs.append((addrs[16], bus_id))
+                if len(addrs) >= 32:
+                    rocs.append((addrs[24], bus_id))
+                if len(addrs) >= 40:
+                    rocs.append((addrs[32], bus_id))
+                if len(addrs) >= 48:
+                    rocs.append((addrs[40], bus_id))
+        except FileNotFoundError:
+            pass  # skip undefined i2c busses
+    return xil_i2c_create(rocs)
+
+def xil_i2c_create(rocs):
+    """ Detect board type & create i2c objects """
+    board_name, roc_map = get_i2c_map_for_rocs(rocs)
+    print(f'[I2C] Board identification: {board_name}')
+
+    return {roc_map[addr]:xil_i2c(addr,bus) for (addr, bus) in rocs}
+
+class gpio():
+    def __init__(self, lines):
+        self._lines = lines
+
+    def write(self, *args, **kwargs):
+        raise NotImplementedError
+    
+    def read(self, *args, **kwargs):
+        raise NotImplementedError
+
+gpio_tbtester_map = {'roc_s0':[('hgcroc_soft_rstB',0x4), ('hgcroc_i2c_rstB',0x8), ('hgcroc_hard_rstB',0x10)]}
+gpio_tbtester_noresetmap = {'roc_s0':[('EN_LDO',0x400000), ('SOFTSTART',0x800000)]}
+
+class sca_gpio(gpio):
+    def write(self, val):
+       for line in self._lines:
+            line.set_value(val)
+  
+    def read(self):
+        ans = { }
+        for line in self._lines:
+            ans[line.name] = line.get_value()
+        return ans
+ 
+    def reset(self):
+        self._lines[0].reset_rocs()
+
+def sca_gpio_discover(sca):
+    lines = []
+    sca.enableGPIO(True)
+    for name in gpio_tbtester_map['roc_s0']:
+        lines.append(sca.gpio(name[0],name[1],False));
+    for name in gpio_tbtester_noresetmap['roc_s0']:
+        line = sca.gpio(name[0],name[1],False)
+        line.set_value(1)
+    return {'roc_s0' : sca_gpio(lines)}   
+
+class xil_gpio(gpio):
+
+    def write(self, val):
+        for line in self._lines:
+            config = gpiod.line_request()
+            config.consumer = "xil_gpio_write"
+            config.request_type = gpiod.line_request.DIRECTION_OUTPUT
+            line.request(config)
+            line.set_value(val)
+            line.release()
+
+    def read(self):
+        ans = {}
+        for line in self._lines:
+            config = gpiod.line_request()
+            config.consumer = "xil_gpio_read"
+            config.request_type = gpiod.line_request.DIRECTION_INPUT
+            line.request(config)
+            ans[line.name] = line.get_value()
+        return ans
+
+gpio_char_map = {'roc_s0': ['hgcroc_rstB', 'resyncload', 'hgcroc_i2c_rstB']}
+
+## for trophy v1 and v2
+gpio_hexa_map_v1 = {'roc_s0': ['s0_resetn', 's0_i2c_rstn'], 
+                    'roc_s1': ['s1_resetn', 's1_i2c_rstn'], 
+                    'roc_s2': ['s2_resetn', 's2_i2c_rstn']}
+
+## for trophy v3
+gpio_hexa_map_v3 = {'roc_s0': ['s1_resetn', 'hard_resetn'], 
+                    'roc_s1': ['s2_resetn', 'hard_resetn'], 
+                    'roc_s2': ['s3_resetn', 'hard_resetn']}
+
+def xil_gpio_discover():
+    # get all lines on all connected gpio chips
+    lines = []
+    for chip in gpiod.chip_iter():
+        for line in gpiod.line_iter(chip):
+            lines.append(line)
+    print([l.name for l in lines],'hgcroc_rstB' in [l.name for l in lines])        
+    if 'hgcroc_rstB' in [l.name for l in lines]:
+        gpio_map = gpio_char_map
+    elif 's0_i2c_rstn' in [l.name for l in lines]:
+        gpio_map = gpio_hexa_map_v1
+    elif 'hard_resetn' in [l.name for l in lines]:
+        gpio_map = gpio_hexa_map_v3
+    else:
+        print("ERROR : fail to find correct GPIO map in xil_gpio_discover")
+        gpio_map = {}
+
+    print("[GPIO] Identified gpio map : ",gpio_map)
+    ret = {}
+    print(gpio_map)
+    for roc, line_names in gpio_map.items():
+        sel_names = set(line_names).intersection([l.name for l in lines])
+        if sel_names:
+            ret[roc] = xil_gpio([l for l in lines if l.name in sel_names])
+    if ret: return ret
+    else: raise('Missing HexaBoard GPIO lines.')
+
+
+def testAutomaticDetection():
+    #only used to test correct board detection can be achieved
+
+    #Characterisation Board
+    rocs = [(0x28,2)]
+    myboard = xil_i2c_create(rocs)
+
+    #Old ROCv2 LD HB
+    rocs = [(0x00,5),(0x40,6),(0x20,7)]
+    myboard = xil_i2c_create(rocs)
+
+    #NSH HB
+    rocs = [(0x60,5),(0x40,6),(0x20,7)]
+    myboard = xil_i2c_create(rocs)
+
+    #LD full
+    rocs = [(0x08,2),(0x18,2),(0x28,2)]
+    myboard = xil_i2c_create(rocs)
+
+    #LD partial
+    rocs = [(0x48,2),(0x58,2)]
+    myboard = xil_i2c_create(rocs)
+
+    #HD full
+    rocs = [ (0x08,2),(0x48,2),
+             (0x18,3),(0x58,3),
+             (0x28,4),(0x68,4) ]
+    myboard = xil_i2c_create(rocs)
+    
+# Multimodule test bench topology:
+#
+# Hexacontroller
+# ╰── Bus 2
+MUX_MASTER_BUS = 2
+#     ├── 0x71 PCA9848 1-to-8 I2C bus switch (slot A)
+#     │   ╰── ... (see below for details)
+#     ├── 0x73 PCA9848 1-to-8 I2C bus switch (slot B)
+#     │   ╰── ... (see below for details)
+#     ╰── 0x77 PCA9848 1-to-8 I2C bus switch (slot C)
+#         ├── Sub-bus 0x01 / 0b00000001 "PWR"
+#         ├── Sub-bus 0x02 / 0b00000010 "S1_I2C"
+#         ├── Sub-bus 0x04 / 0b00000100 "S2"
+#         │   ╰── Trophy board mezzanine components; ADCs, EEPROM
+#         ├── Sub-bus 0x08 / 0b00001000 "S2_I2C"
+#         ├── Sub-bus 0x10 / 0b00010000 "Spare" (power management board)
+#         │   ├── 0x26 TCA9535 on the power management board
+#         │   ╰── 0x?? LTC2497 on the power management board
+#         ├── Sub-bus 0x20 / 0b00100000 "Sgl" (GPIO controllers)
+#         │   ├── 0x20 TCAL6416 I2C GPIO controller
+#         │   │   ╰── ... (see MUX_GPIO below for details)
+#         │   ╰── 0x21 TCAL6416 I2C GPIO controller
+#         │       ╰── ... (see MUX_GPIO below for details)
+#         ├── Sub-bus 0x40 / 0b01000000 "S1"
+#         ╰── Sub-bus 0x80 / 0b10000000 "S3_I2C"
+
+def get_i2c_bus_switch(slot: str) -> int:
+    if slot in ["A", "B", "C"]:
+        return {"A": 0x71, "B": 0x73, "C": 0x77}[slot]
+    raise ValueError(f"`slot` must be either {repr('A')}, {repr('B')}, or {repr('C')}; got {repr(slot)}")
+
+# Which sub-bus each PCA9848 switch is currently pointing at, so a run of accesses
+# to the same device does not re-select it every time.
+#
+# Opening the sub-bus, moving one byte and closing it again -- once per byte, the
+# way this code used to -- wedges the Alabama bench's PL master after ~3
+# transactions. The same traffic with the sub-bus left open runs indefinitely
+# (600/600 clean). So select lazily and leave the selection standing; a switch is
+# only ever closed when a DIFFERENT switch has to be opened, which keeps two slots
+# from presenting the same ROC addresses to the master at once.
+_mux_subbus_state: dict[int, int] = {}
+
+def mux_select(bus, switch: int, sub_bus: int):
+    """Point one PCA9848 at `sub_bus`, skipping the write if it already is."""
+    for other, current in list(_mux_subbus_state.items()):
+        if other != switch and current:
+            bus.write_byte(other, 0x00)
+            _mux_subbus_state[other] = 0
+    if _mux_subbus_state.get(switch) != sub_bus:
+        bus.write_byte(switch, sub_bus)
+        _mux_subbus_state[switch] = sub_bus
+
+def mux_forget_selection():
+    """Drop the cached selection after an error or a direct switch write, so the
+    next access re-selects instead of trusting a state that may not hold."""
+    _mux_subbus_state.clear()
+
+class mux_i2c(i2c):
+    """
+    Handle I2C communications through the multiplexer board
+    and its PCA9848 I2C bus switches
+    """
+    def __init__(self, addr: int, bus: int, slot: str):
+        """
+        Args:
+            addr (int): I2C device address between 0 and 127
+            bus (int): Slot sub-bus number between 0 and 7
+            slot (str): Module multiplexer board slot ("A", "B", or "C")
+        """
+        super().__init__(addr, bus)
+        self._slot = slot
+        self._i2c_bus_switch = get_i2c_bus_switch(slot)
+        if DEBUG:
+            print(f"[MUX] {self}")
+
+    def write(self, offset, byte):
+        with SMBus(MUX_MASTER_BUS) as bus:
+            try:
+                mux_select(bus, self._i2c_bus_switch, 1 << self._bus)
+                bus.write_byte(self._addr + offset, byte)
+            except OSError:
+                mux_forget_selection()
+                raise
+        return None
+
+    def read(self, offset):
+        with SMBus(MUX_MASTER_BUS) as bus:
+            try:
+                mux_select(bus, self._i2c_bus_switch, 1 << self._bus)
+                ret = bus.read_byte(self._addr + offset)
+            except OSError:
+                mux_forget_selection()
+                raise
+        return ret
+
+    def __repr__(self):
+        return f"mux_i2c(addr={self._addr:#04x}, bus={self._bus}, slot={repr(self._slot)})"
+
+    def __str__(self):
+        return " ".join([
+            "(muxed I2C device @",
+            f"slot {repr(self._slot)}",
+            f"(I2C mux addr {self._i2c_bus_switch:#04x}),",
+            f"sub-bus {self._bus},",
+            f"addr {self._addr:#04x})",
+        ])
+
+def mux_i2c_discover(slot: str) -> dict[str, mux_i2c]:
+    """
+    Discover all HGCROCs on I2C
+
+    Args:
+        slot (str): Module multiplexer board slot ("A", "B", or "C")
+    """
+    i2c_bus_switch = get_i2c_bus_switch(slot)
+    if DEBUG:
+        print(f"[MUX] mux_i2c_discover(slot={repr(slot)})")
+        print(f"[MUX] (I2C mux addr {i2c_bus_switch:#04x})")
+    sleep(1) # A short delay is needed to find all HGCROCs reliably
+
+    rocs: list[tuple[int, int]] = []
+    # Iterate over each PCA9848 ROC sub-bus
+    #        = 0x01 = sub-bus #0 =   1
+    # S1_I2C = 0x02 = sub-bus #1 =   2
+    #        = 0x04 = sub-bus #2 =   4
+    # S2_I2C = 0x08 = sub-bus #3 =   8
+    #        = 0x10 = sub-bus #4 =  16
+    #        = 0x20 = sub-bus #5 =  32
+    #        = 0x40 = sub-bus #6 =  64
+    # S3_I2C = 0x80 = sub-bus #7 = 128
+    #
+    # Probe ONLY the known V3 HGCROC base addresses instead of sweeping every
+    # address and picking ROC bases by position (addrs[0], addrs[8], ...). The
+    # positional sweep is fragile: when a GPIO expander (0x20/0x21) appears on a
+    # ROC sub-bus the indices shift and it mis-picks 0x20 as a ROC -> the base set
+    # matches no board -> crash; the full 0x08-0x70 read sweep is also what can
+    # wedge the write-mostly bus. Every V3 ROC base (LD and HD) has low nibble 0x8:
+    # LD uses {0x08,0x18,0x28}, HD adds {0x48,0x58,0x68}. Probing just these finds
+    # all ROCs wherever they sit, never mistakes the 2-address 0x20/0x21 expander
+    # for a ROC, and issues ~6 reads/sub-bus instead of ~100.
+    # NOTE: legacy ROCv2/NSH bases {0x00,0x20,0x40,0x60} are intentionally NOT probed
+    # (0x20 collides with the GPIO expander); add them below only if you need them.
+    candidate_bases = [0x08, 0x18, 0x28, 0x48, 0x58, 0x68]
+    for sub_bus in [1, 3, 7]:
+        with SMBus(MUX_MASTER_BUS) as bus:
+            mux_select(bus, i2c_bus_switch, 1 << sub_bus)
+        try:
+            with SMBus(MUX_MASTER_BUS) as bus:
+                found = []
+                for base in candidate_bases:
+                    try:
+                        bus.read_byte(base)
+                        rocs.append((base, sub_bus))
+                        found.append(base)
+                    except IOError:
+                        pass # No ROC at this base on this sub-bus
+                print(f"[I2C] Sub-bus {sub_bus}: ROC base(s) "
+                      + (" ".join(f"0x{b:02x}" for b in found) if found else "(none)"))
+        except FileNotFoundError:
+            pass # Skip undefined I2C buses
+
+    # The selection is deliberately left standing -- see mux_select().
+
+    for addr, sub_bus in rocs:
+        print(f"[I2C] (address {addr:#04x}, bus {MUX_MASTER_BUS}, sub-bus {sub_bus})")
+    return mux_i2c_create(rocs, slot)
+
+def mux_i2c_create(rocs: list[tuple[int, int]], slot: str) -> dict[str, mux_i2c]:
+    """
+    Detect board type & create I2C objects
+
+    Args:
+        slot (str): Module multiplexer board slot ("A", "B", or "C")
+    """
+    if DEBUG:
+        print(
+            "[MUX] mux_i2c_create(rocs=[",
+            ",".join([f"({addr:#04x},{sub_bus})" for addr, sub_bus in rocs]),
+            f"], slot={repr(slot)})",
+            sep=""
+        )
+    board_name, roc_map = get_i2c_map_for_rocs(rocs)
+    if roc_map:
+        print(f"[I2C] Board identification: {board_name}")
+        return {roc_map[addr]: mux_i2c(addr, bus, slot) for (addr, bus) in rocs}
+    raise Exception(board_name)
+
+class mux_gpio_line:
+    def __init__(self, name: str, addr: int, port: int, pin: int):
+        """
+        TCAL6416 pin. Datasheet: https://www.ti.com/lit/ds/symlink/tcal6416.pdf.
+
+        Args:
+            name (str): Signal name
+            addr (int): TCAL6416 I2C address (`0x20` or `0x21`)
+            port (int): TCAL6416 port (`0` or `1`)
+            pin (int):  Pin number (`0`...`7`)
+        """
+        if addr not in [0x20, 0x21]:
+            raise ValueError(f"TCAL6416 I2C address is 0x20 or 0x21; got {addr:#04x}")
+        if port not in [0, 1]:
+            raise ValueError(f"TCAL6416 port is either 0 or 1; got {port}")
+        if pin not in list(range(8)):
+            raise ValueError(f"TCAL6416 pin is 0...7; got {pin}")
+        self.name = name
+        self.addr = addr
+        self.port = port
+        self.pin  = pin
+
+        self._bit_pos = (1 << self.pin)         # Pin bitmask
+        self._bit_inv = (1 << self.pin) ^ 0xFF  # Pin bitmask (inverted)
+        self._reg_in  = [0x00, 0x01][self.port] # R    Input register address
+        self._reg_out = [0x02, 0x03][self.port] # R/W  Output register address
+        self._reg_pol = [0x04, 0x05][self.port] # R/W  Polarity register address
+        self._reg_dir = [0x06, 0x07][self.port] # R/W  Direction (input/output) register address
+
+        if DEBUG:
+            print(f"[MUX] {self}")
+
+    def __repr__(self):
+        return f"mux_gpio_line({repr(self.name)}, addr={self.addr:#04x}, port={self.port}, pin={self.pin})"
+
+    def __str__(self):
+        return f"TCAL6416 @ {self.addr:#04x}, P{self.port}{self.pin} {repr(self.name)}"
+
+# On the multimodule test bench, the GPIOs are no longer on the hexacontroller
+# but on TCAL6416 GPIO controllers found on the multimodule multiplexer board.
+# Such GPIOs cannot be discovered automatically, and are thus hardcoded below.
+MUX_GPIO: list[mux_gpio_line] = [
+  # mux_gpio_line("",            addr = 0x20, port = 0, pin = 0), # P00 Not Connected
+    mux_gpio_line("s1_rstb",     addr = 0x20, port = 0, pin = 1), # P01
+    mux_gpio_line("s2_rstb",     addr = 0x20, port = 0, pin = 2), # P02
+    mux_gpio_line("s3_rstb",     addr = 0x20, port = 0, pin = 3), # P03
+    mux_gpio_line("fmc_error",   addr = 0x20, port = 0, pin = 4), # P04
+    mux_gpio_line("s2_error_l",  addr = 0x20, port = 0, pin = 5), # P05
+    mux_gpio_line("s3_error_l",  addr = 0x20, port = 0, pin = 6), # P06
+    mux_gpio_line("s1_error_r",  addr = 0x20, port = 0, pin = 7), # P07
+
+    mux_gpio_line("s2_error_r",  addr = 0x20, port = 1, pin = 0), # P10
+    mux_gpio_line("s3_error_r",  addr = 0x20, port = 1, pin = 1), # P11
+    mux_gpio_line("s1_pwr_en",   addr = 0x20, port = 1, pin = 2), # P12
+    mux_gpio_line("s2_pwr_en",   addr = 0x20, port = 1, pin = 3), # P13
+    mux_gpio_line("s3_pwr_en",   addr = 0x20, port = 1, pin = 4), # P14
+    mux_gpio_line("s1_pwr_pg",   addr = 0x20, port = 1, pin = 5), # P15
+    mux_gpio_line("s2_pwr_pg",   addr = 0x20, port = 1, pin = 6), # P16
+    mux_gpio_line("s3_pwr_pg",   addr = 0x20, port = 1, pin = 7), # P17
+
+    mux_gpio_line("adc_rdy_pwr", addr = 0x21, port = 0, pin = 0), # P00
+    mux_gpio_line("adc_rdy_s1",  addr = 0x21, port = 0, pin = 1), # P01
+    mux_gpio_line("adc_rdy_s2",  addr = 0x21, port = 0, pin = 2), # P02
+    mux_gpio_line("adc_rdy_s3",  addr = 0x21, port = 0, pin = 3), # P03
+    mux_gpio_line("s1_i2c_rst",  addr = 0x21, port = 0, pin = 4), # P04
+    mux_gpio_line("s2_i2c_rst",  addr = 0x21, port = 0, pin = 5), # P05
+    mux_gpio_line("s3_i2c_rst",  addr = 0x21, port = 0, pin = 6), # P06
+  # mux_gpio_line("",            addr = 0x21, port = 0, pin = 7), # P07 Not Connected
+
+  # mux_gpio_line("",            addr = 0x21, port = 1, pin = 0), # P10 Not Connected
+  # mux_gpio_line("",            addr = 0x21, port = 1, pin = 1), # P11 Not Connected
+    mux_gpio_line("pg_dcdc",     addr = 0x21, port = 1, pin = 2), # P12
+  # mux_gpio_line("",            addr = 0x21, port = 1, pin = 3), # P13 Not Connected
+  # mux_gpio_line("",            addr = 0x21, port = 1, pin = 4), # P14 Not Connected
+  # mux_gpio_line("",            addr = 0x21, port = 1, pin = 5), # P15 Not Connected
+  # mux_gpio_line("",            addr = 0x21, port = 1, pin = 6), # P16 Not Connected
+  # mux_gpio_line("",            addr = 0x21, port = 1, pin = 7), # P17 Not Connected
+]
+
+MUX_GPIO_MAP: dict[str, mux_gpio_line] = {line.name: line for line in MUX_GPIO}
+
+# TCAL6416 register shadow, keyed by (device address, register). Read-modify-write
+# on the mux board expanders needs the current register value; on a bench where
+# reads wedge the master (MMTS_GPIO_READBACK=0) we track what we wrote instead of
+# reading it back. Seeded from the power-on defaults and kept in step by every
+# write that goes through mux_reg_set(), including mux_setup's.
+MUX_REG_POR = {0x02: 0xFF, 0x03: 0xFF,   # output port 0 / 1
+               0x06: 0xFF, 0x07: 0xFF}   # direction port 0 / 1 (1 = input)
+_mux_reg_shadow: dict[tuple[int, int], int] = {}
+
+def mux_reg_set(bus, addr: int, reg: int, val: int):
+    """Write one TCAL6416 register and remember the value."""
+    bus.write_byte_data(addr, reg, val)
+    _mux_reg_shadow[(addr, reg)] = val
+
+def mux_reg_get(bus, addr: int, reg: int) -> int:
+    """Current value of one TCAL6416 register.
+
+    Read from the device where that is safe; otherwise return the shadow copy,
+    falling back to the power-on default for a register nothing has written yet.
+    """
+    if MUX_GPIO_READBACK:
+        return bus.read_byte_data(addr, reg)
+    return _mux_reg_shadow.get((addr, reg), MUX_REG_POR.get(reg, 0xFF))
+
+class mux_gpio(gpio):
+    def __init__(self, slot: str, lines: list[mux_gpio_line]):
+        self._lines: list[mux_gpio_line] # Type hint
+        super().__init__(lines)
+
+        self._slot = slot
+        self._i2c_bus_switch = get_i2c_bus_switch(slot)
+
+    def __repr__(self):
+        print(f"mux_gpio(slot={repr(slot)}, lines=[")
+        for line in lines:
+            print(f"  {repr(line)},")
+        print("])")
+
+    def write(self, val):
+        if not MUX_ROC_GPIO_RESET:
+            # Bench where driving S*_RSTB from here wedges the master; the modules
+            # were hard-reset during bring-up instead. See MUX_ROC_GPIO_RESET.
+            if DEBUG:
+                print(f"[MUX] skipping mux_gpio.write({val}) (MMTS_ROC_GPIO_RESET=0)")
+            return
+
+        # Retry the whole open->set->close sequence on a transient bus error. On a
+        # marginal module the TCAL6416 access intermittently EIOs at a WANDERING point
+        # (switch-open one time, an expander read the next) -- the mark of a transient,
+        # not a dead device -- and one bare EIO here would otherwise abort startup.
+        # Re-open the SMBus fd each attempt so a half-finished sequence starts clean.
+        # Mirrors the transient-recovery retry in ROC.__read_I2C_reg/__set_I2C_reg.
+        attempts = 5
+        for attempt in range(attempts):
+            try:
+                with SMBus(MUX_MASTER_BUS) as bus:
+                    mux_select(bus, self._i2c_bus_switch, 0x20) # GPIO (TCAL6416) sub-bus
+
+                    for line in self._lines:
+                        # Write a 0 to the GPIO direction register (0 = output, 1 = input)
+                        # without changing the direction of the other GPIOs
+                        current_dir = mux_reg_get(bus, line.addr, line._reg_dir)
+                        mux_reg_set(bus, line.addr, line._reg_dir,
+                                    current_dir & line._bit_inv)
+
+                        # Write a 0 or a 1 to the GPIO without changing the state of the other GPIOs
+                        current_out = mux_reg_get(bus, line.addr, line._reg_out)
+                        if val:
+                            mux_reg_set(bus, line.addr, line._reg_out,
+                                        current_out | line._bit_pos)
+                        else:
+                            mux_reg_set(bus, line.addr, line._reg_out,
+                                        current_out & line._bit_inv)
+
+                return
+            except OSError as e:
+                mux_forget_selection()
+                if attempt == attempts - 1:
+                    raise
+                print(f"IOError in mux_gpio.write (attempt {attempt+1}/{attempts}): {e}. Retrying.")
+                sleep(0.1)
+
+    def read(self):
+        raise NotImplementedError
+
+def mux_gpio_discover(slot: str) -> dict[str, mux_gpio]:
+    gpio_map = {"roc_s0": ["s1_rstb", "s1_i2c_rst"],
+                "roc_s1": ["s2_rstb", "s2_i2c_rst"],
+                "roc_s2": ["s3_rstb", "s3_i2c_rst"]}
+    if not MUX_HAS_I2C_RST_EXPANDER:
+        # No TCAL6416 @0x21 on this bench: every ROC.reset() would touch it and
+        # wedge the master. Reset over the RSTB lines (0x20) alone.
+        gpio_map = {roc: [n for n in names if not n.endswith("_i2c_rst")]
+                    for roc, names in gpio_map.items()}
+    ret = {}
+    for roc, line_names in gpio_map.items():
+        ret[roc] = mux_gpio(slot, [line for line in MUX_GPIO if line.name in line_names])
+    if ret:
+        return ret
+    raise Exception("Missing HexaBoard GPIO lines.")
+
+class mux_gpio_lines:
+    """
+    A set of GPIOs from the same GPIO controller (@ 0x20 or 0x21),
+    the same port (0 or 1), and the same purpose, meant to be read
+    from and written to at once.
+    """
+    def __init__(self, lines: list[mux_gpio_line]):
+        self.addr = lines[0].addr
+        self._reg_dir = lines[0]._reg_dir
+        self._reg_out = lines[0]._reg_out
+        self._bit_pos = 0
+        for line in lines:
+            self._bit_pos = self._bit_pos | line._bit_pos
+        self._bit_inv = self._bit_pos ^ 0xFF
+
+# ---------------------------------------------------------------------------
+# Per-bench configuration. Every write to a device that is not there WEDGES the
+# shared write-mostly PL master (Errno 110/5) until the firmware is reloaded, so
+# what a bench does NOT have has to be declared rather than discovered.
+# Override with environment variables so one checkout serves both benches:
+#
+#   MMTS_POWER_MGMT_BOARD=1   bench has the power management board  (Alabama/kria4)
+#   MMTS_I2C_RST_EXPANDER=0   TCAL6416 @0x21 absent, never write it (Alabama/kria4)
+#   MMTS_SLOTS=BC             only these slots' PCA9848 switches answer (Alabama/kria4)
+#
+# Defaults reproduce the FNAL/kria10 two-module bench: no power management
+# board, both GPIO expanders present, all three switches populated.
+# ---------------------------------------------------------------------------
+def _mux_env_flag(name: str, default: bool) -> bool:
+    return os.environ.get(name, "1" if default else "0").strip().lower() \
+        in ("1", "true", "yes", "on")
+
+# The MMTS two-module bench has NO power management board -- the hexaboards are powered
+# via the per-module TCAL6416 expanders (0x20/0x21) by enableROCs.py. Writing to an absent
+# power-mgmt board on the shared master WEDGES the bus (Errno 110/5), so skip that step here.
+# Set True (or MMTS_POWER_MGMT_BOARD=1) only on a bench that actually has one.
+MUX_HAS_POWER_MGMT_BOARD = _mux_env_flag("MMTS_POWER_MGMT_BOARD", False)
+
+# The second mux board GPIO expander (TCAL6416 @0x21, the S*_I2C_RST lines) is not
+# populated on every bench; on the Alabama bench writing to it wedges the master.
+MUX_HAS_I2C_RST_EXPANDER = _mux_env_flag("MMTS_I2C_RST_EXPANDER", True)
+
+# Slots whose PCA9848 switch actually answers. mux_setup opens and closes the
+# sub-buses of each of these; a switch that is not there NACKs and wedges the bus.
+MUX_SLOTS = [s for s in os.environ.get("MMTS_SLOTS", "ABC").strip().upper()
+             if s in ("A", "B", "C")] or ["A", "B", "C"]
+
+# Whether the mux board GPIO expanders may be READ. On the Alabama bench a read of
+# the TCAL6416 wedges the master partway through the per-ROC resets, so the
+# read-modify-write in mux_gpio.write has to run off the register shadow instead
+# (MMTS_GPIO_READBACK=0). See mux_reg_get/mux_reg_set below.
+MUX_GPIO_READBACK = _mux_env_flag("MMTS_GPIO_READBACK", True)
+
+# Whether ROC.reset() may drive the mux board S*_RSTB lines. zmq_server builds the
+# board twice (once to identify the ROC type, once for real) and resets every ROC
+# each time; on the Alabama bench that repeated toggling wedges the master even on
+# a plain write. The modules there are hard-reset by enableROCs_alabama.py's RSTB
+# release immediately before the server starts, so the repeat is redundant and
+# MMTS_ROC_GPIO_RESET=0 turns mux_gpio.write into a no-op.
+MUX_ROC_GPIO_RESET = _mux_env_flag("MMTS_ROC_GPIO_RESET", True)
+
+# Power management board ADDR0, ADDR1, ADDR2 jumpers (False = no jumper, True = jumper)
+POWER_MGMT_BOARD_ADDR_JUMPERS = {2: False, 1: False, 0: False}
+POWER_MGMT_BOARD_ADDR = sum([has_jumper << bit for bit, has_jumper in POWER_MGMT_BOARD_ADDR_JUMPERS.items()])
+#                         ---   --0   -1-   -10   2--   2-0   21-   210
+POWER_MGMT_BOARD_GPIO = (0x27, 0x26, 0x25, 0x24, 0x23, 0x22, 0x21, 0x20)[POWER_MGMT_BOARD_ADDR]
+POWER_MGMT_BOARD_ADC  = (0x76, 0x74, 0x64, 0x56, 0x34, 0x26, 0x16, 0x14)[POWER_MGMT_BOARD_ADDR]
+
+def mux_setup(slot: str):
+    """
+    Power the hexaboard, its HGCROCs, and make sure the latter are out of their reset state:
+    - Enable hexaboard power from the power management board (if any),
+    - Enable the hexaboard's LDO regulators to power the HGCROCs,
+    - Set the soft and hard HGCROCs reset pins to a HIGH state.
+
+    Args:
+        slot (str): Module multiplexer board slot ("A", "B", or "C")
+    """
+    PWR_EN = mux_gpio_lines([
+        MUX_GPIO_MAP["s1_pwr_en"],
+        MUX_GPIO_MAP["s2_pwr_en"],
+        MUX_GPIO_MAP["s3_pwr_en"],
+    ])
+    RSTB = mux_gpio_lines([
+        MUX_GPIO_MAP["s1_rstb"],
+        MUX_GPIO_MAP["s2_rstb"],
+        MUX_GPIO_MAP["s3_rstb"],
+    ])
+    I2C_RST = mux_gpio_lines([
+        MUX_GPIO_MAP["s1_i2c_rst"],
+        MUX_GPIO_MAP["s2_i2c_rst"],
+        MUX_GPIO_MAP["s3_i2c_rst"],
+    ])
+
+    if DEBUG:
+        print(f"[MUX] Power management board ADDR jumpers: {POWER_MGMT_BOARD_ADDR_JUMPERS}")
+        print(f"[MUX] Power management board GPIO address: {POWER_MGMT_BOARD_GPIO:#04x}")
+
+    # This function drives the PCA9848s directly, so any cached selection from
+    # earlier accesses no longer describes the hardware.
+    mux_forget_selection()
+
+    with SMBus(MUX_MASTER_BUS) as bus:
+        ##############################
+        ### Power management board ###
+        # Skipped on the MMTS bench (no power management board). Connecting the "Spare"
+        # sub-bus and writing to an absent board wedges the shared master (Errno 110/5),
+        # which then kills the switch write below. See MUX_HAS_POWER_MGMT_BOARD above.
+        if MUX_HAS_POWER_MGMT_BOARD:
+            # Connect the hexacontroller to the power management board
+            for s in MUX_SLOTS:
+                bus.write_byte(get_i2c_bus_switch(s), 0x10) # "Spare" sub-bus (power management board)
+
+            i2cdetect("Power management board")
+            mask = {"A": 0b001, "B": 0b010, "C": 0b100}[slot]
+            try:
+                # TCA9535 @ 0x26, P00 'EN_M1' output direction
+                # TCA9535 @ 0x26, P01 'EN_M2' output direction
+                # TCA9535 @ 0x26, P02 'EN_M3' output direction
+                bus.write_byte_data(POWER_MGMT_BOARD_GPIO, 0x06, 0xF8) # 0b11111000 port 0 direction
+                # TCA9535 @ 0x26, P00 'EN_M1' HIGH state
+                # TCA9535 @ 0x26, P01 'EN_M2' HIGH state
+                # TCA9535 @ 0x26, P02 'EN_M3' HIGH state
+                bus.write_byte_data(POWER_MGMT_BOARD_GPIO, 0x02, mask) # 0b00000??? port 0 output (??? = 001, 010, or 100)
+            except Exception as e:
+                print(e)
+                pass # No power management board is used, or there is an I2C error
+
+        ### Power management board ###
+        ##############################
+
+        # Connect the hexacontroller to the mux board TCAL6416 GPIO controllers for this slot
+        for s in MUX_SLOTS:
+            bus.write_byte(get_i2c_bus_switch(s), 0x00) # No sub-bus
+        for s in MUX_SLOTS:
+            bus.write_byte(get_i2c_bus_switch(s), 0x20) # "Sgl" sub-bus (TCAL6416 GPIO controllers)
+
+        #########################
+        ### Multiplexer board ###
+
+        # TCAL6416 @ 0x20, P1x (port 1)
+
+        # TCAL6416 @ 0x20, P12 'S1_PWR_EN' output direction
+        # TCAL6416 @ 0x20, P13 'S2_PWR_EN' output direction
+        # TCAL6416 @ 0x20, P14 'S3_PWR_EN' output direction
+        mux_reg_set(bus, PWR_EN.addr, PWR_EN._reg_dir, PWR_EN._bit_inv)
+      # bus.write_byte_data(0x20,        0x07,            0xE3) # 0b11100011 port 1 dir
+
+        # TCAL6416 @ 0x20, P12 'S1_PWR_EN' HIGH state
+        # TCAL6416 @ 0x20, P13 'S2_PWR_EN' HIGH state
+        # TCAL6416 @ 0x20, P14 'S3_PWR_EN' HIGH state
+        mux_reg_set(bus, PWR_EN.addr, PWR_EN._reg_out, PWR_EN._bit_pos)
+      # bus.write_byte_data(0x20,        0x03,            0x1C) # 0b00011100 port 1 out
+
+        # TCAL6416 @ 0x20, P0x (port 0)
+
+        # TCAL6416 @ 0x20, P01 'S1_RSTB' output direction
+        # TCAL6416 @ 0x20, P02 'S2_RSTB' output direction
+        # TCAL6416 @ 0x20, P03 'S3_RSTB' output direction
+        mux_reg_set(bus, RSTB.addr, RSTB._reg_dir, RSTB._bit_inv)
+      # bus.write_byte_data(0x20,      0x06,          0xF1) # 0b11110001 port 0 dir
+
+        # TCAL6416 @ 0x20, P01 'S1_RSTB' HIGH state
+        # TCAL6416 @ 0x20, P02 'S2_RSTB' HIGH state
+        # TCAL6416 @ 0x20, P03 'S3_RSTB' HIGH state
+        mux_reg_set(bus, RSTB.addr, RSTB._reg_out, RSTB._bit_pos)
+      # bus.write_byte_data(0x20,      0x02,          0x0E) # 0b00001110 port 0 out
+
+        # TCAL6416 @ 0x21, P0x (port 0)
+        # Skipped where 0x21 is not populated (MMTS_I2C_RST_EXPANDER=0): the write
+        # NACKs and wedges the master for every later access. The HGCROCs come out
+        # of I2C reset anyway -- the line is pulled up on those boards.
+        if MUX_HAS_I2C_RST_EXPANDER:
+            # TCAL6416 @ 0x21, P04 'S1_I2C_RST' output direction
+            # TCAL6416 @ 0x21, P05 'S2_I2C_RST' output direction
+            # TCAL6416 @ 0x21, P06 'S3_I2C_RST' output direction
+            mux_reg_set(bus, I2C_RST.addr, I2C_RST._reg_dir, I2C_RST._bit_inv)
+          # bus.write_byte_data(0x21,         0x06,             0x8f) # 0b10001111 port 0 dir
+
+            # TCAL6416 @ 0x21, P04 'S1_I2C_RST' HIGH state
+            # TCAL6416 @ 0x21, P05 'S2_I2C_RST' HIGH state
+            # TCAL6416 @ 0x21, P06 'S3_I2C_RST' HIGH state
+            mux_reg_set(bus, I2C_RST.addr, I2C_RST._reg_dir, I2C_RST._bit_pos)
+          # bus.write_byte_data(0x21,         0x02,             0x70) # 0b01110000 port 0 out
+
+        ### Multiplexer board ###
+        #########################
+
+        # Disconnect the hexacontroller from all multiplexer board sub-buses
+        for s in MUX_SLOTS:
+            bus.write_byte(get_i2c_bus_switch(s), 0)
+    mux_forget_selection()

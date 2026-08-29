@@ -1,0 +1,18 @@
+roc_s0:
+  ReferenceVoltage:
+    all:  
+      Calib: 0
+      IntCtest: 1
+      ExtCtest: 1
+roc_s1:
+  ReferenceVoltage:
+    all:  
+      Calib: 0
+      IntCtest: 1
+      ExtCtest: 1
+roc_s2:
+  ReferenceVoltage:
+    all:  
+      Calib: 0
+      IntCtest: 1
+      ExtCtest: 1

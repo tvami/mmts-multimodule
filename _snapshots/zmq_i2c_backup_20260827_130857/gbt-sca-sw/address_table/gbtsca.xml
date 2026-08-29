@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<node id="TOP">
+  <node id="gbt_sca_com_0_rx"            module="file://modules/GBT_SCA_rx.xml"                   address="0xA0050000"/>
+  <!-- Annoyingly, we need these next two just to get the UIO mapping to happen -->
+  <node id="gbt_sca_com_0_tx"         module="file://modules/GBT_SCA_tx.xml"                address="0xA0060000"/>
+  <node id="gbt_sca_com_0_gpio"       module="file://modules/GBT_SCA_axi_gpio.xml"          address="0xA0070000"/>
+  <node id="gbt_sca_com_1_rx"            module="file://modules/GBT_SCA_rx.xml"                   address="0xA0080000"/>
+  <!-- Annoyingly, we need these next two just to get the UIO mapping to happen -->
+  <node id="gbt_sca_com_1_tx"         module="file://modules/GBT_SCA_tx.xml"                address="0xA0090000"/>
+  <node id="gbt_sca_com_1_gpio"       module="file://modules/GBT_SCA_axi_gpio.xml"          address="0xA00A0000"/>
+</node>

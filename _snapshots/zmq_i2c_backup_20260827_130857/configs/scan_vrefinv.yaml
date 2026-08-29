@@ -1,0 +1,9 @@
+roc_s0:
+  sc:
+    ReferenceVoltage:
+      0:
+       Inv_vref: 230
+       Noinv_vref: 50
+      1:
+       Inv_vref: 230
+       Noinv_vref: 50

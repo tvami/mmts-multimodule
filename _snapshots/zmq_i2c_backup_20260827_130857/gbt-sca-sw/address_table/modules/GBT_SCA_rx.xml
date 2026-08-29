@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<node id="sca_rx">    
+  <node id="pop"                     address="0x5"                      permission="w" description="Active high to pop data from gbtsca"/>
+  <node id="address"                 address="0x0"  mask="0xff"         permission="r" description="Always 0 for GBT-SCA"/>
+  <node id="control"                 address="0x0"  mask="0xff00"       permission="r" description="Control register from GBT-SCA"/>
+  <node id="transID"                 address="0x0"  mask="0xff0000"     permission="r" description="Transaction ID"/>
+  <node id="channel"                 address="0x0"  mask="0xff000000"   permission="r" description="I2C channel"/>
+  <node id="length"                  address="0x1"  mask="0xff"         permission="r" description="Unused?"/>
+  <node id="error"                   address="0x1"  mask="0xff00"       permission="r" description="Error word"/>    
+  <node id="data0"                   address="0x1"  mask="0xff0000"     permission="r" description="8-bit words 0 of the 32 bit data word"/>
+  <node id="data1"                   address="0x1"  mask="0xff000000"   permission="r" description="8-bit words 1 of the 32 bit data word"/>
+  <node id="data2"                   address="0x2"  mask="0xff"         permission="r" description="8-bit words 2 of the 32 bit data word"/>
+  <node id="data3"                   address="0x2"  mask="0xff00"       permission="r" description="8-bit words 3 of the 32 bit data word" />       
+  <node id="rdatavalid"              address="0x4"  mask="0x1"          permission="r" description="Data valid to read"/>
+  <node id="interrupt"               address="0xAA"                     permission="r" description="Interrupt reg (dummy)" tags="interrupt"/>
+</node>

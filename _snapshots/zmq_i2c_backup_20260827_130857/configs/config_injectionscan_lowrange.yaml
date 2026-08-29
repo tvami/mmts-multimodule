@@ -1,0 +1,13 @@
+roc_s0:
+  sc:
+    ReferenceVoltage:
+      all:
+        IntCtest: 1
+        Calib_dac: 0
+    ch:
+      all: # with this setting we will scan between ~ 0 and 0.5 pC with steps of ~12fC (assuming DAC step of 50 from 0 to 2048) 
+        LowRange: 1
+        HighRange: 0
+
+
+

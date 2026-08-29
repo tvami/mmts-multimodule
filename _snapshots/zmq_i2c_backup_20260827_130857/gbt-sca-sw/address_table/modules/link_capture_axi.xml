@@ -1,0 +1,11 @@
+<node>
+    <!-- The meaning of the link labels is based on https://indico.cern.ch/event/869259/contributions/3664566/attachments/1959969/3257187/10Dec2019.pdf#page=10
+	 addresses are based on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/blob/426ed8a5ec5ff944c78945894852da2e3c7cb906/src/hdl/link_capture.v#L276-328
+    -->
+    <node id="daq0" address="0x00" module="file://link_capture_axi_channel.xml" description="daq0 capture control"/>
+    <node id="daq1" address="0x08" module="file://link_capture_axi_channel.xml" description="daq1 capture control"/>
+    <node id="trg0" address="0x10" module="file://link_capture_axi_channel.xml" description="trg0 capture control"/>
+    <node id="trg1" address="0x18" module="file://link_capture_axi_channel.xml" description="trg1 capture control"/>
+    <node id="trg2" address="0x20" module="file://link_capture_axi_channel.xml" description="trg2 capture control"/>
+    <node id="trg3" address="0x28" module="file://link_capture_axi_channel.xml" description="trg3 capture control"/>
+</node>

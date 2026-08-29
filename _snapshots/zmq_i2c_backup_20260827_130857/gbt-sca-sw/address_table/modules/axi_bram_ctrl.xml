@@ -1,0 +1,13 @@
+<node>
+  <!-- Memory page segmentation based on
+  https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/blob/426ed8a5ec5ff944c78945894852da2e3c7cb906/src/hdl/link_capture.v#L446-454
+  (BRAM is in bytes)
+  -->
+  <node id="daq0" address="0x0000" module="file://axi_bram_ctrl_channel.xml" description="daq0 link RAM"/>
+  <node id="daq1" address="0x2000" module="file://axi_bram_ctrl_channel.xml" description="daq1 link RAM"/>
+  <node id="trg0" address="0x4000" module="file://axi_bram_ctrl_channel.xml" description="trg0 link RAM"/>
+  <node id="trg1" address="0x6000" module="file://axi_bram_ctrl_channel.xml" description="trg1 link RAM"/>
+  <node id="trg2" address="0x8000" module="file://axi_bram_ctrl_channel.xml" description="trg2 link RAM"/>
+  <node id="trg3" address="0xa000" module="file://axi_bram_ctrl_channel.xml" description="trg3 link RAM"/>
+</node >
+

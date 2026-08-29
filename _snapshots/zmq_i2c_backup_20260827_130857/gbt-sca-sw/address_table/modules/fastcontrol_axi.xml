@@ -1,0 +1,36 @@
+<!-- https://gitlab.cern.ch/cms-hgcal-firmware/fast-control/blob/master/encode/src/hdl/manager/hgcal_fc_manager.v#L11-37 -->
+
+<node>    
+  <node id="command" address="0x0">
+    <node id="enable_fast_ctrl_stream" mask="0x1"        permission="rw" description="Enable fast control stream (otherwise, constant zero)"/>
+    <node id="force_idles"             mask="0x2"        permission="rw" description="Force idles (disable any other signals)"/>
+    <node id="enable_orbit_sync"       mask="0x4"        permission="rw" description="Enable orbitsync"/>
+    <node id="enable_per_calib_req"    mask="0x8"        permission="rw" description="Enable periodic calibration req"/>
+    <node id="enable_calib_l1a"        mask="0x10"       permission="rw" description="Enable calibration l1a after calibration req"/>
+    <node id="enable_periodic_l1a_A"   mask="0x20"       permission="rw" description="Enable periodic l1a generator A"/>
+    <node id="enable_periodic_l1a_B"   mask="0x40"       permission="rw" description="Enable periodic l1a generator B"/>
+    <node id="gen_calib_cycle"         mask="0x10000"    permission="rw"  description="Generate one calibration req/l1a cycle"/>
+    <node id="orbit_rst"               mask="0x20000"    permission="rw"  description="Send an orbit count reset at the next orbitsync"/>
+    <node id="link_reset"              mask="0x40000"    permission="rw"  description="Send a link-reset"/>
+    <node id="daq_resync"              mask="0x80000"    permission="rw"  description="Send a DAQ-resync"/>
+    <node id="l1a_A"                   mask="0x100000"   permission="rw"  description="Send an L1A at the assigned BX for generator A"/>
+    <node id="l1a_B"                   mask="0x200000"   permission="rw"  description="Send an L1A at the assigned BX for generator B"/>
+    <node id="test_req"                mask="0x8000000"  permission="rw"  description="Send an internal test request"/>
+    <node id="count_rst"               mask="0x10000000" permission="rw"  description="Reset counters"/>
+  </node>
+  <node id="bx_orbit_sync" address="0x1" mask="0xfff" permission="rw" description="BX for orbitsync"/>
+  <node id="bx_calib" address="0x2">
+    <node id="req"          mask="0xfff"       permission="rw" description="BX for calibration req"/>
+    <node id="l1a"          mask="0xfff000"    permission="rw" description="BX for calibration l1a"/>
+    <node id="l1a_notcalib" mask="0x0x1000000" permission="rw" description="Send regular l1a, not calibration l1a"/>
+  </node>
+  <node id="orbit_prescale" address="0x3" mask="0xfffff" permission="rw" description="orbit prescale for periodic calibration req"/>
+  <node id="bx_A" address="0x4">
+    <node id="l1a"            mask="0xfff"      permission="rw" description="BX for L1A channel A"/>
+    <node id="orbit_prescale" mask="0xfffff000" permission="rw" description="orbit prescale for L1A channel A"/>
+  </node>
+  <node id="bx_B" address="0x5">
+    <node id="l1a"            mask="0xfff"      permission="rw" description="BX for L1A channel B"/>
+    <node id="orbit_prescale" mask="0xfffff000" permission="rw" description="orbit prescale for L1A channel B"/>
+  </node>
+</node>

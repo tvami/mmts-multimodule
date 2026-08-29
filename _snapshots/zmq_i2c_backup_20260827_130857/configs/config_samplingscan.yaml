@@ -1,0 +1,15 @@
+roc_s0:
+  sc:
+    Top:
+      all:
+        Phase: 0
+    ReferenceVoltage:
+      all:
+        IntCtest: 1
+        ExtCtest: 0
+        Calib_dac: 500
+    ch:
+      all:
+        LowRange: 1
+        HighRange: 0
+

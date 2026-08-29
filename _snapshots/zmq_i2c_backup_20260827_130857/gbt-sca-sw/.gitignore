@@ -1,0 +1,15 @@
+*~
+bin
+bin/*
+lib
+lib/*
+obj
+obj/*
+build
+build/*
+*.raw
+*.root
+*.png
+*.pdf
+**/__pycache__
+**/*.pyc

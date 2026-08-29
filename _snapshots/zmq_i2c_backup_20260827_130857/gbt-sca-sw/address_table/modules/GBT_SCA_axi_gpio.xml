@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<node id="sca_gpio">    
+  <node id="reset"  address="0" mask="0x1" permission="rw" description="GPIO reset bit (active low)"/>
+</node>

@@ -1,0 +1,63 @@
+roc_s0:
+  sc:
+    DigitalHalf:
+      all:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        ExtCtest: 0
+        IntCtest: 0
+        Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50 
+    #ch:
+    #all:
+    #LowRange: 0
+roc_s1:
+  sc:
+    DigitalHalf:
+      all:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        ExtCtest: 0
+        IntCtest: 0
+        Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50 
+    #ch:
+    #all:
+    #LowRange: 0
+roc_s2:
+  sc:
+    DigitalHalf:
+      all:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        ExtCtest: 0
+        IntCtest: 0
+        Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50 
+    #ch:
+    #all:
+    #LowRange: 0

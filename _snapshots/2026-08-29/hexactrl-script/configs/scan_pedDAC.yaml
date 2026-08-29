@@ -1,0 +1,33 @@
+roc_s0:
+  sc:
+    ch:
+      all:
+        Ref_dac_inv: 0
+    cm:
+      all:
+        Ref_dac_inv: 0
+    calib:
+      all:
+        Ref_dac_inv: 0
+roc_s1:
+  sc:
+    ch:
+      all:
+        Ref_dac_inv: 0
+    cm:
+      all:
+        Ref_dac_inv: 0
+    calib:
+      all:
+        Ref_dac_inv: 0
+roc_s2:
+  sc:
+    ch:
+      all:
+        Ref_dac_inv: 0
+    cm:
+      all:
+        Ref_dac_inv: 0
+    calib:
+      all:
+        Ref_dac_inv: 0

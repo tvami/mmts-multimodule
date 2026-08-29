@@ -1,0 +1,21 @@
+roc_s0:
+  sc:
+    ReferenceVoltage:
+      0:
+       Inv_vref: 330
+      1:
+       Inv_vref: 110
+roc_s1:
+  sc:
+    ReferenceVoltage:
+      0:
+       Inv_vref: 330
+      1:
+       Inv_vref: 110
+roc_s2:
+  sc:
+    ReferenceVoltage:
+      0:
+       Inv_vref: 330
+      1:
+       Inv_vref: 110

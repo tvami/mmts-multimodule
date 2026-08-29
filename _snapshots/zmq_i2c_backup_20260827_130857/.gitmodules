@@ -1,0 +1,3 @@
+[submodule "gbt-sca-sw"]
+	path = gbt-sca-sw
+	url = ../gbt-sca-sw.git

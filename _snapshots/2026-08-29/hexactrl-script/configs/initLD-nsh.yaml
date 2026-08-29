@@ -1,0 +1,225 @@
+daq:
+  IdelayStep: '8'
+  NChips: '3'
+  NEvents: '5000'
+  Number_of_events_per_readout: '-1'
+  zmqPushPull_port: '8888'
+  delayScanData_port: '8889'
+  # trophy v2 :
+  elinks_daq:
+    - { name : 'link0', polarity: 0, idcode: 0 }
+    - { name : 'link1', polarity: 1, idcode: 1 }
+    - { name : 'link4', polarity: 0, idcode: 4 }
+    - { name : 'link5', polarity: 1, idcode: 5 }
+    - { name : 'link8', polarity: 0, idcode: 8 }
+    - { name : 'link9', polarity: 1, idcode: 9 }
+  elinks_trg:
+    - { name : 'link0', polarity: 0, idcode: 0 }
+    - { name : 'link1', polarity: 1, idcode: 2 }
+    - { name : 'link2', polarity: 0, idcode: 3 }
+    - { name : 'link3', polarity: 1, idcode: 1 }
+    - { name : 'link4', polarity: 0, idcode: 4 }
+    - { name : 'link5', polarity: 1, idcode: 6 }
+    - { name : 'link6', polarity: 0, idcode: 7 }
+    - { name : 'link7', polarity: 1, idcode: 5 }
+    - { name : 'link8',  polarity: 0, idcode: 8  }
+    - { name : 'link9',  polarity: 1, idcode: 10 }
+    - { name : 'link10', polarity: 0, idcode: 11 }
+    - { name : 'link11', polarity: 1, idcode: 9  }
+  # # trophy v1 :
+  #elinks_daq:
+  #  - { name : 'link0', polarity: 0, idcode: 1 }
+  #  - { name : 'link1', polarity: 0, idcode: 0 }
+  #  - { name : 'link6', polarity: 0, idcode: 4 }
+  #  - { name : 'link7', polarity: 1, idcode: 5 }
+  #  - { name : 'link8',  polarity: 1, idcode: 9  }
+  #  - { name : 'link11', polarity: 1, idcode: 8  }
+  #elinks_trg:
+  #  - { name : 'link0', polarity: 0, idcode: 0 }
+  #  - { name : 'link1', polarity: 1, idcode: 2 }
+  #  - { name : 'link2', polarity: 0, idcode: 3 }
+  #  - { name : 'link3', polarity: 1, idcode: 1 }
+  #  - { name : 'link4', polarity: 0, idcode: 4 }
+  #  - { name : 'link5', polarity: 1, idcode: 6 }
+  #  - { name : 'link6', polarity: 0, idcode: 7 }
+  #  - { name : 'link7', polarity: 1, idcode: 5 }
+  #  - { name : 'link8',  polarity: 0, idcode: 8  }
+  #  - { name : 'link9',  polarity: 1, idcode: 10 }
+  #  - { name : 'link10', polarity: 1, idcode: 11 }
+  #  - { name : 'link11', polarity: 0, idcode: 9  }
+  l1a_enables:
+    periodic_l1a_A     : '0x1'
+    periodic_l1a_B     : '0x0'
+    periodic_l1a_C     : '0x0'
+    periodic_l1a_D     : '0x0'
+    random_l1a         : '0x0'
+    external_l1a       : '0x0'
+    block_sequencer    : '0x0'
+    periodic_ancillary : '0x0'
+  l1a_generator_settings: # type can be 'L1A', 'CALIBREQ' or 'DUMP' while 'CALIBL1A' is not handled ; followMode can be DISABLE, A, B, C or D
+    - { name : 'A', BX : '0x18', length : '430', type : 'L1A',      prescale : '0xa', followMode : 'DISABLE' } 
+    - { name : 'B', BX : '0x20', length : '5',   type : 'CALIBREQ', prescale : '0x1', followMode : 'DISABLE' } 
+    - { name : 'C', BX : '0x30', length : '6',   type : 'DUMP',     prescale : '0x2', followMode : 'DISABLE' } 
+    - { name : 'D', BX : '0x40', length : '7',   type : 'L1A',      prescale : '0x3', followMode : 'DISABLE' }
+  l1a_settings:
+    bx_spacing: '0x2b'         #Minimum bx spcing between random or external triggers i.e. here : 43 BX between 2 consecutive L1A (when reading 1 BX per event)
+    external_debounce: '0x0'   #flags to indicate if external L1A should be debounced (generally a fine idea)
+    length: '0x5'              #number of consequitive L1A to send in case of external trigger; don't know yet if it will have any effect on rand L1A gen
+    ext_delay: '0x0'           #8-bit delays for each external L1A input
+    log_rand_bx_period: '0x0'  #LOG2(random period) (bigger numbers -> slower trigger rate)
+  ancillary_settings:
+    bx: '0x10'
+    prescale: '0x0'
+    length: '10'
+global:
+  data_push_port: '8888'
+  hw_type: LD
+  outputDirectory: data
+  run_type: default
+  serverIP: hexactrl564610
+  #serverIP: hexactrl574300
+roc_s0:
+  sc:
+    DigitalHalf:
+      all:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+      # 0: 
+      #   IdleFrame: 0xc0c0c0c
+      # 1: 
+      #   IdleFrame: 0xcfcfcfc
+    GlobalAnalog:
+      all:
+        # Delay9: 1
+        # Delay87: 2
+        Delay9: 3
+        Delay87: 4
+        Delay65: 3
+        Delay40: 2
+        # Neg: 0
+        # Pol_adc: 0
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        #ExtCtest: 0
+        #IntCtest: 0
+        #Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50
+      all:
+        Tot_vref: 432
+        Toa_vref: 200
+    Top:
+      all:
+        BIAS_I_PLL_D: 63
+        EN_HIGH_CAPA: 1
+        EN_LOCK_CONTROL: 0
+        ERROR_LIMIT_SC: 0
+    calib: {}
+    cm: {}
+    ch: {}
+      # 20:
+      #   Probe_pa: 1
+      # 50:
+      #   Probe_pa: 1
+roc_s1:
+  sc:
+    DigitalHalf:
+      all:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+      # 0: 
+        #   IdleFrame: 0xb0b0b0b
+      # 1: 
+        #   IdleFrame: 0xbfbfbfb
+    GlobalAnalog:
+      all:
+        # Delay9: 1
+        # Delay87: 2
+        Delay9: 3
+        Delay87: 4
+        Delay65: 3
+        Delay40: 2
+        # Neg: 0
+        # Pol_adc: 0
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        #ExtCtest: 0
+        #IntCtest: 0
+        #Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50
+      all:
+        Tot_vref: 432
+        Toa_vref: 200
+    Top:
+      all:
+        BIAS_I_PLL_D: 63
+        EN_HIGH_CAPA: 1
+        EN_LOCK_CONTROL: 0
+        ERROR_LIMIT_SC: 0
+    calib: {}
+    cm: {}
+    ch: {}
+      # 20:
+      #   Probe_pa: 1
+      # 50:
+      #   Probe_pa: 1
+roc_s2:
+  sc:
+    DigitalHalf:
+      all:
+        L1Offset: 10
+        IdleFrame: 0xCCCCCCC
+      # 0: 
+      #   IdleFrame: 0xa0a0a0a
+      # 1: 
+      #   IdleFrame: 0xafafafa
+    GlobalAnalog:
+      all:
+        # Delay9: 1
+        # Delay87: 2
+        Delay9: 3
+        Delay87: 4
+        Delay65: 3
+        Delay40: 2
+        # Neg: 0
+        # Pol_adc: 0
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+        #ExtCtest: 0
+        #IntCtest: 0
+        #Calib_dac: 0
+      0:
+        Inv_vref: 230
+        Noinv_vref: 50
+      1:
+        Inv_vref: 240
+        Noinv_vref: 50
+      all:
+        Tot_vref: 432
+        Toa_vref: 200
+    Top:
+      all:
+        BIAS_I_PLL_D: 63
+        EN_HIGH_CAPA: 1
+        EN_LOCK_CONTROL: 0
+        ERROR_LIMIT_SC: 0
+    calib: {}
+    cm: {}
+    ch: {}
+      # 20:
+      #   Probe_pa: 1
+      # 50:
+      #   Probe_pa: 1
+

@@ -1,0 +1,8 @@
+metaData:
+  L1Atype: AB
+  NEvents: '100'
+  chip_params: {}
+  keepRawData: 0
+  hexactrl: localhost
+  hw_type: {}
+  testName: {}

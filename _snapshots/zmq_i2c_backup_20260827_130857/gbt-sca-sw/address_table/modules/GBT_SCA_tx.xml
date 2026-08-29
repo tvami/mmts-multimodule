@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<node id="sca_tx">
+  <node id="address"                 address="0x0"  mask="0x00ff"         permission="rw" description="Always 0 for GBT-SCA"/>
+  <node id="transID"                 address="0x0"  mask="0xff00"         permission="rw" description="Transaction ID (1-254)"/>
+  <node id="channel"                 address="0x0"  mask="0xff0000"       permission="rw" description="Target GBTSCA channel"/>
+  <node id="length"                  address="0x0"  mask="0xff000000"     permission="rw" description="Unused?"/>
+  <node id="command"                 address="0x1"  mask="0xff"           permission="rw" description="I2C command input"/>
+  <node id="data0"                   address="0x1"  mask="0xff00"         permission="rw" description="8-bit words 0-2 of the 32 bit data word"/>
+  <node id="data1"                   address="0x1"  mask="0xff0000"       permission="rw" description="8-bit words 0-2 of the 32 bit data word"/>
+  <node id="data2"                   address="0x1"  mask="0xff000000"     permission="rw" description="8-bit words 0-2 of the 32 bit data word"/>
+  <node id="data3"                   address="0x2"                        permission="w" description="8-bit word 3 the 32 bit data word"/>
+  <node id="fifo_fill"               address="0x4"                        permission="w" description="Write data to FIFO"/>
+  <node id="fifo_go"                 address="0x5"                        permission="w" description="Send data out from FIFO"/>
+</node>

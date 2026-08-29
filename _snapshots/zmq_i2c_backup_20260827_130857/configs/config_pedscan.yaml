@@ -1,0 +1,18 @@
+roc_s0:
+  sc:
+    DigitalHalf:
+      all:
+        L1Offset: 10
+    GlobalAnalog:
+      all:
+        Delay87: 1
+        Delay9: 2
+    ReferenceVoltage:
+      all:
+        Vbg_1v: 4
+    Top:
+      all:
+        BIAS_I_PLL_D: 63
+        EN_HIGH_CAPA: 1
+        EN_LOCK_CONTROL: 0
+        ERROR_LIMIT_SC: 0

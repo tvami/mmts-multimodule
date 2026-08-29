@@ -1,0 +1,13 @@
+roc_s0:
+  sc:
+    ReferenceVoltage:
+      all:
+        IntCtest: 1
+        Calib_dac: 0
+    ch:
+      all:
+        LowRange: 1
+        HighRange: 0
+
+
+

@@ -1,0 +1,31 @@
+<node>
+    <!-- Based on https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/blob/426ed8a5ec5ff944c78945894852da2e3c7cb906/src/hdl/link_capture.v
+	 - Register labels https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/blob/426ed8a5ec5ff944c78945894852da2e3c7cb906/src/hdl/link_capture.v#L364-396
+	 - Descriptions taken from email of Joe Pastika on December 2019
+	 - Offsets from
+	   - https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/blob/426ed8a5ec5ff944c78945894852da2e3c7cb906/src/hdl/link_capture.v#L276-328
+	   - https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/blob/426ed8a5ec5ff944c78945894852da2e3c7cb906/src/hdl/link_capture.v#L1831-1960
+    -->
+    <node id="delay_in"         address="0x0" mask="0x1ff"      permission="rw" description="delay setting of the IDELAY block (0-511)"/>
+    <node id="align_pattern"    address="0x1" mask="0xffffffff" permission="rw" description="expected alignment word on the e-links (default pattern 0xaccccccc)"/>
+    <!-- Possible values for capture modes below come from https://gitlab.cern.ch/cms-hgcal-firmware/link_capture/blob/426ed8a5ec5ff944c78945894852da2e3c7cb906/src/hdl/bram_ctrl.v#L92-95 -->
+    <node id="capture_mode_in"  address="0x2" mask="0x3"        permission="rw" description="The mode used to capture data to the BRAM. Options are; Immediate (0x3): starts writing data to BRAM without delay, BX (0x1): Writes data starting on a specific BX count, and L1A (0x2): save link data to BRAM on next L1A. (0x0 is idle)"/>
+    <node id="L1A_offset_or_BX" address="0x3" mask="0xfff"      permission="rw" description="offset from BRAM write start in 40 MHz clock ticks in L1A capture mode, or BX count to trigger BX capture mode"/>
+    <node id="aquire"           address="0x4" mask="0x1"        permission="rw" description="set this bit high to initiate the block to start a capture. This is edge sensitive, so after setting it high, it can be returned low at any time."/>
+    <node id="aquire_length"    address="0x5" mask="0x00001fff" permission="rw" description="The number of 32 bit words to save per acquisition"/>
+    <node id="total_length"     address="0x5" mask="0x03ffe000" permission="rw" description="Total number of 32 bit words used in a batch of acquisitions; number of acquisitions will be int(total_length/aquire_length). (if 0, only one event is acquired)"/>
+    <node id="explicit_align"   address="0x6" mask="0x1"        permission="rw" description="Force the word aligner state machine to try to align (the firmware should autoalign when it sees a Link_reset signal from the FC."/>
+    <node id="explicit_resetb"  address="0x7" mask="0x1"        permission="rw" description="Reset the link capture block.  (Active low signal, toggle this low and back to high for reset)"/>
+
+    <node id="status" address="0x40">
+        <node id="link_aligned"     mask="0x1" permission="r" description="indicates the link is aligned"/>
+        <node id="delay_ready"      mask="0x2" permission="r" description="indicates the IDELAY setting is properly set"/>
+        <node id="waiting_for_trig" mask="0x4" permission="r" description="block is waiting for a trigger"/>
+        <node id="writing"          mask="0x8" permission="r" description="data is being written to BRAM"/>
+    </node>
+
+    <node id="delay_out"            address="0x41" mask="0x1ff" permission="r" description="The delay setting currently set in the IDELAY block"/>
+    <node id="link_aligned_count"   address="0x42" mask="0xff"  permission="r" description="Counts the number of times the correct alignment word was seen during link alignment.  This will never be larger than 128 as it considers the link properly aligned after seeing 128 aligned words.  This will NOT increment if the link alignment state machine is in idle state"/>
+    <node id="link_error_count"     address="0x43" mask="0xff"  permission="r" description="Counts the number of incorrect alignment words seen after the first correct alignment word during link alignment. This will never be larger than 256 as the block assumes the link alignment has failed if 256 incorrectly aligned words are seen. This will NOT increment if the link alignment state machine is in idle state"/>
+    <node id="walign_state"         address="0x44" mask="0x7"   permission="r" description="The state of the word aligner state machine. Of particular note are states 0: Idle, and 3: waiting for alignment word."/>
+</node>

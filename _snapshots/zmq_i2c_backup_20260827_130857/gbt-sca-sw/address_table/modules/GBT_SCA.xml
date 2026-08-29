@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<node id="GBT_SCA">
+  <node id="sca_rx" module="file://GBT_SCA_rx.xml"  address="0x00000"/>
+  <node id="sca_tx" module="file://GBT_SCA_tx.xml"  address="0x10000"/>
+  <node id="sca_gpio" module="file://GBT_SCA_axi_gpio.xml"  address="0x20000"/>     
+</node>

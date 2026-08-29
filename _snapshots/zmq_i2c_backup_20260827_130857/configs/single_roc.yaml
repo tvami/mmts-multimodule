@@ -1,0 +1,22 @@
+daq:
+  IdelayStep: '8'
+  L1A_A:
+    BX: '0x10'
+    prescale: '0x0'
+  L1A_B:
+    BX: '0x100'
+    prescale: '0x0'
+  L1A_type: AB
+  NChips: '1'
+  NEvents: '2000'
+  calib:
+    BX_l1a: '0x114'
+    BX_req: '0x100'
+    l1a_notcalib: '0x1'
+  zmqPushPull_port: '8888'
+global:
+  data_push_port: '8888'
+  hw_type: single_chip
+  outputDirectory: data
+  run_type: default
+  serverIP: 192.168.200.100

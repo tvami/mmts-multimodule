@@ -1,0 +1,12 @@
+roc_s0:
+  ReferenceVoltage:
+    all:
+      Probe_dc1: 0
+roc_s1:
+  ReferenceVoltage:
+    all:
+      Probe_dc1: 0
+roc_s2:
+  ReferenceVoltage:
+    all:
+      Probe_dc1: 0

@@ -1,0 +1,163 @@
+roc_s0:
+  sc:
+    ch:
+      0:
+        Ref_dac_inv: 0
+      1:
+        Ref_dac_inv: 0
+      2:
+        Ref_dac_inv: 0
+      3:
+        Ref_dac_inv: 0
+      4:
+        Ref_dac_inv: 0
+      5:
+        Ref_dac_inv: 0
+      6:
+        Ref_dac_inv: 0
+      7:
+        Ref_dac_inv: 0
+      8:
+        Ref_dac_inv: 0
+      9:
+        Ref_dac_inv: 0
+      10:
+        Ref_dac_inv: 0
+      11:
+        Ref_dac_inv: 0
+      12:
+        Ref_dac_inv: 0
+      13:
+        Ref_dac_inv: 0
+      14:
+        Ref_dac_inv: 0
+      15:
+        Ref_dac_inv: 0
+      16:
+        Ref_dac_inv: 0
+      17:
+        Ref_dac_inv: 0
+      18:
+        Ref_dac_inv: 0
+      19:
+        Ref_dac_inv: 0
+      20:
+        Ref_dac_inv: 0
+      21:
+        Ref_dac_inv: 0
+      22:
+        Ref_dac_inv: 0
+      23:
+        Ref_dac_inv: 0
+      24:
+        Ref_dac_inv: 0
+      25:
+        Ref_dac_inv: 0
+      26:
+        Ref_dac_inv: 0
+      27:
+        Ref_dac_inv: 0
+      28:
+        Ref_dac_inv: 0
+      29:
+        Ref_dac_inv: 0
+      30:
+        Ref_dac_inv: 0
+      31:
+        Ref_dac_inv: 0
+      32:
+        Ref_dac_inv: 0
+      33:
+        Ref_dac_inv: 0
+      34:
+        Ref_dac_inv: 0
+      35:
+        Ref_dac_inv: 0
+      36:
+        Ref_dac_inv: 0
+      37:
+        Ref_dac_inv: 0
+      38:
+        Ref_dac_inv: 0
+      39:
+        Ref_dac_inv: 0
+      40:
+        Ref_dac_inv: 0
+      41:
+        Ref_dac_inv: 0
+      42:
+        Ref_dac_inv: 0
+      43:
+        Ref_dac_inv: 0
+      44:
+        Ref_dac_inv: 0
+      45:
+        Ref_dac_inv: 0
+      46:
+        Ref_dac_inv: 0
+      47:
+        Ref_dac_inv: 0
+      48:
+        Ref_dac_inv: 0
+      49:
+        Ref_dac_inv: 0
+      50:
+        Ref_dac_inv: 0
+      51:
+        Ref_dac_inv: 0
+      52:
+        Ref_dac_inv: 0
+      53:
+        Ref_dac_inv: 0
+      54:
+        Ref_dac_inv: 0
+      55:
+        Ref_dac_inv: 0
+      56:
+        Ref_dac_inv: 0
+      57:
+        Ref_dac_inv: 0
+      58:
+        Ref_dac_inv: 0
+      59:
+        Ref_dac_inv: 0
+      60:
+        Ref_dac_inv: 0
+      61:
+        Ref_dac_inv: 0
+      62:
+        Ref_dac_inv: 0
+      63:
+        Ref_dac_inv: 0
+      64:
+        Ref_dac_inv: 0
+      65:
+        Ref_dac_inv: 0
+      66:
+        Ref_dac_inv: 0
+      67:
+        Ref_dac_inv: 0
+      68:
+        Ref_dac_inv: 0
+      69:
+        Ref_dac_inv: 0
+      70:
+        Ref_dac_inv: 0
+      71:
+        Ref_dac_inv: 0
+      72:
+        Ref_dac_inv: 0
+    cm:
+      0:
+        Ref_dac_inv: 0
+      1:
+        Ref_dac_inv: 0
+      2:
+        Ref_dac_inv: 0
+      3:
+        Ref_dac_inv: 0
+    calib:
+      0:
+        Ref_dac_inv: 0
+      1:
+        Ref_dac_inv: 0
