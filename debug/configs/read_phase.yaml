@@ -1,0 +1,220 @@
+ClocksAndResets:
+  Global:
+    pusm_run : 0
+    pusm_state : 0
+
+FCtrl:
+  Global:
+    lock_count   : 0
+    bcr_fcmd_count : 0
+    command_rx_inverted : 0
+    locked : 0
+
+ChEprxGrp:
+  00 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  01 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  02 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  03 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  04 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  05 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  06 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  07 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  8 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  9 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  10 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+  11 :
+    dll_state                  : 0
+    phase_select_channeloutput : 0
+    dll_instant_lock           : 0
+    channel_locked             : 0
+
+ChAligner:
+  0  : 
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  1  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  2  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  3  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  4  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  5  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  6  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  7  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  8  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  9  :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  10 :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+  11 :
+    pattern_match  : 0
+    snapshot_dv    : 0
+    hdr_mm_err     : 0
+    spare_err      : 0
+    orbsyn_hdr_err : 0
+    orbsyn_arr_err : 0
+    orbsyn_fc_err  : 0
+    prbs_chk_err   : 0
+    select         : 0
+    snapshot       : 0
+ 
+

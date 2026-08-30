@@ -1,0 +1,8 @@
+from smbus2 import SMBus, i2c_msg
+
+with SMBus(2) as bus:
+    msg = i2c_msg.write(0x60,[0x03, 0xab])
+    bus.i2c_rdwr(msg)
+    msg = i2c_msg.read(0x60, 1)
+    bus.i2c_rdwr(msg)
+    print(hex(int.from_bytes(msg.buf[0], 'big')))

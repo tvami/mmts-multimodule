@@ -1,0 +1,31 @@
+RocDaqCtrl:
+  Global:
+    bad_word_threshold : 20
+    bcr_bucket_default : 3514
+    simple_mode        : 1
+    pass_thru_mode     : 1
+    l1a_to_hgcroc_out  : 7
+    match_threshold    : 2
+    active_erxs        : 7
+    sync_body          : 178956970
+    first_sync_header  : 9
+    sync_header        : 10
+    hgcroc_hdr_marker  : 15
+    ebr_timeout        : 64
+    #strobes_status_clear         : 
+    #  0 : 0
+    #strobes_start_ping_pong_bist : 0
+    #strobes_status_capture       : 0
+    #strobes_start_ob_bist        : 0
+
+ELinkProcessors:
+  Global:
+    veto_pass_fail       : 65535
+    v_reconstruct_thresh : 5
+    cm_erx_route         : 1250999896491
+    erx_mask_ebo         : 63
+
+FormatterBuffer:
+  Global:
+    active_etxs        : 1
+

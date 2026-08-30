@@ -1,0 +1,26 @@
+FormatterBuffer:
+  Global: 
+    buff_t1      : 0
+    buff_t2      : 0
+    buff_t3      : 0
+    use_sum      : 0
+    stc_type     : 0
+    active_etxs  : 0
+    idle_pattern : 0
+    keep_auto_encoder_bits : 0
+    link_reset_pattern     : 0
+    etx_pattern            : 0
+    #align_serializer_0     : 0
+    #align_serializer_1     : 0
+    #align_serializer_2     : 0
+    #align_serializer_3     : 0
+    #align_serializer_4     : 0
+    #align_serializer_5     : 0
+    #align_serializer_6     : 0
+    #align_serializer_7     : 0
+    #align_serializer_8     : 0
+    #align_serializer_9     : 0
+    #align_serializer_10    : 0
+    #align_serializer_11    : 0
+    #align_serializer_12    : 0
+

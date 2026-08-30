@@ -1,0 +1,264 @@
+ClocksAndResets:
+  Global:
+    pusm_run : 1
+
+FCtrl:
+  Global:
+    capture_fcmd_ctrl : 1
+
+Aligner:
+  Global:
+    snapshot_en         : 1
+    idle_hdr_val        : 10
+    i2c_snapshot_en     : 0
+    orbsyn_cnt_max_val  : 3563
+    orbsyn_cnt_load_val : 1
+    orbsyn_cnt_snapshot : 21
+    match_pattern_val   : 2594876074
+    
+#ELinkProcessors:
+ERx:
+  00:
+    enable             : 1
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  01:
+    enable             : 1
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  02:
+    enable             : 1
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  03:
+    enable             : 1
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  04:
+    enable             : 1
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  05:
+    enable             : 1
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  06:
+    enable             : 0
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  07:
+    enable             : 0
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  08:
+    enable             : 0
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  09:
+    enable             : 0
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  10:
+    enable             : 0
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+  11:
+    enable             : 0
+    invert_data        : 0
+    enable_termination : 1
+    equalizer          : 0
+    set_common_mode    : 0
+
+ChEprxGrp:
+  0 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+    
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  01 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+    
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  02 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  03 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+
+  04 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+
+  05 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  06 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  07 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  08 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  09 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+    
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  10 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+    
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+
+  11 :
+    dll_reset_req             : 0
+    reset_channels            : 0
+    train_channel             : 1
+    phase_select_channelinput : 0
+    
+    #dll_state                  : 0
+    #phase_select_channeloutput : 0
+    #dll_instant_lock           : 0
+    #channel_locked             : 0
+    #dll_locked                 : 0
+    #dll_lock_filter_state      : 0
+    #dll_loss_of_lock_count     : 0
+

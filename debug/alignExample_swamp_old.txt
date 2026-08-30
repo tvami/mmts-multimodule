@@ -1,0 +1,213 @@
+ROC config
+0x4
+0x4
+0x4
+
+ECOND alignment
+Elapsed time: 0.6716 seconds
+FC health
+ECON
+FC lock 0x2
+BCR cnt 0xa3
+BCR cnt 0x40
+pusm_run 0x80
+pusm_status 0x8
+pusm_status 0x68
+Phase alignment result
+0x38
+0x37
+0x34
+0x34
+0x35
+0x36
+0x2f
+0x2f
+0x2f
+0x2f
+0x2f
+0x2f
+resetrocd count: 0x79
+Snapshot
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x4
+selected offset: 0xa0
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0xa0
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0xa0
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0xa0
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0xa0
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0xa0
+0
+0
+0
+0
+
+ECONT alignment
+Elapsed time: 0.2804 seconds
+FC health
+ECON
+FC lock 0x2
+BCR cnt 0x6b
+BCR cnt 0xc5
+pusm_run 0x80
+pusm_status 0x8
+pusm_status 0x68
+Phase alignment result
+0x1f
+0x1f
+0x34
+0x1f
+0x1f
+0x1f
+0x2f
+0x2f
+0x2f
+0x2f
+0x2f
+0x2f
+resetrocd count: 0xd0
+Snapshot
+status bits: 0x5
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x5
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x44
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+55555555555555555555555555555554d555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+155555555555555555555555555555553555555555555555
+status bits: 0x5
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x5
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+status bits: 0x1
+selected offset: 0x45
+555555555555555555555555555555535555555555555555
+2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9aaaaaaaaaaaaaaaa
+15555555555555555555555555555554d555555555555555
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6aaaaaaaaaaaaaaa
+hdr count 0: 0x0
+hdr count 0: 0x0
+hdr count 1: 0x1
+hdr count 1: 0x0
+hdr count 2: 0x0
+hdr count 2: 0x0
+hdr count 3: 0x0
+hdr count 3: 0x0
+hdr count 4: 0x0
+hdr count 4: 0x0
+hdr count 5: 0x0
+hdr count 5: 0x0
+L1A cnt 0x0

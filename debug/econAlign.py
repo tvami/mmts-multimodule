@@ -1,0 +1,337 @@
+##
+# please run me from the hexactrl-sw directory:
+# python debug_tools/align_link.py -t daq -l link0,link1 -d 100 -s 50
+##
+import os
+import sys
+from optparse import OptionParser
+import uhal
+import time
+from smbus2 import SMBus, i2c_msg
+import ctypes
+
+import yaml
+
+from swamp.ECON import econ, dummyTransport
+from SMBusTransport import smTransport
+
+def econI2CRead(i2caddr, addr, length = 1):
+    with SMBus(2) as bus:
+        # Step 1: write the 16-bit register address
+        msg = i2c_msg.write(i2caddr,[0xff&(addr >> 8), 0xff&addr])
+        bus.i2c_rdwr(msg)
+        
+        # Step 2: Read 'length' bytes from that address
+        msg = i2c_msg.read(i2caddr, length)
+        bus.i2c_rdwr(msg)
+
+        # Step 3: Return the raw message
+        #return int.from_bytes(msg.buf, 'big')
+        return msg
+
+def econI2CWrite(i2caddr, addr, data):
+    with SMBus(2) as bus:
+        #[0xff&addr, 0xff&(addr >> 8)]
+        msg = i2c_msg.write(i2caddr,[0xff&(addr >> 8), 0xff&addr, 0xff&data])
+        bus.i2c_rdwr(msg)
+
+def getROCStatusReg(roc, addresses = [0x00, 0x10, 0x20]):
+    roc = addresses[roc]
+    with SMBus(2) as bus:
+        msg = i2c_msg.read(roc | 0x0f, 1)
+        bus.i2c_rdwr(msg)
+        return msg
+
+def rocI2CWrite(roc, block, reg, data, addresses = [0x00, 0x10, 0x20]):
+    roc = addresses[roc]
+    with SMBus(2) as bus:
+        addr = (block << 5) | reg
+        msg = i2c_msg.write(roc | 0x09,[0xff&(addr >> 8)])
+        bus.i2c_rdwr(msg)    
+        msg = i2c_msg.write(roc | 0x08,[0xff&addr])
+        bus.i2c_rdwr(msg)    
+        msg = i2c_msg.write(roc | 0x0a,[0xff&data])
+        bus.i2c_rdwr(msg)    
+
+def check_same_dicts(dict1, dict2):
+    for k, val in dict1.items():
+        if not k in dict2: print(f"missing {k} in dict2")
+        if isinstance(val, dict): check_same_dicts(val, dict2[k])
+        elif not val==dict2[k]: 
+            print(f"{k} values not the same")
+            print(dict1)
+            print(dict2)
+    
+
+def econAlignment(dev, i2cAddr, target, linkenablemask = 0xfff, linkinvertmask = 0):
+    # implement the swamp
+    # target: ECONT/ECOND
+    if target=="ECOND":
+        cfg = {
+            'path_to_json' : 'configs/ECOND_I2C_params_regmap.json',
+            'address'      : i2cAddr,
+            'init_config'  : 'configs/econd-debug.yaml'
+        }
+    elif target=="ECONT":
+        cfg = {
+            'path_to_json' : 'configs/ECONT_I2C_params_regmap.json',
+            'address'      : i2cAddr,
+            'init_config'  : 'configs/econt-debug.yaml'
+        }
+
+    ECON = econ(target, cfg)
+    tr = smTransport(name='i2c_w0', cfg=cfg)
+    ECON.set_transport(tr)
+    with open(cfg['init_config']) as fin:
+        cfg = yaml.safe_load(fin)
+    with open('configs/read_phase.yaml') as fin:
+        cfg_read = yaml.safe_load(fin)
+
+    ECON.configure(cfg, read_back=True)
+    read = ECON.read(cfg_read, from_cache=False)
+
+    #Integrate with the debugging alignment sw
+
+    #set pusm_run
+    print("FC health")
+    print("ECON")
+    print("FC lock", hex(read['FCtrl']['Global']['locked']<<1))
+    print("BCR cnt", hex(read['FCtrl']['Global']['bcr_fcmd_count']))
+    
+    print("pusm_run", hex(read['ClocksAndResets']['Global']['pusm_run']<<7))
+    print("pusm_status", hex(int.from_bytes(econI2CRead(i2cAddr, 0x3D9+0x6).buf[0], "big")))
+
+    for i in range(100):
+        dev.getNode("fastcontrol.request.link_reset_rocd").write(1)
+        dev.getNode("fastcontrol.request.link_reset_roct").write(1)
+        time.sleep(0.0001)
+
+    time.sleep(0.01)
+
+    # disable phase training 
+    for baseaddr in range(0x340, 0x340+12*0x4, 0x4):
+        econI2CWrite(i2cAddr, baseaddr, 0x0)
+
+    print("Phase alignment result") 
+    phase = ECON.read(cfg_read, from_cache=False)
+    for idx in range(0, 12, 1):
+        res = 0
+        for val, width in [(phase['ChEprxGrp'][idx]['channel_locked'], 1), (phase['ChEprxGrp'][idx]['dll_instant_lock'], 1), (phase['ChEprxGrp'][idx]['phase_select_channeloutput'], 4), (phase['ChEprxGrp'][idx]['dll_state'], 2)]:
+            res = (res << width) | val
+        print(hex(res>>2))
+    
+    #try to capture a snapshot
+    #enable channel aligner
+    for baseaddr in range(0, 12*0x40, 0x40):
+        econI2CWrite(i2cAddr, baseaddr, 1)
+
+    # send link reset
+    dev.getNode("fastcontrol.request.link_reset_rocd").write(1)
+    dev.getNode("fastcontrol.request.link_reset_roct").write(1)
+    print("resetrocd count:", hex(int.from_bytes(econI2CRead(i2cAddr, 0x3ab+0xb).buf[0], "big")))
+    
+    print("Snapshot")
+    snapshot = ECON.read(cfg_read, from_cache=False)
+    #check if snapshot was taken
+    for baseaddr in range(0x14, 12*0x40, 0x40):
+        print("status bits:", hex(int.from_bytes(econI2CRead(i2cAddr, baseaddr).buf[0], "big")))
+        print("selected offset:", hex(int.from_bytes(econI2CRead(i2cAddr, baseaddr+0x01).buf[0], "big")))
+        msg = econI2CRead(i2cAddr, baseaddr+0x2, 24)
+        data = [v for v in msg] #return in the new dummy transport
+        print("%x"%int.from_bytes(data, "little"))
+        print("%x"%(int.from_bytes(data, "little") >> 1))
+        print("%x"%(int.from_bytes(data, "little") >> 2))
+        print("%x"%(int.from_bytes(data, "little") >> 3))
+
+def get_comma_separated_args(option, opt, value, parser):
+    setattr(parser.values, option.dest, value.split(','))
+
+if __name__ == "__main__":
+    parser = OptionParser()
+    parser.add_option("-s", "--bsise", dest="bsize",type=int,action="store",
+                       help="size (in unit of 32 bit words) of bram to print out",default=1000)
+    (options, args) = parser.parse_args()
+
+    if True: #True:
+        #full LD module
+        rocAddresses = [0x00, 0x10, 0x20]
+        econdAddress = 0x60
+        econtAddress = 0x20
+
+        rocFCbits = 0x20
+        
+        econdERXEnable = 0x3f
+        econdERXInvert = 0x00
+
+        econtERXEnable = 0xfff
+        econtERXInvert = 0xfff
+    else:
+        #partial LD module
+        rocAddresses = [0x40, 0x50]
+        econdAddress = 0x61
+        econtAddress = 0x21
+
+        rocFCbits = 0x00
+        
+        econdERXEnable = 0x07
+        econdERXInvert = 0x00
+
+        econtERXEnable = 0x03f
+        econtERXInvert = 0x000
+    
+    uhal.setLogLevelTo(uhal.LogLevel.ERROR)
+    
+    man = uhal.ConnectionManager("file:///opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml/connections.xml")
+    dev = man.getDevice("TOP")
+
+    # configure fast control generator
+    dev.getNode("fastcontrol.command.enable_fast_ctrl_stream").write(0x1)
+    dev.getNode("fastcontrol.command.enable_orbit_sync").write(0x1)
+    dev.getNode("fastcontrol.bx_orbit_sync").write(0x1)
+
+    dev.getNode("fastcontrol.bx_link_reset_rocd").write(3354)
+    dev.getNode("fastcontrol.bx_link_reset_roct").write(3356)
+
+    print("ROC config")
+    for iROC in range(len(rocAddresses)):
+        #invert FC stream and set run bits
+        rocI2CWrite(iROC, 45,  0, rocFCbits | 0x03, rocAddresses)
+        #set roc idle patterns
+        rocI2CWrite(iROC, 43, 16, 0xaa, rocAddresses)
+        rocI2CWrite(iROC, 43, 17, 0xaa, rocAddresses)
+        rocI2CWrite(iROC, 43, 18, 0xaa, rocAddresses)
+        rocI2CWrite(iROC, 43, 19, 0x0a, rocAddresses)
+        rocI2CWrite(iROC, 89, 16, 0xaa, rocAddresses)
+        rocI2CWrite(iROC, 89, 17, 0xaa, rocAddresses)
+        rocI2CWrite(iROC, 89, 18, 0xaa, rocAddresses)
+        rocI2CWrite(iROC, 89, 19, 0x0a, rocAddresses)
+        print(hex(int.from_bytes(getROCStatusReg(iROC, rocAddresses).buf[0], "big")))
+
+    print("\nECOND alignment")
+    econAlignment(dev, econdAddress, 'ECOND', econdERXEnable, econdERXInvert)
+    
+    print("\nECONT alignment")
+    #invert input links 
+    econAlignment(dev, econtAddress, 'ECONT', econtERXEnable, econtERXInvert)
+    
+    cfg_econt = {
+        'path_to_json' : 'configs/ECONT_I2C_params_regmap.json',
+        'address'      : econtAddress,
+        'init_config'  : 'configs/econt-debug.yaml'
+    }
+
+    cfg_econd = {
+        'path_to_json' : 'configs/ECOND_I2C_params_regmap.json',
+        'address'      : econdAddress,
+        'init_config'  : 'configs/econd-debug.yaml'
+    }
+
+    ECOND = econ("ECOND", cfg_econd)
+    tr_econd = smTransport(name='i2c_w0', cfg=cfg_econd)
+    ECOND.set_transport(tr_econd)
+    with open('configs/read_econd.yaml') as fin:
+        read_econd = yaml.safe_load(fin)
+    #with open('configs/read_econd.yaml') as fin:
+    #    read_econd2 = yaml.safe_load(fin)
+    #read = ECON.read(cfg_read, from_cache=False)
+    
+    ECONT = econ("ECONT", cfg_econt)
+    tr_econt = smTransport(name='i2c_w1', cfg=cfg_econt)
+    ECONT.set_transport(tr_econt)
+    with open('configs/read_econt.yaml') as fin:
+        read_econt = yaml.safe_load(fin)
+
+    #ECON-t core settings
+    #enable 5 output links and set stc_type
+    econI2CWrite(econtAddress, 0x540+0x05, 0xf9)
+    econI2CWrite(econtAddress, 0x540+0x06, 0x00)
+    #set etx align idle pattern and etx pattern 
+    econI2CWrite(econtAddress, 0x540+0x1b, 0x22)
+    econI2CWrite(econtAddress, 0x540+0x1c, 0x01)
+    
+    econt_read = ECONT.read(read_econt, from_cache=False)
+    print(econt_read)
+
+    # config ECON D core parameters
+    #simple/passthrough "d"
+    econI2CWrite(econdAddress, 0x410+0x02, 0x3d)
+    #match_threshold active_erxs
+    econI2CWrite(econdAddress, 0x410+0x05, 0x72)
+    econI2CWrite(econdAddress, 0x410+0x06, 0x00)
+    #idle patterns 
+    econI2CWrite(econdAddress, 0x410+0x07, 0xaa)
+    econI2CWrite(econdAddress, 0x410+0x08, 0xaa)
+    econI2CWrite(econdAddress, 0x410+0x09, 0xaa)
+    econI2CWrite(econdAddress, 0x410+0x0a, 0x9a)
+    econI2CWrite(econdAddress, 0x410+0x0b, 0xfa)
+
+    #formatter pass fail veto
+    econI2CWrite(econdAddress, 0x450+0x24, 0xff)
+    econI2CWrite(econdAddress, 0x450+0x25, 0xff)
+
+    #enable onlt etx 0,1
+    econI2CWrite(econdAddress, 0xf20+0x13, 0x01)
+
+    # set v_reconstruct_thresh
+    econI2CWrite(econdAddress, 0x450, 0x5)
+    #set link processor link rx mask
+    econI2CWrite(econdAddress, 0x450+0x1e, 0x3f)
+    econI2CWrite(econdAddress, 0x450+0x1f, 0x00)
+    
+    econI2CWrite(econdAddress, 0x40f, 0x04)
+    econI2CWrite(econdAddress, 0x40f, 0x00)
+
+    econd_read = ECOND.read(read_econd, from_cache=False)
+    print("READ: ", econd_read)
+
+    print("hdr count 0:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0x2).buf[0], "big")))
+    print("hdr count 0:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0x3).buf[0], "big")))
+    print("hdr count 1:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0x4).buf[0], "big")))
+    print("hdr count 1:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0x5).buf[0], "big")))
+    print("hdr count 2:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0x6).buf[0], "big")))
+    print("hdr count 2:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0x7).buf[0], "big")))
+    print("hdr count 3:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0x8).buf[0], "big")))
+    print("hdr count 3:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0x9).buf[0], "big")))
+    print("hdr count 4:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0xa).buf[0], "big")))
+    print("hdr count 4:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0xb).buf[0], "big")))
+    print("hdr count 5:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0xc).buf[0], "big")))
+    print("hdr count 5:", hex(int.from_bytes(econI2CRead(econdAddress, 0x41e+0xd).buf[0], "big")))
+    print("L1A cnt", hex(int.from_bytes(econI2CRead(econdAddress, 0x3ab+0x4).buf[0], "big")))
+
+#    #print("debug snapshot")
+#    #for baseaddr in range(0, 12*0x40, 0x40):
+#    #    econI2CWrite(econdAddress, baseaddr, 0)
+#    #
+#    #dev.getNode("fastcontrol.command.enable_fast_ctrl_stream").write(0x1)
+#    #dev.getNode("fastcontrol.command.enable_orbit_sync").write(0x1)
+#    #dev.getNode("fastcontrol.command.global_l1a_enable").write(0x1)
+#    #dev.getNode("fastcontrol.periodic0.bx").write(100)
+#    #dev.getNode("fastcontrol.periodic0.enable").write(0x1)
+#    #
+#    #time.sleep(0.01)
+#    #
+#    ##prep for snapshot
+#    #econI2CWrite(econdAddress, 0x380+0x13, 0xeb)
+#    #econI2CWrite(econdAddress, 0x380+0x14, 0x3d)
+#    #econI2CWrite(econdAddress, 0x380+0x15, 0xd9)
+#    #econI2CWrite(econdAddress, 0x380, 0x06)
+#    ##arm snapshot
+#    #econI2CWrite(econdAddress, 0x380, 0x07)
+#    #print("Snapshot")
+#    ##check if snapshot was taken
+#    #for baseaddr in range(0x14, 12*0x40, 0x40):
+#    #    print("status bits:", hex(int.from_bytes(econI2CRead(econdAddress, baseaddr).buf[0], "big")))
+#    #    print("selected offset:", hex(int.from_bytes(econI2CRead(econdAddress, baseaddr+0x01).buf[0], "big")))
+#    #    msg = econI2CRead(econdAddress, baseaddr+0x2, 24)
+#    #    data = [v for v in msg]
+#    #    print("%x"%int.from_bytes(data, "little"))
+#    #    print("%x"%(int.from_bytes(data, "little") >> 1))
+#    #    print("%x"%(int.from_bytes(data, "little") >> 2))
+#    #    print("%x"%(int.from_bytes(data, "little") >> 3))
+#    #
+#    #
+#    #dev.getNode("fastcontrol.command.enable_fast_ctrl_stream").write(0x1)
+#    #dev.getNode("fastcontrol.command.enable_orbit_sync").write(0x1)
+#    #dev.getNode("fastcontrol.command.global_l1a_enable").write(0x0)
+#    #dev.getNode("fastcontrol.periodic0.enable").write(0x0)
+        

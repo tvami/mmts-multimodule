@@ -1,0 +1,209 @@
+ROC config
+0x4
+0x4
+0x4
+
+ECOND alignment
+Elapsed time: 0.6638 seconds
+FC health
+ECON
+FC lock 0x2
+BCR cnt 0x5a
+pusm_run 0x80
+pusm_status 0x68
+Phase alignment result
+0x38
+0x37
+0x34
+0x34
+0x35
+0x36
+0x2f
+0x2f
+0x2f
+0x2f
+0x2f
+0x2f
+resetrocd count: 0x2f
+Snapshot
+status bits: 0x0
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x0
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x0
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x0
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x0
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x0
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x0
+selected offset: 0x20
+0
+0
+0
+0
+status bits: 0x4
+selected offset: 0x20
+0
+0
+0
+0
+
+ECONT alignment
+Elapsed time: 0.2750 seconds
+FC health
+ECON
+FC lock 0x2
+BCR cnt 0x19
+pusm_run 0x80
+pusm_status 0x68
+Phase alignment result
+0x1f
+0x1f
+0x1f
+0x1f
+0x1f
+0x1f
+0x2f
+0x2f
+0x2f
+0x2f
+0x2f
+0x2f
+resetrocd count: 0x8c
+Snapshot
+status bits: 0x0
+selected offset: 0xa0
+ab57ab55ab55abd5abd5abd5aad5aad5ead56ad56af56af5
+55abd5aad5aad5ead5ead5ead56ad56af56ab56ab57ab57a
+2ad5ead56ad56af56af56af56ab56ab57ab55ab55abd5abd
+156af56ab56ab57ab57ab57ab55ab55abd5aad5aad5ead5e
+status bits: 0x4
+selected offset: 0xa0
+ab55ab55abd5aad5aad5aad5aad56ad56af56af56ab56ab5
+55aad5aad5ead56ad56ad56ad56ab56ab57ab57ab55ab55a
+2ad56ad56af56ab56ab56ab56ab55ab55abd5abd5aad5aad
+156ab56ab57ab55ab55ab55ab55aad5aad5ead5ead56ad56
+status bits: 0x0
+selected offset: 0xa0
+ab55aa55aa55aad5aad5aad52ad56ad56ad56ab56ab56ab5
+55aad52ad52ad56ad56ad56a956ab56ab56ab55ab55ab55a
+2ad56a956a956ab56ab56ab54ab55ab55ab55aad5aad5aad
+156ab54ab54ab55ab55ab55aa55aad5aad5aad56ad56ad56
+status bits: 0x4
+selected offset: 0xa0
+aad5aad52ad56ad56ad56ad56ab56ab56ab54ab55ab55ab5
+556ad56a956ab56ab56ab56ab55ab55ab55aa55aad5aad5a
+2ab56ab54ab55ab55ab55ab55aad5aad5aad52ad56ad56ad
+155ab55aa55aad5aad5aad5aad56ad56ad56a956ab56ab56
+status bits: 0x0
+selected offset: 0xa0
+ad56ad56ad56af56ab56ab56ab56ab54ab55ab55ab55abd5
+56ab56ab56ab57ab55ab55ab55ab55aa55aad5aad5aad5ea
+2b55ab55ab55abd5aad5aad5aad5aad52ad56ad56ad56af5
+15aad5aad5aad5ead56ad56ad56ad56a956ab56ab56ab57a
+status bits: 0x0
+selected offset: 0xa0
+ab56ab55ab55ab55ab55abd5aad5aad5aad5ead56ad56ad5
+55ab55aad5aad5aad5aad5ead56ad56ad56af56ab56ab56a
+2ad5aad56ad56ad56ad56af56ab56ab56ab57ab55ab55ab5
+156ad56ab56ab56ab56ab57ab55ab55ab55abd5aad5aad5a
+status bits: 0x0
+selected offset: 0xa0
+ad5aad5ead56af56af56af56af56ab56ab57ab57ab55ab55
+56ad56af56ab57ab57ab57ab57ab55ab55abd5abd5aad5aa
+2b56ab57ab55abd5abd5abd5abd5aad5aad5ead5ead56ad5
+15ab55abd5aad5ead5ead5ead5ead56ad56af56af56ab56a
+status bits: 0x4
+selected offset: 0xa0
+ad5aad52ad56ad56ad56af56af56ab56ab56ab54ab55ab55
+56ad56a956ab56ab56ab57ab57ab55ab55ab55aa55aad5aa
+2b56ab54ab55ab55ab55abd5abd5aad5aad5aad52ad56ad5
+15ab55aa55aad5aad5aad5ead5ead56ad56ad56a956ab56a
+status bits: 0x4
+selected offset: 0xa0
+b56ab55ab54ab55ab55ab55abd5aad5aad5aad5aad56ad56
+5ab55aad5aa55aad5aad5aad5ead56ad56ad56ad56ab56ab
+2d5aad56ad52ad56ad56ad56af56ab56ab56ab56ab55ab55
+16ad56ab56a956ab56ab56ab57ab55ab55ab55ab55aad5aa
+status bits: 0x4
+selected offset: 0xa0
+b54ab54ab54ab55ab55ab55ab55aad5aad5aad52ad56ad56
+5aa55aa55aa55aad5aad5aad5aad56ad56ad56a956ab56ab
+2d52ad52ad52ad56ad56ad56ad56ab56ab56ab54ab55ab55
+16a956a956a956ab56ab56ab56ab55ab55ab55aa55aad5aa
+status bits: 0x4
+selected offset: 0xa0
+f56af56ab56ab56ab56ab54ab55ab55ab55abd5aad5aad5a
+7ab57ab55ab55ab55ab55aa55aad5aad5aad5ead56ad56ad
+3d5abd5aad5aad5aad5aad52ad56ad56ad56af56ab56ab56
+1ead5ead56ad56ad56ad56a956ab56ab56ab57ab55ab55ab
+status bits: 0x0
+selected offset: 0xa0
+f56af56ab56ab56ab54ab54ab55ab55ab55abd5aad5aad5a
+7ab57ab55ab55ab55aa55aa55aad5aad5aad5ead56ad56ad
+3d5abd5aad5aad5aad52ad52ad56ad56ad56af56ab56ab56
+1ead5ead56ad56ad56a956a956ab56ab56ab57ab55ab55ab
+hdr count 0: 0x0
+hdr count 0: 0x0
+hdr count 1: 0x0
+hdr count 1: 0x0
+hdr count 2: 0x0
+hdr count 2: 0x0
+hdr count 3: 0x0
+hdr count 3: 0x0
+hdr count 4: 0x0
+hdr count 4: 0x0
+hdr count 5: 0x0
+hdr count 5: 0x0
+L1A cnt 0x0
