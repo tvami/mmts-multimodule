@@ -9,3 +9,6 @@ __pycache__/
 
 # local run output
 *.log
+
+# editor backups
+*~
