@@ -16,6 +16,9 @@ SLOT="${1:?slot}"; CFG="${2:?config}"; LABEL="${3:?label}"; N="${4:-5}"
 ROOT=/Users/blackmac/Docs/1Research/MMTS
 BOARD="${SM_BOARD:-LD-Semi}"; EXPECT="${SM_EXPECT:-2}"
 EXT=""; [ "${SM_EXTPOWER:-1}" = "1" ] && EXT="--external-power"
+# Which power-board output feeds the module, when it is not the slot's index.
+# The HD Full in slot A is on output 3: SM_MODULE=3.
+MOD=""; [ -n "${SM_MODULE:-}" ] && MOD="--module $SM_MODULE"
 SERIAL=$(python3 "$ROOT/multimodule/bin/module_of.py" "$SLOT")
 echo "# slot $SLOT board $SERIAL label $LABEL  (--board $BOARD, expect $EXPECT ROCs${EXT:+, $EXT})"
 
@@ -25,7 +28,7 @@ echo "# slot $SLOT board $SERIAL label $LABEL  (--board $BOARD, expect $EXPECT R
 for try in $(seq 1 "${SM_TRIES:-5}"); do
     ssh daq@10.116.24.180 "cd ~/multimodule && \
         MMTS_FW=multimodule-hd-tester-trophy-v3-rxeq4 EXPECT_ROCS=$EXPECT \
-        ~/up_verified.sh $SLOT $EXT --board $BOARD" | tail -1
+        ~/up_verified.sh $SLOT $EXT $MOD --board $BOARD" | tail -1
     ssh daq@10.116.24.180 'cut -d. -f1 /proc/uptime'
 
     gate=$("$ROOT/multimodule/bin/delay_scan.sh" "$SLOT" "$CFG" | tail -4)
@@ -35,8 +38,12 @@ for try in $(seq 1 "${SM_TRIES:-5}"); do
     [ "$try" = "${SM_TRIES:-5}" ] && { echo "ABORT: gate never passed"; exit 3; }
 done
 
+# ped_run.sh has its own bringup() for retries; without these it would re-probe
+# the LD-Full addresses on the wrong power-board output.
 PED_BASECFG=$ROOT/multimodule/hexactrl-sw/hexactrl-script/$CFG \
-    PED_DUT=Mux${SLOT}_$LABEL "$ROOT/multimodule/bin/ped_run.sh" "$SLOT" "$N" "$LABEL" 10000
+    PED_DUT=Mux${SLOT}_$LABEL \
+    PED_BOARD=$BOARD PED_EXTPOWER=${SM_EXTPOWER:-1} PED_MODULE=${SM_MODULE:-} \
+    "$ROOT/multimodule/bin/ped_run.sh" "$SLOT" "$N" "$LABEL" 10000
 docker exec daq bash -lc \
     "python3 $ROOT/multimodule/debug/cm_analysis.py '$ROOT/Results/alabama/$SERIAL/Mux${SLOT}_$LABEL/pedestal_run/run_*'" \
     | tail -3

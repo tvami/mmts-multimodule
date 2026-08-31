@@ -82,7 +82,10 @@ bringup() {
     # READY -- which is how the first in_inv_cmd_rx test ran against 4 of 6 ROCs
     # and produced a meaningless answer.  NROC comes from the base config.
     # MMTS_FW=<dir> makes the bring-up's fw-loader reset load a variant bitstream
-    ssh "$KRIA" "EXPECT_ROCS=$NROC ${MMTS_FW:+MMTS_FW=$MMTS_FW} ~/up_verified.sh $SLOT $ext ${PED_BOARD:+--board $PED_BOARD}" \
+    # PED_MODULE: which power-board output feeds the module, when it is not the
+    # slot's index.  Without it the default EN_Mx bit leaves the module unpowered
+    # and every ROC probe comes back empty.
+    ssh "$KRIA" "EXPECT_ROCS=$NROC ${MMTS_FW:+MMTS_FW=$MMTS_FW} ~/up_verified.sh $SLOT $ext ${PED_MODULE:+--module $PED_MODULE} ${PED_BOARD:+--board $PED_BOARD}" \
         | tail -1 | grep -q '^READY'
 }
 

@@ -24,12 +24,16 @@
 # exist: leads unscrewed, a module pulled, trophy and mezzanine schematics read.
 set -u
 
-SLOT="${1:?usage: bench_up.sh A|B|C [--board NAME] [--expect N] [--power-board]}"; shift || true
-BOARD="any"; EXPECT=""; EXT="--external-power"
+SLOT="${1:?usage: bench_up.sh A|B|C [--board NAME] [--expect N] [--power-board] [--module N]}"; shift || true
+BOARD="any"; EXPECT=""; EXT="--external-power"; MOD=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --board)  BOARD="$2"; shift 2 ;;
         --expect) EXPECT="$2"; shift 2 ;;
+        # EN_Mx bit to drive, when it is not the slot's own index.  The bit->slot
+        # mapping is a property of the power distribution board, not the mux
+        # board, so a new board can renumber it.
+        --module) MOD="--module $2"; shift 2 ;;
         # power distribution board fitted: the 0x27 EN_Mx write is what powers
         # the module, and --external-power skips it.  Required for LD Fulls.
         --power-board) EXT=""; shift ;;
@@ -51,7 +55,7 @@ echo "== 2/3  S*_PWR_EN  (the step that actually powers the module) =="
 # NOTE: no --recover.  We just did kconn_pwr/fw-loader by hand above, and
 # --recover would redo it.  There is no --no-recover flag; plain is the default.
 out=$(ssh "$KRIA" "cd ~/multimodule && MMTS_FW=$FW \
-        python3 enableROCs_alabama.py $SLOT $EXT --board $BOARD 2>&1")
+        python3 enableROCs_alabama.py $SLOT $EXT $MOD --board $BOARD 2>&1")
 echo "$out" | tail -12
 
 echo
