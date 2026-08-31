@@ -14,9 +14,10 @@ Operating procedure lives outside this repo, in `../MMTS_ALABAMA_INSTRUCTIONS.md
 | path | what |
 |---|---|
 | `*.py`, `*.sh` | the bench scripts — bring-up, ROC enable, mux/power diagnostics |
-| `hexactrl-sw/` | submodule — DAQ software (branch `robustness-fixes`) |
+| `hexactrl-sw/` | submodule — DAQ software (branch `ROCv3-alper-dev`) |
 | `hexactrl-sw_backup/` | submodule — earlier DAQ tree kept for comparison (branch `ROCv3`) |
-| `hgc-test-systems/` | submodule — firmware (branch `feature/multiplexer_board_v2`) |
+| `hgc-test-systems/` | submodule — firmware (fork branch `tvami/daq-rx-eq4`, see below) |
+| `debug/link_capture/` | submodule — `linkCaptureTool` (branch `master`) |
 | `hexmap/` | submodule — channel maps |
 | `gui-hexmap/` | submodule — module testing GUI |
 | `gui-master/` | **not tracked** — a git *worktree* of `gui-hexmap`, shares its `.git` |
@@ -71,8 +72,17 @@ fork even on a branch that tracks `origin`. Never push to `origin` directly.
 
 ### Outstanding
 
-- ✅ Both MRs merged on 2026-08-30, so nothing depends on the `tvami` forks any
-  more:
+- `hgc-test-systems` records `cfebc5e` "Equalise DAQ e-link receivers", which
+  exists **only** on `tvami/hgc-test-systems` branch `tvami/daq-rx-eq4`. That is
+  why its `.gitmodules` URL is the fork rather than `cms-hgcal-firmware`. Same
+  stopgap `hexactrl-sw` used while !55 was open. Move it back to
+  `cms-hgcal-firmware` / `feature/multiplexer_board_v2` once the EQ MR merges.
+- `debug/link_capture` is now registered in `.gitmodules`; before this it was a
+  gitlink with no mapping, so `git submodule status` errored. Its local two-line
+  AXI base-address change for the mux board is **not** committed upstream and is
+  kept as `debug/link_capture_muxaddr.patch`. Reapply with
+  `git -C debug/link_capture apply ../link_capture_muxaddr.patch`.
+- ✅ Both DAQ MRs merged on 2026-08-30:
   - zmq_i2c **!24** → `multimodule` as `0921ad0` —
     <https://gitlab.cern.ch/hgcal-daq-sw/zmq_i2c/-/merge_requests/24>
   - hexactrl-sw **!55** → `ROCv3-alper-dev` as `cb7a3c2` —

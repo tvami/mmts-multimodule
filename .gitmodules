@@ -16,5 +16,11 @@
 	branch = master
 [submodule "hgc-test-systems"]
 	path = hgc-test-systems
-	url = ssh://git@gitlab.cern.ch:7999/cms-hgcal-firmware/hgc-test-systems.git
-	branch = feature/multiplexer_board_v2
+	# temporarily the fork: the DAQ-RX equalisation work is not on
+	# cms-hgcal-firmware yet. Move back once the EQ MR merges.
+	url = ssh://git@gitlab.cern.ch:7999/tvami/hgc-test-systems.git
+	branch = tvami/daq-rx-eq4
+[submodule "debug/link_capture"]
+	path = debug/link_capture
+	url = https://gitlab.cern.ch/cms-hgcal-firmware/link_capture.git
+	branch = master

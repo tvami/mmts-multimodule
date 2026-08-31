@@ -1,0 +1,15 @@
+diff --git a/sw/tool/src/linkCaptureTool.cc b/sw/tool/src/linkCaptureTool.cc
+index cfa29ef..eceeccc 100644
+--- a/sw/tool/src/linkCaptureTool.cc
++++ b/sw/tool/src/linkCaptureTool.cc
+@@ -74,8 +74,8 @@ int main(int argc, char* argv[]) {
+ 
+   //Make this not a hardcode eventually
+   std::vector<std::pair<uint32_t, uint32_t>> addresses = {
+-      {0x80140000, 0x80100000},
+-      {0x80240000, 0x80200000}
++      {0x80080000, 0x80040000},
++      {0x80090000, 0x80030000}
+   };
+ 
+   const char* rcFILE=getenv("LINKCAPTURETOOL_RC");

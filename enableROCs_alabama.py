@@ -147,7 +147,24 @@ def reset_master():
     print(f"[rst] fw-loader load {FW} (resets the PL I2C master, keeps payload power)")
     subprocess.run(["sudo", "fw-loader", "load", FW],
                    check=True, stdout=subprocess.DEVNULL)
-    time.sleep(3)
+    wait_i2c_master()
+
+
+def wait_i2c_master(timeout=20.0):
+    """Wait for /dev/i2c-2 to come back writable after a bitstream reload.
+
+    The overlay re-creates the node and udev then fixes its group; after many
+    reloads in a session that takes longer than a fixed 3 s sleep, and the next
+    access fails with ENOENT or EACCES (seen 2026-08-29, 8 bring-ups in a row).
+    """
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        if os.access(f"/dev/i2c-{MASTER_BUS}", os.R_OK | os.W_OK):
+            time.sleep(1)      # let the master settle after the node appears
+            return
+        time.sleep(0.5)
+    print(f"      WARNING: /dev/i2c-{MASTER_BUS} not usable {timeout:.0f} s after "
+          "the reload; a Kria reboot usually clears this")
 
 
 def mux_board_gpio(slot, readback=False):
@@ -292,7 +309,7 @@ def main():
         time.sleep(3)
         subprocess.run(["sudo", "fw-loader", "load", FW],
                        check=True, stdout=subprocess.DEVNULL)
-        time.sleep(2)
+        wait_i2c_master()
         subprocess.run(["sudo", "kconn_pwr", "on"], check=True)
         time.sleep(5)
 
