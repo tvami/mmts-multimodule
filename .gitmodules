@@ -4,8 +4,8 @@
 	branch = master
 [submodule "hexactrl-sw"]
 	path = hexactrl-sw
-	url = ssh://git@gitlab.cern.ch:7999/tvami/hexactrl-sw.git
-	branch = robustness-fixes
+	url = ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/hexactrl-sw.git
+	branch = ROCv3-alper-dev
 [submodule "hexactrl-sw_backup"]
 	path = hexactrl-sw_backup
 	url = https://gitlab.cern.ch/hgcal-daq-sw/hexactrl-sw.git

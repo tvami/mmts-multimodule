@@ -47,8 +47,9 @@ them. Snapshotted 2026-08-29:
 | `hexactrl-sw_robustness-fixes.bundle` | six commits on `robustness-fixes` that exist on **no remote** — `fix fifo_latency mask and unaligned links`, `rebuild HwInterface when uhal_device changes`, `skip trg elink with no daq elink`, `use boost sleep for sub-second waits`, `bump zmq_i2c to robustness fixes`, `skip unreachable links in offset finder` |
 | `zmq_i2c_robustness-fixes.bundle` | `zmq_i2c` commits on **no remote**, including `fix repr, raise, and ROC probing` (`004290d`, the pointer `hexactrl-sw` actually records) and `retry ROC type read before raising` (`e62e243`, what is checked out) |
 
-Note `hexactrl-sw` records `zmq_i2c` at `004290d` while the working tree has
-`e62e243` checked out — that mismatch is the ` M zmq_i2c` in `git status`.
+Both bundles are now redundant: every commit in them reached `hgcal-daq-sw` when
+!24 and !55 merged. `hexactrl-sw` records `zmq_i2c` at `0921ad0` and has it
+checked out, so the old ` M zmq_i2c` mismatch is gone.
 
 Restore the bundle with:
 
@@ -56,16 +57,29 @@ Restore the bundle with:
 git -C hexactrl-sw fetch ../_snapshots/hexactrl-sw_robustness-fixes.bundle robustness-fixes
 ```
 
+### Remote convention
+
+Inside `hexactrl-sw`, `zmq_i2c` and `hexactrl-script` the remotes are:
+
+| remote | points at | used for |
+|---|---|---|
+| `origin` | `hgcal-daq-sw/…` | fetching; what `.gitmodules` records |
+| `fork` | `tvami/…` | where branches get pushed, then MR'd to `origin` |
+
+`remote.pushDefault = fork` is set in all three, so a bare `git push` goes to the
+fork even on a branch that tracks `origin`. Never push to `origin` directly.
+
 ### Outstanding
 
-- ✅ `robustness-fixes` pushed to the `tvami` forks of both `hexactrl-sw` and
-  `zmq_i2c` on 2026-08-29, so every submodule pointer now resolves. The
-  `hexactrl-sw` submodule URL therefore points at the **fork**, not
-  `hgcal-daq-sw`; move it back once the MR merges.
-- Two MRs open 2026-08-29, and **!24 must merge first** — !55 bumps `zmq_i2c` to
-  `e62e243`, which upstream cannot fetch until !24 lands:
-  - zmq_i2c **!24** → `multimodule` — <https://gitlab.cern.ch/hgcal-daq-sw/zmq_i2c/-/merge_requests/24>
-  - hexactrl-sw **!55** → `ROCv3-alper-dev` — <https://gitlab.cern.ch/hgcal-daq-sw/hexactrl-sw/-/merge_requests/55>
+- ✅ Both MRs merged on 2026-08-30, so nothing depends on the `tvami` forks any
+  more:
+  - zmq_i2c **!24** → `multimodule` as `0921ad0` —
+    <https://gitlab.cern.ch/hgcal-daq-sw/zmq_i2c/-/merge_requests/24>
+  - hexactrl-sw **!55** → `ROCv3-alper-dev` as `cb7a3c2` —
+    <https://gitlab.cern.ch/hgcal-daq-sw/hexactrl-sw/-/merge_requests/55>
+- ✅ The `hexactrl-sw` submodule URL is back on `hgcal-daq-sw`, tracking
+  `ROCv3-alper-dev`. The `robustness-fixes` branch was deleted on the fork when
+  !55 merged, so the old pointer would no longer have resolved.
 - The dirty `hexactrl-script` tree is still uncommitted — 46 files, including the
   `initLD-trophyV3-3b_mux*.yaml` configs. The snapshot is a stopgap, not version
   control; it should get a branch on a fork.
