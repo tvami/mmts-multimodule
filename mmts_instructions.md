@@ -149,25 +149,33 @@ mkdir -p "$MMTS_ROOT" && cd "$MMTS_ROOT"
 git clone -b ROCv3-alper-dev \
   ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/hexactrl-sw.git hexactrl-sw
 cd hexactrl-sw
-git submodule update --init hexactrl-script
+git submodule update --init hexactrl-script zmq_i2c
 git -C hexactrl-script remote add fork ssh://git@gitlab.cern.ch:7999/tvami/hexactrl-script.git
 git -C hexactrl-script fetch fork
 git -C hexactrl-script checkout mmts-alabama-configs
-git submodule update --init --recursive
+git -C hexactrl-script submodule update --init --recursive
 cd "$MMTS_ROOT"
 ```
 
-⚠️ **That last `--recursive` line is not optional, and it comes after the branch
-checkout** so the analysis commit matches the branch. `hexactrl-sw` has a second
-submodule, `zmq_i2c`, and `hexactrl-script` has one of its own, `analysis`, and
-the first `--init hexactrl-script` fetches neither. Both failures come later and
-neither names a submodule:
+⚠️ **Three submodules, two levels, and the order matters.** `hexactrl-sw` has
+`hexactrl-script` and `zmq_i2c`; `hexactrl-script` has `analysis`. Naming only
+`hexactrl-script` on the first line leaves the other two empty, and both failures
+come later without either naming a submodule:
 
 * `hexactrl-script/CMakeLists.txt` does `add_subdirectory(analysis)`, so the
   client build of 0.6a dies with `The source directory ... /hexactrl-script/analysis
   does not contain a CMakeLists.txt file` followed by
   `make: *** No targets specified and no makefile found`;
 * the `zmq_i2c` tar of 0.7 copies an empty directory to the Kria.
+
+🛑 **The `analysis` line must be `git -C hexactrl-script submodule update`, run
+from inside the submodule, and never `git submodule update --recursive` at the
+top.** `git submodule update` checks out the commit the *superproject* records,
+so a recursive update from `hexactrl-sw` silently drags `hexactrl-script` off
+`mmts-alabama-configs` back to the pinned commit and detaches HEAD. Everything
+still builds; `multimodule/` and the run configs are simply gone, and the first
+symptom is `$MM/puller.sh: No such file or directory` much later. If that happens,
+`git -C hexactrl-script checkout mmts-alabama-configs` puts it back.
 
 **Step 2, `gui-hexmap`.** The repository is named `hgcal-module-testing-gui`; the
 directory name is yours to choose, and `site.sh` records it as `GUI_HEXMAP`.
@@ -265,9 +273,11 @@ public CERN repository at `hgc-online-sw.web.cern.ch` carries `ROCv3` builds and
 nothing from our branch. Building from source is the supported route on both the
 client and the Kria.
 
-The client build needs **Boost and ROOT**: `unpack` and the pedestal analysis
-read and write ROOT files, and the client links against boost. uHAL is not needed
-here, it belongs to the server build of 0.8b.
+The client build needs **Boost, ROOT, yaml-cpp and cppzmq**: `unpack` and the
+pedestal analysis read and write ROOT files, the client links against boost, and
+every source in `sources/client` and `sources/common` includes
+`yaml-cpp/yaml.h` or `zmq.hpp`. uHAL is not needed here, it belongs to the server
+build of 0.8b.
 
 A stock client has no toolchain, so the build starts by installing one. This is a
 large download, ROOT alone runs to about a gigabyte:
@@ -278,8 +288,9 @@ large download, ROOT alone runs to about a gigabyte:
 sudo dnf install -y cmake make gcc-c++ boost-devel
 sudo dnf install -y epel-release
 sudo dnf config-manager --set-enabled crb
-sudo dnf install -y root
+sudo dnf install -y root yaml-cpp-devel cppzmq-devel zeromq-devel
 cmake --version && root-config --version
+ls /usr/include/yaml-cpp/yaml.h /usr/include/zmq.hpp
 ```
 
 `root` comes from EPEL on AlmaLinux 9. If your site provides ROOT another way,
@@ -289,10 +300,15 @@ finds it through `$ROOTSYS`.
 ⚠️ **Two traps in that block.** There is **no `root-devel`** package: EPEL splits
 ROOT into `root-core`, `root-io` and friends, the headers ship inside
 `root-core`, and the `root` metapackage pulls what you need. Asking for
-`root-devel` gives `Unable to find a match`. And **`crb` must be enabled first**,
+`root-devel` gives `Unable to find a match`. **`crb` must be enabled first**,
 because `root-io` needs `liburing-devel`, which lives in CRB and is disabled by
 default; without it the install dies with `nothing provides liburing-devel` and
-`root-config: command not found` afterwards.
+`root-config: command not found` afterwards. And **cmake does not check for
+yaml-cpp or cppzmq at all**, so leaving them out configures cleanly and fails
+minutes later in `make` with `fatal error: yaml-cpp/yaml.h: No such file or
+directory` across most of `anaobjectlib`. If EPEL has no `cppzmq-devel` on your
+release, the CERN software repo carries `cppzmq-devel-latest`, which is the same
+header-only binding.
 
 **(on the lab computer)**
 
@@ -340,19 +356,32 @@ its own aarch64 build in 0.8b.
 `/opt/hexactrl/ROCv3/`, so every path in this document changes, and it predates
 the MR !55 fixes listed in 0.8b.
 
-Every shell that runs a client command needs the environment first. Put it in
-your profile:
+Confirm what landed, then put the install's `bin` on `PATH` in your profile.
+Every shell that runs a client command needs it:
 
 **(on the lab computer)**
 
 ```bash
-source /opt/hexactrl/ROCv3-alper-dev/etc/env.sh
+ls /opt/hexactrl/ROCv3-alper-dev/bin        # daq-client, hitproducer, unpack
+export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
 ```
 
-🔑 That `source` is also the fix for the most common analysis failure. The
-notifier shells out to a bare `unpack`, so if the installation's `bin` is not on
-`PATH` in the shell that launched `pedestal_run.py`, the run produces no `.root`
-and `pedestal_run0.log` says `unpack: command not found`.
+🔑 That `PATH` is the fix for the most common analysis failure. The notifier
+shells out to a bare `unpack`, so if the installation's `bin` is not on `PATH` in
+the shell that launched `pedestal_run.py`, the run produces no `.root` and
+`pedestal_run0.log` says `unpack: command not found`.
+
+⚠️ **There is no `etc/env.sh` on the client, and you must not go looking for
+one.** `CMakeLists.txt` installs it inside `if( NOT BUILD_CLIENT )`, so it is a
+server-side file, and its contents are the cactus and uHAL paths of 0.8b, which
+the client neither has nor needs. Sourcing it here gives
+`No such file or directory`. The client build installs executables into `bin` and
+nothing else: no `lib`, no `etc`.
+
+The bench scripts already handle this for themselves. `multimodule/lib.sh`
+sources `$HEXACTRL/etc/env.sh` only if the file exists and then prepends
+`$HEXACTRL/bin` to `PATH` regardless, so the export above matters for the
+hand-driven commands of sections 3 to 5, not for `partial_slot.sh` and its kin.
 
 ### b. Python dependencies
 
@@ -445,7 +474,7 @@ cd "$MM/kria"
 ssh kria 'mkdir -p ~/multimodule/hexactrl-sw'
 
 # bring-up, mux and power helpers -> ~/multimodule
-tar cf - enableROCs_alabama.py mmts_bringup.sh findslot.py set_daq_delays.py \
+tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py \
   | ssh kria 'tar xf - -C ~/multimodule'
 
 # home directory wrappers -> ~
@@ -670,7 +699,7 @@ the commit out of the RPM's release string to confirm what you have:
 `2026_09_01_16_56_41.49751f37` or later carries the equalisation. A copied build
 directory carries no such stamp, which is a reason to prefer the RPM.
 
-⚠️ **`MMTS_FW` is not sticky.** `enableROCs_alabama.py` re-points `active` on
+⚠️ **`MMTS_FW` is not sticky.** `enableROCs.py` re-points `active` on
 every run, so a bring-up without it silently reverts the bench to stock. Check
 after every bring-up:
 
@@ -720,7 +749,7 @@ ssh kria 'cd ~/multimodule && python3 findslot.py'
 **(on the lab computer, checking the lab computer)**
 
 ```bash
-source /opt/hexactrl/ROCv3-alper-dev/etc/env.sh
+export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
 source "$MMTS_ROOT/venv/bin/activate"
 command -v daq-client unpack
 python3 -c "import uproot, uproot3, numpy, zmq; print(uproot.__version__)"
@@ -842,7 +871,7 @@ ssh kria "sudo fw-loader load $MMTS_FW"
 ssh kria 'sudo kconn_pwr on'
 ```
 
-⚠️ `enableROCs_alabama.py` has no `--no-recover` flag. Plain is the default and
+⚠️ `enableROCs.py` has no `--no-recover` flag. Plain is the default and
 does not cycle power; `--recover` opts into the `kconn_pwr off` then
 `fw-loader load` then `kconn_pwr on` sequence. After a mains cycle use the
 recover form, or do the two commands above by hand first. Otherwise every probe
@@ -1018,7 +1047,7 @@ write is what powers the module, and `--external-power` skips it, so the default
 would leave the module dead. `bench_up.sh` takes `--power-board` for the same
 reason.
 
-Run configs: `configs/initLD-trophyV3-3b_mux{A,B,C}_ped.yaml`.
+Run configs: `configs/initLD-Full-3b_mux{A,B,C}_ped.yaml`.
 
 ## 2.3b HD Full (HF)
 
@@ -1041,13 +1070,7 @@ e-links die and the module looks catastrophically broken.
 ⚠️ **A partial enable is not success.** Require `EXPECT_ROCS=6` **and** no
 `FAILED` in the log.
 
-Run configs (slot A shown; change `uhal_device` for other slots):
-
-| config | use |
-|---|---|
-| `configs/initHD-trophyV3_muxA_ped_inv0.yaml` | 24-link probe, v3D. Delay scan only; the gate FAILs by design on unused links |
-| `configs/initHD-trophyV3_muxA_ped_inv1.yaml` | the v3C/v3b variant, for the comparison |
-| `configs/initHD-trophyV3_muxA_ped_trg8.yaml` | pedestals: the four dead trigger links dropped |
+Run configs: `configs/initHD-Full-trophyV3_mux{A,B,C}_ped.yaml`.
 
 🔑 **If some trigger links will not align, drop *those* links and keep the rest.**
 Do **not** set `elinks_trg: []` — with no trigger links `daq-server` starts and
@@ -1063,7 +1086,7 @@ trigger links are ample for event building.
 | entries per 10 000-event run | 4 694 976 |
 | `adc_stdd` median | ~1.24 |
 
-## 2.4 LD Partial LR and LL
+## 2.4 LD Left (LL) and LD Right (LR)
 
 **No power distribution board.** These are fed from the bench supply directly, so
 every bring-up takes `--external-power`. Two ROCs at `0x48 0x58`. Three DAQ links
@@ -1079,9 +1102,9 @@ Without `--external-power`, bring-up drives a `0x27` power board that is not
 there. Probe with `--board any` first on the first board of a type and read the
 printed address list before pinning `--board` and `EXPECT_ROCS`.
 
-Run configs: `configs/initLD-RL-3b_mux{A,B,C}_ped.yaml`.
+Run configs: `configs/initLD-Left-3b_mux{A,B,C}_ped.yaml`.
 
-## 2.5 LD Partial TB, meaning LT and LB
+## 2.5 LD Bottom (LB)
 
 Same electrical setup as 2.4: no power board, `--external-power`, two ROCs.
 
@@ -1093,7 +1116,12 @@ not a fault.** Pedestals come out clean on the three: gate PASS, CRC 1.000, 0 of
 trigger path and would look identical if links were being lost. Use a TPG run to
 test that.
 
-Run configs: `configs/initLD-BT-3b_mux{A,B}_ped.yaml`.
+Run configs: `configs/initLD-Bottom-3b_mux{A,B,C}_ped.yaml`.
+
+An **LD Top** has the same two ROCs and the same electrical setup, but its link
+map has not been measured, so it has no file of its own yet. Probe one with
+`partial_slot.sh` and no `SKIP_PROBE=1`, per 2.6, before trusting the LD Bottom
+map on it.
 
 ## 2.6 Measured link sets
 
@@ -1105,22 +1133,20 @@ as well as the board type.**
 | Right, Left | 0,1,2,3,5,6 | 0,1,2,3,5,6 | 0,1,2,4,5,11 |
 | **Bottom** | **1, 2, 6** | **1, 2, 5** | not measured |
 
-For a board type or slot not in this table, probe the live trigger links before
-picking a run config. Bring up, then delay scan with a twelve-link config of the
-right ROC revision:
+For a board type or slot not in this table, measure the live links before picking
+a run config. Run `partial_slot.sh` **without** `SKIP_PROBE=1`:
 
 **(on the lab computer)**
 
 ```bash
-cd "$MMTS_ROOT/hexactrl-sw/hexactrl-script"
-python3 delay_scan.py -d MuxB -i "$KRIA_IP" -o "$MMTS_ROOT/Results/alabama" \
-    -I -f configs/linkprobe_muxB_v3d.yaml
+"$MM/partial_slot.sh" B initLD-Left-3b LD-Semi 2 probe 3
 ```
 
-`linkprobe_mux{B,C}_v3c.yaml` are v3C and `linkprobe_mux{B,C}_v3d.yaml` are v3D.
-The gate FAILs by design here, since unused links read 0. Read the per-link
-`ngood` list, not the verdict, then choose the run config whose `elinks_trg`
-matches that set.
+It derives a twelve-link probe from that slot's own `_ped.yaml`, delay-scans with
+it, writes the live set back into the config, and then re-does the bring-up
+before running any pedestal. That last step is not optional: the probe arms all
+twelve capture blocks and `LinkAligner` never clears `invert`, so a pedestal in
+the same bring-up stalls at 64 events.
 
 ## 2.7 Trophies
 
@@ -1160,7 +1186,7 @@ stays in one place.
 
 ## 2.9 Summary
 
-| | LD Full (LF) | LD Partial LR, LL | LD Partial TB (LT, LB) |
+| | LD Full (LF) | LD Left, LD Right | LD Bottom (LB) |
 |---|---|---|---|
 | power distribution board | fitted | none | none |
 | `--external-power` | **no** | yes | yes |
@@ -1169,7 +1195,7 @@ stays in one place.
 | DAQ links | 6 | 3 | 3 |
 | trigger links | 12 | 6 | **3** |
 | delay scan gate | 18 of 18 | 9 of 9 | 6 of 6 |
-| run config | `initLD-trophyV3-3b_mux*_ped.yaml` | `initLD-RL-3b_mux*_ped.yaml` | `initLD-BT-3b_mux*_ped.yaml` |
+| run config | `initLD-Full-3b_mux*_ped.yaml` | `initLD-Left-3b_mux*_ped.yaml` | `initLD-Bottom-3b_mux*_ped.yaml` |
 
 ---
 
@@ -1178,7 +1204,7 @@ Sections 3 to 5 assume this preamble in every client shell:
 **(on the lab computer)**
 
 ```bash
-source /opt/hexactrl/ROCv3-alper-dev/etc/env.sh
+export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
 source "$MMTS_ROOT/venv/bin/activate"
 MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
 SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
@@ -1194,7 +1220,7 @@ should use `$MMTS_ROOT/Results/alabama` directly.
 **(on the lab computer)**
 
 ```bash
-SKIP_PROBE=1 "$MM/partial_slot.sh" B initLD-RL-3b LD-Semi 2 LRight 5
+SKIP_PROBE=1 "$MM/partial_slot.sh" B initLD-Left-3b LD-Semi 2 LLeft 5
 ```
 
 That is bring-up, gate, a one-run smoke test, the remaining runs, the finder
@@ -1235,7 +1261,7 @@ before investigating anything.
 "$MM/puller.sh"
 cd "$SCRIPTS"
 python3 delay_scan.py -d MuxA -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-RL-3b_muxA_ped.yaml
+    -I -f configs/initLD-Left-3b_muxA_ped.yaml
 python3 "$MM/gate.py" "$OUT/MuxA"
 ```
 
@@ -1248,7 +1274,7 @@ Results/alabama/<serial>/MuxA/delay_scan/<timestamp>
 GATE: PASS -- safe to run pedestals
 ```
 
-Or `"$MM/delay_scan.sh" A configs/initLD-RL-3b_muxA_ped.yaml`, which does the
+Or `"$MM/delay_scan.sh" A configs/initLD-Left-3b_muxA_ped.yaml`, which does the
 puller restart, the scan and the gate in one step.
 
 **The gate must PASS before you run a pedestal.** A failure is a retry and not a
@@ -1276,7 +1302,7 @@ Restart the puller first. The `daq-client` from the delay scan is not reusable.
 cd "$SCRIPTS"
 PYTHONPATH=$PWD/analysis \
   python3 pedestal_run.py -d MuxA -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-RL-3b_muxA_ped.yaml
+    -I -f configs/initLD-Left-3b_muxA_ped.yaml
 ```
 
 `-I` is **required**. Without it `daq-server` never leaves `created` and the
@@ -1287,7 +1313,7 @@ Or, with the bring-up, the gate, N runs and the CRC table:
 **(on the lab computer)**
 
 ```bash
-PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" A 5 LRight 10000
+PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" A 5 LLeft 10000
 ```
 
 **Slot A specific:** the offset finder cannot bootstrap a slot with no good lane,
@@ -1301,14 +1327,14 @@ is retrying per link, which is a signal the links are marginal.
 ## 3.4 Hexmaps and common mode for slot A
 
 Unpacking and analysis run automatically as long as the installation's `bin` is
-on `PATH` in this shell, which the `env.sh` in the preamble handles. A good run
+on `PATH` in this shell, which the preamble's `export PATH` handles. A good run
 writes its own `.root` and nine PNGs unattended, and no `crash_report.log` means
 it worked.
 
 **(on the lab computer)**
 
 ```bash
-python3 "$MM/hexmap_robust.py" <run-dir> -l LRight --clip 5
+python3 "$MM/hexmap_robust.py" <run-dir> -l LLeft --clip 5
 python3 "$MM/cm_analysis.py" "$OUT/MuxA/pedestal_run/run_*"
 ```
 
@@ -1370,11 +1396,11 @@ ssh kria "cd ~/multimodule && MMTS_FW=$MMTS_FW EXPECT_ROCS=2 \
 "$MM/puller.sh"
 cd "$SCRIPTS"
 python3 delay_scan.py -d MuxB -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-RL-3b_muxB_ped.yaml
+    -I -f configs/initLD-Left-3b_muxB_ped.yaml
 python3 "$MM/gate.py" "$OUT/MuxB"
 ```
 
-Or `"$MM/delay_scan.sh" B configs/initLD-RL-3b_muxB_ped.yaml`.
+Or `"$MM/delay_scan.sh" B configs/initLD-Left-3b_muxB_ped.yaml`.
 
 Same gate rule as 3.2: PASS before a pedestal, and a FAIL is a retry.
 
@@ -1387,7 +1413,7 @@ Same gate rule as 3.2: PASS before a pedestal, and a FAIL is a retry.
 cd "$SCRIPTS"
 PYTHONPATH=$PWD/analysis \
   python3 pedestal_run.py -d MuxB -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-RL-3b_muxB_ped.yaml
+    -I -f configs/initLD-Left-3b_muxB_ped.yaml
 ```
 
 Or, with the bring-up, the gate, N runs and the CRC table:
@@ -1395,7 +1421,7 @@ Or, with the bring-up, the gate, N runs and the CRC table:
 **(on the lab computer)**
 
 ```bash
-PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" B 5 LRight 10000
+PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" B 5 LLeft 10000
 ```
 
 Keep `method: 'automatic'`. It wins because it sets **per-link** `fifo_latency`,
@@ -1435,11 +1461,11 @@ so do not add it back.
 "$MM/puller.sh"
 cd "$SCRIPTS"
 python3 delay_scan.py -d MuxC -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-RL-3b_muxC_ped.yaml
+    -I -f configs/initLD-Left-3b_muxC_ped.yaml
 python3 "$MM/gate.py" "$OUT/MuxC"
 ```
 
-Or `"$MM/delay_scan.sh" C configs/initLD-RL-3b_muxC_ped.yaml`.
+Or `"$MM/delay_scan.sh" C configs/initLD-Left-3b_muxC_ped.yaml`.
 
 Note from 2.6 that slot C's trigger set differs from A and B on the same board
 type: 0, 1, 2, 4, 5, 11 rather than 0, 1, 2, 3, 5, 6. Using slot A's or B's
@@ -1454,7 +1480,7 @@ config on slot C produces a FAIL that is a config error and not a hardware fault
 cd "$SCRIPTS"
 PYTHONPATH=$PWD/analysis \
   python3 pedestal_run.py -d MuxC -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-RL-3b_muxC_ped.yaml
+    -I -f configs/initLD-Left-3b_muxC_ped.yaml
 ```
 
 Or, with the bring-up, the gate, N runs and the CRC table:
@@ -1462,7 +1488,7 @@ Or, with the bring-up, the gate, N runs and the CRC table:
 **(on the lab computer)**
 
 ```bash
-PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 LRight 10000
+PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 LLeft 10000
 ```
 
 **Slot C specific, settled by measurement:** keep `L1A_offset_or_BX: 13` with
@@ -1540,9 +1566,13 @@ Each of these reads as a result and is not one.
 | 0 of 12 trigger, DAQ fine | The trigger claim is on another slot. Restart `daq-server` and scan this slot first |
 | All 12 trigger links `ngood=0`, DAQ perfect | Wrong `in_inv_cmd_rx` for the ROC revision. v3C is 1, v3D is 0 |
 | `.raw` unpacks to 0 entries | Stale puller. Restart `daq-client` |
-| `unpack: command not found` in `pedestal_run0.log` | `env.sh` was not sourced in the shell that launched the run. Section 0.6a |
+| `unpack: command not found` in `pedestal_run0.log` | The install's `bin` was not on `PATH` in the shell that launched the run. Section 0.6a |
+| `source .../ROCv3-alper-dev/etc/env.sh` gives `No such file or directory` on the client | Correct behaviour: `env.sh` is installed only by the server build. Set `PATH` instead. Section 0.6a |
 | cmake says `/hexactrl-script/analysis does not contain a CMakeLists.txt`, then `make` says `No targets specified` | The nested submodules were never fetched. `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
 | cmake reports `Found PythonInterp: .../miniforge3/bin/python3` | A conda environment is active. `conda deactivate`, delete the build directory, configure again. Section 0.6a |
+| `make` fails on `yaml-cpp/yaml.h` or `zmq.hpp: No such file or directory` | `yaml-cpp-devel` and `cppzmq-devel` are missing. cmake never checks for them, so this only shows up in `make`. Section 0.6a |
+| `$MM/puller.sh: No such file or directory`, and no `multimodule/` at all | A top-level `git submodule update --recursive` reset `hexactrl-script` to the pinned commit. `git -C hexactrl-script checkout mmts-alabama-configs`. Section 0.4 |
+| `dnf` answers `No matching Packages to list` for the firmware, and `dnf repolist` shows `HCGAL-DAQ-SW` alone | The `hgc-online-sw` repo file was never written. Section 0.8c |
 | `ZMQError: Address already in use` on 5555 | `ssh kria 'pkill -f "[z]mq_ser""ver.py"'` |
 | `daq-client` cannot bind 6001 | An old one is still alive. `pkill -f '[d]aq-client'` |
 | Orphaned holders after a killed server | `pkill -f 'gpioset -m signal -b'` |
@@ -1600,8 +1630,10 @@ itself. Newest first.
 
 | date | change |
 |---|---|
-| 2026-09-03 | First install from these instructions on a fresh AlmaLinux client found two gaps in 0.4 and 0.6a: the clone step initialised only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, which stops the client build at `add_subdirectory(analysis)`; and cmake takes its interpreter from `PATH`, so an active conda base builds against Python 3.12 |
-| 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. `enableROCs_alabama.py` now exits 1 when a `--board` address set comes up incomplete, instead of reporting a partial enable as success |
+| 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The 0.8b occurrences are server-side and stay |
+| 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and 0.8c. The clone step initialised only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of 0.8c had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
+| 2026-09-03 | Bench Kria upgraded from `2026_07_20_23_20_01.45587078` to `2026_09_01_16_56_41.49751f37`. The superseded build predates the DAQ RX equalisation, so any CRC or dead-DAQ-link result recorded on this bench before this date is an unequalised measurement |
+| 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. Configs reduced to exactly one per geometry per slot, `<family>_mux<SLOT>_ped.yaml`, with the family named for the geometry: `initLD-Full-3b`, `initLD-Five-3b`, `initLD-Left-3b`, `initLD-Bottom-3b`, `initHD-Full-trophyV3`, `initHD-Top-trophyV3`, `initHD-Bottom-trophyV3`, `initHD-Semi-trophyV3`. `enableROCs_alabama.py` renamed to `enableROCs.py`, and it now exits 1 when a `--board` address set comes up incomplete instead of reporting a partial enable as success |
 | 2026-09-01 | DAQ RX equalisation merged into `feature/multiplexer_board_v2` as `49751f37` and released, so the design has no `-rxeq` suffix any more. Measured against the unequalised build: CRC pass 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 |
 | 2026-08-31 | HD Full characterised on a supply with headroom: 4.43 A at 1.72 V for six chips, 12/12 DAQ links, CRC 1.000 on all twelve halves over 25 runs. At the current limit the rail sagged to 1.35 V and all 24 e-links died, which is where the clipping section of 1.0 comes from. `in_inv_cmd_rx` measured both ways on a v3D board: 0 gives 8/12 trigger, 1 gives 0/12. `--module N` added after a wrong `EN_Mx` bit cost a reseat and a full power-down |
 | 2026-08-30 | `hexactrl-sw` MR !55 and `zmq_i2c` MR !24 merged: the `fifo_latency` mask fix, rebuilding `HwInterface` when `uhal_device` changes, skipping a trigger elink whose chip has no DAQ elink, and the offset finder skipping unreachable links rather than refusing the slot |
