@@ -665,10 +665,9 @@ connection entry. Without them nothing can address a slot.
 Make the three tables from the shipped one. This keeps each slot's addresses and
 module files and only renames the ids:
 
-**(the first line is typed on the lab computer, everything after it on the Kria)**
+**(on the Kria)**
 
 ```bash
-ssh kria
 cd /opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
 for S in A B C; do
   OTHERS=$(echo ABC | tr -d "$S")
