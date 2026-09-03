@@ -1009,7 +1009,8 @@ mysterious. **`mmts_bringup.sh` for a first bring-up or when anything is wrong;
 |---|---|---|
 | attempts | one | up to 8 bring-ups, then up to 3 i2c-server starts |
 | output | on your screen | to `~/bu_<slot>.log`, one summary line per try |
-| starts the i2c-server | no | yes |
+| starts the i2c-server on 5555 | **no, run `start_i2c.sh` yourself** | yes |
+| restarts `daq-server` on 6000 | yes | yes, through `mmts_bringup.sh` |
 | verifies the result | no | ROC count, no `FAILED`, board identified, 5555 and 6000 listening |
 | use it | commissioning, diagnosis, anything unexplained | a slot you have brought up before |
 
@@ -1022,7 +1023,19 @@ bring-up and not a reduced one:
 
 ```bash
 cd ~/multimodule && ./mmts_bringup.sh A --board LD-Full
+~/start_i2c.sh A
 ```
+
+⚠️ **The second line is not optional, and nothing reminds you of it.**
+`mmts_bringup.sh` brings the slot up and restarts `daq-server` on 6000, but it
+does **not** start the i2c-server on 5555; only `start_i2c.sh` does, and
+`up_verified.sh` is what normally calls it for you. Skip it and the bring-up
+looks perfectly healthy while the next scan sits at `Initializing i2c sockets`
+with nothing to talk to. `ss -ltn | grep -E '5555|6000'` must show both.
+
+`start_i2c.sh` takes about 25 s and ends by printing the identify line, which is
+the second thing to read: **`Identify a board with HGCROC Siv3b`** is what you
+want, and plain `Siv3` means redo the bring-up rather than continue, per 1.4.
 
 ⚠️ **`up_verified.sh` retries what should not be retried.** Its eight attempts
 are calibrated for the bring-up lottery of 1.4, where a healthy bench needs two
@@ -1768,6 +1781,7 @@ Each of these reads as a result and is not one.
 | `findslot.py` prints `mux GPIO write failed ([Errno 5] ...)` or `bus wedged during probe` | Not the same as `no ROCs`: the master answered, not the module. Cold start in the order of 1.2 and probe once more. If it survives that, it is the wedge of 6.4 |
 | `KeyError: 'dac_hyst_toa'` | ROC type mis-detected and fell back to Siv3. Redo bring-up plus i2c-server |
 | Client hangs at `ROC(s) CONFIGURED` | `daq-server` is dead or stuck in a previous unfinished run. Restart it |
+| A scan sits at `Initializing i2c sockets` and never proceeds | Nothing is listening on 5555. `mmts_bringup.sh` does not start the i2c-server; run `~/start_i2c.sh SLOT`. Section 1.3 |
 | `status after start cmd : configured`, repeating | **Interrupt at once.** An e-link is unaligned and `start()` retries forever; the backlog can crash the puller and `daq-server`. Read `~/daq-server.log` for which link, then re-run bring-up |
 | `status after start cmd : created`, repeating | You dropped `-I` |
 | 6 DAQ links dead, 12 trigger fine | Multiplex hold lost. `gpiofind Multiplex_A` and `ps aux \| grep "[g]pioset"`; the chip numbers must match |
