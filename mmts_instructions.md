@@ -224,18 +224,19 @@ dangerous. `gui-hexmap` is the only correct source.
 
 ## 0.5 Site settings
 
-Set these once in `~/.bashrc`. Every value that follows is either a path you
-chose in 0.4 or something about your own bench, so **edit the two marked lines
-before pasting**: your hexacontroller's address, and the results root if you want
-it somewhere other than under `$MMTS_ROOT`.
+Set these once in `~/.bashrc`. Every value is either a path you chose in 0.4 or
+something about your own bench. **`KRIA_IP` is the one line you must change**:
+put your hexacontroller's address there, exactly as you would type it into
+`ssh`, with no quotes, braces or `${...}` around it. The rest can be pasted as
+they are unless you moved something.
 
 **(on the lab computer, appended to `~/.bashrc`)**
 
 ```bash
+export KRIA_IP=10.0.0.1
 export MMTS_ROOT=$HOME/mmts
 export MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
 export SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
-export KRIA_IP=10.0.0.1
 export KRIA_USER=daq
 export HEXACTRL=/opt/hexactrl/ROCv3-alper-dev
 export MMTS_VENV=$MMTS_ROOT/venv
@@ -244,6 +245,12 @@ export RESULTS_DIR=$MMTS_ROOT/Results
 export GUI_HEXMAP=$MMTS_ROOT/gui-hexmap
 export PATH=$HEXACTRL/bin:$PATH
 ```
+
+⚠️ **Do not copy `site.sh`'s style into these lines.** That file writes each
+value as `KRIA_IP="${KRIA_IP:-192.0.2.7}"`, which is a fallback that means "keep
+whatever is already set, otherwise use this". Typed at a prompt it does not do
+what it looks like, and if the paste loses the `$` you end up assigning the
+braces themselves as a literal string. Here, plain `export NAME=value`.
 
 Then open a new shell, or `source ~/.bashrc`, and check that all of it took:
 
