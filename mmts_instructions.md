@@ -437,13 +437,15 @@ conda `base` environment on the client shadows `/usr/bin/python3`, and
 `python3 -m venv` then builds a 3.12 venv without saying so. The same mistake
 also defeats `--system-site-packages`, since the RPM installs its Python modules
 for the system interpreter. Check the version the venv was built with, and
-rebuild it if it is not the system one. The `ls` must show `python3.9` on
-AlmaLinux 9, and the `conda deactivate` is needed only if a `(base)` prompt is
-showing:
+rebuild it if it is not the system one. With the venv active, `which python3`
+must be `$MMTS_ROOT/venv/bin/python3` and the `ls` must show `python3.9` on
+AlmaLinux 9. The `conda deactivate` is needed only if a `(base)` prompt is
+showing, and the last two lines only if the version is wrong:
 
 **(on the lab computer)**
 
 ```bash
+which python3
 ls "$MMTS_ROOT/venv/lib"
 conda deactivate
 rm -rf "$MMTS_ROOT/venv"
@@ -1130,6 +1132,7 @@ configure dies with `KeyError: 'dac_hyst_toa'`.
 |---|---|---|
 | bring-up | 60 to 90 s | log stops at `Turning on payload power`, and `daq-server` is down with 6000 not listening, because it is killed before being restarted |
 | i2c-server | 15 to 30 s | `IOError in mux_setup group (attempt n/5) ... Retrying.` Retries are normal and usually succeed. 5555 is not yet bound |
+| a scan or pedestal starting | tens of seconds | it sits at `Initializing i2c sockets` while the ROCs are configured over ZeroMQ. A pause here is the normal case, not a hang |
 
 Do not conclude anything until the bring-up log ends in `next:` or
 `bring-up failed`, **and** the server log contains `Identify a board with HGCROC
@@ -1773,6 +1776,8 @@ Each of these reads as a result and is not one.
 | `.raw` unpacks to 0 entries | Stale puller. Restart `daq-client` |
 | `unpack: command not found` in `pedestal_run0.log` | The install's `bin` was not on `PATH` in the shell that launched the run. Section 0.6a |
 | `python3: can't open file '.../delay_scan.py'`, naming a directory you did not choose | `SCRIPTS` is unset, and `cd ""` is a silent no-op that left you where you were. `echo "SCRIPTS=$SCRIPTS"`, then section 0.5 |
+| `ModuleNotFoundError: No module named 'zmq'` | The venv is not active, is shadowed by conda, or never got its packages. `which python3` must be `$MMTS_ROOT/venv/bin/python3`; if it is, re-run the `pip install` of 0.6b |
+| Environment variables you just set are gone again | You set them in a subshell and typed `exit`, which discarded them. Put the three exports in `~/.bashrc`, per 0.5 |
 | `source .../ROCv3-alper-dev/etc/env.sh` gives `No such file or directory` on the client | Correct behavior: `env.sh` is installed only by the server build. Set `PATH` instead. Section 0.6a |
 | cmake says `/hexactrl-script/analysis does not contain a CMakeLists.txt`, then `make` says `No targets specified` | The nested submodules were never fetched. `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
 | cmake reports `Found PythonInterp: .../miniforge3/bin/python3` | A conda environment is active. `conda deactivate`, delete the build directory, configure again. Section 0.6a |
