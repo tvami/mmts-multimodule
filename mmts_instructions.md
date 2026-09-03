@@ -852,6 +852,39 @@ that check causes the very fault it is looking for.
 
 # 1. Powering up
 
+🔑 **Read your board's row in 2.9 before you run anything here.** Every bring-up
+command in this section takes three values that come from the board type, not
+from the bench: `--board`, the ROC count in `EXPECT_ROCS`, and whether the module
+has a power distribution board, which decides `--external-power`. Getting them
+from the wrong row is not a harmless mistake. `--external-power` on a board that
+has a power distribution board skips the `0x27` `EN_Mx` write that powers the
+module, so the module stays dead and every probe reads `no ROCs`.
+
+The short version of that table, which is all this section needs. The `--board`
+names are the ones `enableROCs.py` accepts, and `any` probes every V3 address and
+enables whatever answers, which is what to use on a board type you have not run
+before:
+
+| board | `--board` | `EXPECT_ROCS` | power distribution board |
+|---|---|---|---|
+| LD Full | `LD-Full` | 3 | fitted |
+| HD Full | `HD-Full` | 6 | fitted |
+| LD Five | `LD-Five` | 3 | none |
+| LD Left, Right, Bottom, Top | `LD-Semi` | 2 | none |
+| HD Top, Bottom, Semi | `HD-Top`, `HD-Bottom`, `HD-Semi` | 3, 4, 2 | none |
+| unknown | `any` | read it off the probe | check the board |
+
+The examples below use an LD Full, the three-ROC board with a power distribution
+board fitted, and give the partial form where it differs.
+
+⚠️ **The two wrappers default the opposite way, so never copy a power flag from
+one to the other.** `enableROCs.py` and `up_verified.sh` assume the power
+distribution board is there and take `--external-power` to say it is not.
+`bench_up.sh` assumes it is not and takes `--power-board` to say it is. An LD
+Full therefore needs no power flag in the first pair and `--power-board` in the
+second, and both mistakes produce the same symptom: a module that never powers up
+and reads `no ROCs`.
+
 ## 1.0 Size the supply BEFORE you trust any measurement
 
 🔑 **A module at its supply's current limit produces data that looks like broken
@@ -947,7 +980,16 @@ returns `no ROCs` against an unpowered bus, with all writes still ACKing.
 
 `up_verified.sh` runs on the Kria and is the one to use. It retries both
 lotteries, bring-up and i2c discovery, and verifies the result rather than
-trusting a log line:
+trusting a log line. This is the LD Full form:
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh A --board LD-Full"
+```
+
+For a partial, which has no power distribution board, it becomes:
 
 **(on the lab computer)**
 
@@ -988,14 +1030,19 @@ The flag is forwarded by `bench_up.sh` and `mmts_bringup.sh` directly, by
 
 `bench_up.sh` on the client does the cold start in the only order that works, and
 needs no adaptation since it only calls `ssh`. The first line below is the form
-for a partial, the second for an LD Full:
+for an LD Full, the second for a partial:
 
 **(on the lab computer)**
 
 ```bash
-"$MM/bench_up.sh" A --board LD-Semi --expect 2
 "$MM/bench_up.sh" A --board LD-Full --expect 3 --power-board
+"$MM/bench_up.sh" A --board LD-Semi --expect 2
 ```
+
+⚠️ **`bench_up.sh` spells the power board the other way round from
+`up_verified.sh`.** Here you opt *in* with `--power-board`; there you opt *out*
+with `--external-power`. Leaving `--power-board` off an LD Full is the same
+mistake as adding `--external-power` to one, and gives the same dead module.
 
 ## 1.4 What good looks like, and when to just re-run
 
@@ -1464,6 +1511,9 @@ ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROC
   ~/up_verified.sh B --external-power --board LD-Semi"
 ```
 
+As in 3.1, an LD Full drops `--external-power` and uses
+`EXPECT_ROCS=3 --board LD-Full`.
+
 ## 4.2 Delay scan on slot B
 
 **(on the lab computer)**
@@ -1525,6 +1575,9 @@ Ten pedestals give 60 of 60 half-ROCs below corruption 1.0, with robust σ of
 ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
   ~/up_verified.sh C --external-power --board LD-Semi"
 ```
+
+As in 3.1, an LD Full drops `--external-power` and uses
+`EXPECT_ROCS=3 --board LD-Full`.
 
 ⚠️ Sub-bus 7 hangs the bus if it is selected on slot C. It is no longer probed,
 so do not add it back.
