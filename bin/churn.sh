@@ -9,7 +9,7 @@
 set -u
 SLOT="${1:?slot A|B|C}"
 N="${2:-4}"
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 FW=${MMTS_FW:-multimodule-hd-tester-trophy-v3-rxeq4}
 ROCS=${EXPECT_ROCS:-2}
 BOARD=${PED_BOARD:-LD-Semi}

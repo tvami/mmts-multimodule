@@ -41,7 +41,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 FW=multimodule-hd-tester-trophy-v3-rxeq4
 
 ssh -o ConnectTimeout=5 "$KRIA" true 2>/dev/null || {

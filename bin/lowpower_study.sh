@@ -19,7 +19,7 @@ CFG="${1:-configs/initHD-trophyV3_muxC_run2.yaml}"
 DUT="${PED_DUT:-MuxC_HD_lowpower}"
 RESULTS=$ROOT/Results/alabama
 BIN=/opt/hexactrl/ROC3_dev_docker/bin
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 NROC=$(grep -c '^roc_s[0-9_]*:' "$SCRIPTS/$CFG")
 
 say() { echo; echo "=== $* ==="; }
@@ -74,7 +74,7 @@ docker exec daq bash -lc "cd $SCRIPTS
 export PYTHONPATH=\$PWD:\$PWD/analysis
 python3 -u -c \"
 import zmq_controler as zmqctrl
-i2c = zmqctrl.i2cController('10.116.24.180', '5555', '$CFG')
+i2c = zmqctrl.i2cController('10.116.25.124', '5555', '$CFG')
 i2c.initialize()
 print('i2c initialize done')
 \"" 2>&1 | tail -3
@@ -92,7 +92,7 @@ echo "    initialize does a GPIO reset that would undo the silencing)"
 docker exec daq bash -lc "cd $SCRIPTS
 export PATH=$BIN:\$PATH
 export PYTHONPATH=\$PWD/analysis
-timeout 900 python3 -u delay_scan.py -d $DUT -i 10.116.24.180 \
+timeout 900 python3 -u delay_scan.py -d $DUT -i 10.116.25.124 \
     -o $RESULTS -f $CFG" 2>&1 | tail -6
 
 dir=$(ls -dt "$RESULTS/$DUT/delay_scan/"* 2>/dev/null | head -1)

@@ -92,7 +92,7 @@ for off in $OFFSETS; do
             export PATH=$BIN:\$PATH
             export PYTHONPATH=\$PWD/analysis
             export MMTS_L1A_LOG2PERIOD=10
-            timeout $MAXSECS python3 -u pedestal_run.py -d $DUT -i 10.116.24.180 \
+            timeout $MAXSECS python3 -u pedestal_run.py -d $DUT -i 10.116.25.124 \
                 -o $RESULTS -I -f $cfg" > "$log" 2>&1
         rc=$?
         rm -f "$SCRIPTS/$cfg"

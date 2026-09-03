@@ -17,13 +17,13 @@ set -u
 
 VARIANT="${1:?usage: inv_ab_test.sh 0|1}"
 case "$VARIANT" in
-    0) CFG=configs/initHD-trophyV3_muxC_ped.yaml ;;
+    0) CFG=configs/initHD-trophyV3_muxC.yaml ;;
     1) CFG=configs/initHD-trophyV3_muxC_ped_inv1.yaml ;;
     *) echo "variant must be 0 or 1"; exit 2 ;;
 esac
 
 ROOT=/Users/blackmac/Docs/1Research/MMTS
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 NROC=$(grep -c '^roc_s[0-9_]*:' "$ROOT/multimodule/hexactrl-sw/hexactrl-script/$CFG")
 
 echo "### in_inv_cmd_rx = $VARIANT   ($CFG)"

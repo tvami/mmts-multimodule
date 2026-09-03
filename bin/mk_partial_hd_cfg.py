@@ -42,7 +42,7 @@ import sys
 
 CONFIGS = pathlib.Path("/Users/blackmac/Docs/1Research/MMTS/multimodule/"
                        "hexactrl-sw/hexactrl-script/configs")
-BASE = CONFIGS / "initHD-trophyV3_muxC_ped.yaml"
+BASE = CONFIGS / "initHD-trophyV3_muxC.yaml"
 
 CHIP_BLOCK = {0: "roc_s0_0", 1: "roc_s0_1", 2: "roc_s1_0",
               3: "roc_s1_1", 4: "roc_s2_0", 5: "roc_s2_1"}

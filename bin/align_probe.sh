@@ -11,9 +11,9 @@ set -u
 
 ROOT=/Users/blackmac/Docs/1Research/MMTS
 SCRIPTS=$ROOT/multimodule/hexactrl-sw/hexactrl-script
-CFG=${1:-configs/initHD-trophyV3_muxC_ped.yaml}
+CFG=${1:-configs/initHD-trophyV3_muxC.yaml}
 BIN=/opt/hexactrl/ROC3_dev_docker/bin
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 
 docker rm -f daq >/dev/null 2>&1
 docker run -d --name daq --platform linux/amd64 -p 6001:6001 \
@@ -27,8 +27,8 @@ export PYTHONPATH=\$PWD:\$PWD/analysis
 python3 -u - <<'PY'
 import zmq_controler as zmqctrl
 cfg = '$CFG'
-i2c = zmqctrl.i2cController('10.116.24.180', '5555', cfg)
-daq = zmqctrl.daqController('10.116.24.180', '6000', cfg)
+i2c = zmqctrl.i2cController('10.116.25.124', '5555', cfg)
+daq = zmqctrl.daqController('10.116.25.124', '6000', cfg)
 cli = zmqctrl.daqController('localhost', '6001', cfg)
 print('i2c initialize :', i2c.initialize())
 print('daq initialize :', daq.initialize())

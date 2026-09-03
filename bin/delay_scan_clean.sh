@@ -18,11 +18,11 @@ CFG_IN="${4:-}"
 
 ROOT=/Users/blackmac/Docs/1Research/MMTS
 SCRIPTS=$ROOT/multimodule/hexactrl-sw/hexactrl-script
-CFG=${CFG_IN:-configs/initHD-trophyV3_muxC_ped.yaml}
+CFG=${CFG_IN:-configs/initHD-trophyV3_muxC.yaml}
 DUT=${PED_DUT:-MuxC_HD_Full}
 RESULTS=$ROOT/Results/alabama
 BIN=/opt/hexactrl/ROC3_dev_docker/bin
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 NROC=$(grep -c '^roc_s[0-9_]*:' "$SCRIPTS/$CFG")
 
 # The puller container's main process is `daq-client & wait`: when daq-client
@@ -50,7 +50,7 @@ for try in $(seq 1 "$TRIES"); do
     docker exec daq bash -lc "cd $SCRIPTS
         export PATH=$BIN:\$PATH
         export PYTHONPATH=\$PWD/analysis
-        timeout 900 python3 -u delay_scan.py -d $DUT -i 10.116.24.180 \
+        timeout 900 python3 -u delay_scan.py -d $DUT -i 10.116.25.124 \
             -o $RESULTS -I -f $CFG" > "$log" 2>&1
 
     # The whole point: only trust a scan whose ROCs were actually configured.

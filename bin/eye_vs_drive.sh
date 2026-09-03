@@ -18,7 +18,7 @@ SLOT="${1:-B}"
 ROOT=/Users/blackmac/Docs/1Research/MMTS
 SCRIPTS=$ROOT/multimodule/hexactrl-sw/hexactrl-script
 CFG=configs/initLD-trophyV3-3b_mux${SLOT}_ped.yaml
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 
 for clps in "7,7,3" "7,0,3" "5,7,3" "3,7,3" "1,7,3" "0,0,0"; do
     IFS=, read -r EN ENPE S <<< "$clps"
@@ -27,7 +27,7 @@ for clps in "7,7,3" "7,0,3" "5,7,3" "3,7,3" "1,7,3" "0,0,0"; do
         export PYTHONPATH=\$PWD:\$PWD/analysis
         python3 -c \"
 import zmq_controler as zmqctrl, yaml
-i2c = zmqctrl.i2cController('10.116.24.180','5555','$CFG')
+i2c = zmqctrl.i2cController('10.116.25.124','5555','$CFG')
 for r in ('roc_s0','roc_s1','roc_s2'):
     i2c.yamlConfig[r]['sc']['Top'][0]['EN']   = $EN
     i2c.yamlConfig[r]['sc']['Top'][0]['ENpE'] = $ENPE

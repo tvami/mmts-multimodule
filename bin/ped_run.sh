@@ -56,7 +56,7 @@ else
     DUT=${PED_DUT:-Mux${SLOT}_crc}
 fi
 BIN=/opt/hexactrl/ROC3_dev_docker/bin
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 MAXSECS=240
 
 fresh_puller() {
@@ -133,7 +133,7 @@ verify_clps() {
         export PYTHONPATH=\$PWD:\$PWD/analysis
         python3 -c \"
 import zmq_controler as zmqctrl
-i2c = zmqctrl.i2cController('10.116.24.180', '5555', '$BASECFG')
+i2c = zmqctrl.i2cController('10.116.25.124', '5555', '$BASECFG')
 node = {'roc_s0': {'sc': {'Top': {0: {'EN': 0, 'ENpE': 0, 'S': 0}}}}}
 b = i2c.read_config(node)['roc_s0']
 t = b.get('sc', b)['Top'][0]
@@ -223,7 +223,7 @@ for i in $(seq 1 "$N"); do
         export PATH=$BIN:\$PATH
         export PYTHONPATH=\$PWD/analysis
         export MMTS_L1A_LOG2PERIOD=${PED_L1A:-10}   # PED_L1A: log2 random L1A period in BX
-        timeout $MAXSECS python3 -u pedestal_run.py -d $DUT -i 10.116.24.180 \
+        timeout $MAXSECS python3 -u pedestal_run.py -d $DUT -i 10.116.25.124 \
             -o $RESULTS -I -f $cfg" > "$log" 2>&1
     rc=$?
 

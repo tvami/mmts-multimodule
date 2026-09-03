@@ -39,7 +39,7 @@ for i in $(seq 1 "$N"); do
         export PATH=$BIN:\$PATH
         export PYTHONPATH=\$PWD/analysis
         export MMTS_L1A_LOG2PERIOD=10
-        timeout 200 python3 -u pedestal_run.py -d $DUT -i 10.116.24.180 \
+        timeout 200 python3 -u pedestal_run.py -d $DUT -i 10.116.25.124 \
             -o $RESULTS -I -f $cfg" > "$log" 2>&1
 
     if grep -q 'ROC(s) CONFIGURED' "$log"; then i2c="CONFIGURED"; else i2c="**FAILED**"; fi

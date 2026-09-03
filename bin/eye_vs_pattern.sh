@@ -15,7 +15,7 @@ SLOT="${1:-B}"
 ROOT=/Users/blackmac/Docs/1Research/MMTS
 SCRIPTS=$ROOT/multimodule/hexactrl-sw/hexactrl-script
 CFG=configs/initLD-trophyV3-3b_mux${SLOT}_ped.yaml
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 
 # idle nibbles -> full 32-bit align pattern is 0xA followed by the 7 nibbles
 for pair in "0xCCCCCCC:0xACCCCCCC" "0x1111111:0xA1111111" "0x0F0F0F0:0xA0F0F0F0" "0x1000000:0xA1000000"; do
@@ -25,7 +25,7 @@ for pair in "0xCCCCCCC:0xACCCCCCC" "0x1111111:0xA1111111" "0x0F0F0F0:0xA0F0F0F0"
         export PYTHONPATH=\$PWD:\$PWD/analysis
         python3 -c \"
 import zmq_controler as zmqctrl
-i2c = zmqctrl.i2cController('10.116.24.180','5555','$CFG')
+i2c = zmqctrl.i2cController('10.116.25.124','5555','$CFG')
 for r in ('roc_s0','roc_s1','roc_s2'):
     for h in (0,1):
         i2c.yamlConfig[r]['sc']['DigitalHalf'][h]['IdleFrame'] = $IDLE
@@ -54,7 +54,7 @@ docker exec daq bash -lc "cd $SCRIPTS
     export PYTHONPATH=\$PWD:\$PWD/analysis
     python3 -c \"
 import zmq_controler as zmqctrl
-i2c = zmqctrl.i2cController('10.116.24.180','5555','$CFG')
+i2c = zmqctrl.i2cController('10.116.25.124','5555','$CFG')
 i2c.configure()
 print('   ROC config restored')
 \"" 2>/dev/null | tail -1

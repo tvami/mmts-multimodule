@@ -14,7 +14,7 @@ set -u
 SLOT="${1:?slot}"; DELAYS="${2:?delays}"; PERIOD="${3:-16}"; LABEL="${4:-midrun}"
 ROOT=/Users/blackmac/Docs/1Research/MMTS
 SCRIPTS=$ROOT/multimodule/hexactrl-sw/hexactrl-script
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 DUT=Mux${SLOT}_${LABEL}
 
 log=$(mktemp)
@@ -22,7 +22,7 @@ docker exec daq bash -lc "cd $SCRIPTS
     export PATH=/opt/hexactrl/ROC3_dev_docker/bin:\$PATH
     export PYTHONPATH=\$PWD/analysis
     export MMTS_L1A_LOG2PERIOD=$PERIOD
-    timeout 400 python3 -u pedestal_run.py -d $DUT -i 10.116.24.180 \
+    timeout 400 python3 -u pedestal_run.py -d $DUT -i 10.116.25.124 \
         -o $ROOT/Results/alabama -I -f configs/initLD-trophyV3-3b_mux${SLOT}_ped.yaml" > "$log" 2>&1 &
 client=$!
 

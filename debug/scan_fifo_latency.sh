@@ -38,7 +38,7 @@ for fifo in $LATENCIES; do
 
     out=$(docker exec daq bash -lc "cd $SCRIPTS && \
         PYTHONPATH=\$PWD/analysis python3 pedestal_run.py -d MuxB_fifo \
-        -i 10.116.24.180 -o $ROOT/Results/alabama -I -f $cfg" 2>&1)
+        -i 10.116.25.124 -o $ROOT/Results/alabama -I -f $cfg" 2>&1)
     dir=$(echo "$out" | grep -o "$ROOT/Results/alabama/MuxB_fifo/pedestal_run/run_[0-9_]*" | head -1)
     rm -f "$SCRIPTS/$cfg"
 

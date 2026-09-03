@@ -26,10 +26,10 @@ echo "# slot $SLOT board $SERIAL label $LABEL  (--board $BOARD, expect $EXPECT R
 # and daq-server refuses START on any unaligned elink: an ungated pedestal then
 # burns the full 240 s timeout per run.  Retry the whole cycle instead.
 for try in $(seq 1 "${SM_TRIES:-5}"); do
-    ssh daq@10.116.24.180 "cd ~/multimodule && \
+    ssh daq@10.116.25.124 "cd ~/multimodule && \
         MMTS_FW=multimodule-hd-tester-trophy-v3-rxeq4 EXPECT_ROCS=$EXPECT \
         ~/up_verified.sh $SLOT $EXT $MOD --board $BOARD" | tail -1
-    ssh daq@10.116.24.180 'cut -d. -f1 /proc/uptime'
+    ssh daq@10.116.25.124 'cut -d. -f1 /proc/uptime'
 
     gate=$("$ROOT/multimodule/bin/delay_scan.sh" "$SLOT" "$CFG" | tail -4)
     echo "$gate"

@@ -29,7 +29,7 @@ REGS = ['statusL', 'statusR', 'lock_count', 'Pll_Locked_sc',
         # pre-emphasis OFF, whatever bring-up did.
         'EN', 'ENpE', 'S', 'BIAS_I_PLL_D']
 
-ip = sys.argv[1] if len(sys.argv) > 1 else '10.116.24.180'
+ip = sys.argv[1] if len(sys.argv) > 1 else '10.116.25.124'
 label = sys.argv[2] if len(sys.argv) > 2 else ''
 
 i2c = zmqctrl.i2cController(ip, '5555', 'configs/initLD-trophyV3-3b_muxC_ped.yaml')

@@ -20,7 +20,7 @@ for block in 1 2 3; do
     "$ROOT/multimodule/bin/churn.sh" "$SLOT" 4 || exit 1
     CUM=$((CUM + 4))
     echo "=== after $CUM cumulative bring-ups ==="
-    ssh daq@10.116.24.180 'cut -d. -f1 /proc/uptime; for h in /sys/class/hwmon/hwmon*; do
+    ssh daq@10.116.25.124 'cut -d. -f1 /proc/uptime; for h in /sys/class/hwmon/hwmon*; do
         [ "$(cat $h/name 2>/dev/null)" = ams ] && cat $h/temp1_input; done' | tr '\n' ' '
     echo
 

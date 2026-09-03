@@ -4,7 +4,7 @@ Bench scripts for the CMS HGCAL Multi-Module Test System (MMTS), plus submodule
 references to the CERN GitLab repos they drive.
 
 Source of truth is the Mac copy at `~/Docs/1Research/MMTS/multimodule`; the Kria
-(`daq@10.116.24.180`, Alabama bench) gets a copy of the top-level scripts.
+(`daq@10.116.25.124`, Alabama bench) gets a copy of the top-level scripts.
 
 Operating procedure lives outside this repo, in `../MMTS_ALABAMA_INSTRUCTIONS.md`
 (commands) and `../MMTS_ALABAMA_RUNBOOK.md` (why). The runbook is authoritative.
@@ -101,5 +101,5 @@ fork even on a branch that tracks `origin`. Never push to `origin` directly.
 The Kria holds only the top-level scripts (no submodules, no `_snapshots`):
 
 ```bash
-tar czf - --exclude=__pycache__ *.py *.sh | ssh daq@10.116.24.180 'tar xzf - -C ~/multimodule'
+tar czf - --exclude=__pycache__ *.py *.sh | ssh daq@10.116.25.124 'tar xzf - -C ~/multimodule'
 ```

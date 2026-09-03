@@ -1,11 +1,18 @@
 """Check every roc_s* parameter in a config against the v3b register map, so a
 bad key is caught here instead of crashing the i2c-server mid-configure.
 Block id 'all' means every id of that block (Translator.py:81)."""
-import pickle, sys, yaml
+import os, pickle, sys, yaml
 
 cfg = yaml.safe_load(open(sys.argv[1]))
-with open("/home/daq/multimodule/hexactrl-sw/zmq_i2c/reg_maps/"
-          "HGCROC3b_I2C_params_regmap_dict.pickle", "rb") as fh:
+# Resolve the map next to this script's own checkout, so it runs on the Mac too;
+# the Kria path stays as the fallback.
+_here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_map = os.path.join(_here, "hexactrl-sw/zmq_i2c/reg_maps/"
+                           "HGCROC3b_I2C_params_regmap_dict.pickle")
+if not os.path.exists(_map):
+    _map = ("/home/daq/multimodule/hexactrl-sw/zmq_i2c/reg_maps/"
+            "HGCROC3b_I2C_params_regmap_dict.pickle")
+with open(_map, "rb") as fh:
     pm = pickle.load(fh)
 
 bad = []

@@ -21,7 +21,7 @@ CFG="${1:?config, relative to hexactrl-script/}"
 TRIES="${2:-3}"
 ROOT=/Users/blackmac/Docs/1Research/MMTS
 SCRIPTS=$ROOT/multimodule/hexactrl-sw/hexactrl-script
-KRIA=daq@10.116.24.180
+KRIA=daq@10.116.25.124
 
 INV=$(grep -oE 'in_inv_cmd_rx: [01]' "$SCRIPTS/$CFG" | head -1 | grep -oE '[01]')
 NRUN=$(grep -c 'RunL: 1' "$SCRIPTS/$CFG")
@@ -55,7 +55,7 @@ for try in $(seq 1 "$TRIES"); do
         export PYTHONPATH=\$PWD:\$PWD/analysis
         python3 -u -c \"
 import zmq_controler as zmqctrl
-zmqctrl.i2cController('10.116.24.180','5555','$CFG').initialize()
+zmqctrl.i2cController('10.116.25.124','5555','$CFG').initialize()
 \"" 2>&1)
     if ! echo "$conf" | grep -q 'ROC(s) CONFIGURED'; then
         echo "    configure FAILED: $(echo "$conf" | grep -oE 'error: [^\\]*' | head -1)"
@@ -77,7 +77,7 @@ zmqctrl.i2cController('10.116.24.180','5555','$CFG').initialize()
         export PYTHONPATH=\$PWD:\$PWD/analysis
         python3 -u -c \"
 import zmq_controler as zmqctrl
-d = zmqctrl.daqController('10.116.24.180','6000','$CFG'); d.initialize()
+d = zmqctrl.daqController('10.116.25.124','6000','$CFG'); d.initialize()
 c = zmqctrl.daqController('localhost','6001','$CFG')
 c.yamlConfig['client']['serverIP'] = d.ip; c.initialize()
 \"" >/dev/null 2>&1
