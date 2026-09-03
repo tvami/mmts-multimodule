@@ -244,9 +244,27 @@ $EDITOR "$MM/site.sh"
 | `RESULTS_DIR` | the output root, `$MMTS_ROOT/Results` by default |
 | `GUI_HEXMAP` | the `gui-hexmap` clone from 0.4 |
 
-Put `MMTS_ROOT` and `MM` in your shell profile as well, since this document
-uses both in every command. Any value can also be overridden for one run, for
-example `MMTS_FW=... "$MM/delay_scan.sh" B`.
+Put `MMTS_ROOT` and `MM` in your shell profile as well, since this document uses
+both in every command. Any value can also be overridden for one run, for example
+`MMTS_FW=... "$MM/delay_scan.sh" B`.
+
+🔑 **`site.sh` reaches the scripts, not your shell.** The scripts source it for
+themselves, but the commands you type by hand expand `$MMTS_FW` and `$KRIA_IP`
+in your own shell, where they are unset. `ssh kria "sudo fw-loader load
+$MMTS_FW"` then sends a bare `fw-loader load` and fails with `the following
+arguments are required: firmware`. Source it yourself in any shell where you
+drive the bench by hand, which is what the preamble to sections 3 to 5 does:
+
+**(on the lab computer)**
+
+```bash
+source "$MM/site.sh"
+```
+
+⚠️ **Check `MMTS_FW` in `site.sh` before you trust it.** Older copies default to
+`multimodule-hd-tester-trophy-v3-rxeq4`, a hand-copied build directory that
+predates the merged equalization. The RPM design name is
+`multimodule-hd-tester-trophy-v3` with no suffix, per 0.8e.
 
 ## 0.6 Install the client stack
 
@@ -1208,12 +1226,18 @@ export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
 source "$MMTS_ROOT/venv/bin/activate"
 MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
 SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
-OUT=$MMTS_ROOT/Results/$(python3 "$MM/module_of.py" "$SLOT")
+source "$MM/site.sh"
+OUT=$RESULTS_DIR/$(python3 "$MM/module_of.py" "$SLOT")
 ```
+
+The `source "$MM/site.sh"` is what puts `MMTS_FW`, `KRIA_IP` and `RESULTS_DIR`
+into your own shell. Every command below expands them locally, so without it
+`fw-loader load` gets no argument and `delay_scan.py -i "$KRIA_IP"` gets no
+address.
 
 `module_of.py` prints the serial for the slot, so `$OUT` lands in the by-board
 layout of 2.8. If the board is not in the registry it prints nothing, and you
-should use `$MMTS_ROOT/Results` directly.
+should use `$RESULTS_DIR` directly.
 
 **The short form of everything in sections 3 to 5 is one command per slot:**
 
@@ -1580,6 +1604,7 @@ Each of these reads as a result and is not one.
 | `elink link_capture_daq.linkN is not aligned` | A DAQ link failed to init, which happens about once a session. Re-run bring-up. `--realign` does not fix it, because the delay block is fine and the word aligner needs the `linkReset` that a full configure issues |
 | `gpiofind: Permission denied` | The gpiochip udev rule is missing. Section 0.8f |
 | `daq-server` logs `Permission denied` then `impossible to process configure when state is Error` | The uio udev rule is missing. Section 0.8f. Every configure is rejected until `daq-server` restarts |
+| `fw-loader load: error: the following arguments are required: firmware` | `$MMTS_FW` is empty in your shell. `source "$MM/site.sh"`, or name the design outright. Section 0.5 |
 | Bring-up dies at `[pwr]` with `[Errno 2] ... '/dev/i2c-2'` | Freshly booted Kria with no bitstream. `fw-loader load` first |
 | Repeated `[Errno 13] Permission denied: '/dev/i2c-2'` after many reloads | The overlay reload is re-creating the node slower than udev sets the group, which takes roughly 40 reloads in a day to reach. Reboot the Kria |
 | `ROC addresses [...] do not match a known board` | Read the printed address list. It is usually a bad bring-up rather than a wrong board type |
@@ -1631,6 +1656,7 @@ itself. Newest first.
 | date | change |
 |---|---|
 | 2026-09-03 | The output root is now `Results/` rather than a site-named subdirectory of it. `RESULTS_DIR` in `site.sh` is the one place that sets it |
+| 2026-09-03 | `site.sh` is sourced by the scripts but not by your shell, so the hand-typed commands were expanding an empty `$MMTS_FW` and `$KRIA_IP`. Section 0.5 and the preamble to sections 3 to 5 now source it explicitly |
 | 2026-09-03 | The MMTS scripts branch was merged into `hexactrl-script:ROCv3-alper-dev` as `ffb42a2`, and `hexactrl-sw` MR !56 bumped the submodule pointer to it, so the scripts and configs are upstream. Section 0.4 loses the `tvami` fork remote and the branch checkout: `git clone --recurse-submodules` is now the whole step, and the submodules are correctly detached at their pinned commits |
 | 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The 0.8b occurrences are server-side and stay |
 | 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and 0.8c. The clone step initialized only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of 0.8c had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
