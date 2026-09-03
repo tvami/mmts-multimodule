@@ -194,7 +194,7 @@ recursive update did not run. The submodules are pinned by commit, so
 `git -C hexactrl-sw/hexactrl-script rev-parse --abbrev-ref HEAD` prints a bare
 `HEAD`, and detached is the correct state for a submodule, not a fault.
 
-Resulting layout. `Results/alabama` is the default output root; it is set in
+Resulting layout. `Results` is the default output root; it is set in
 `site.sh` as `RESULTS_DIR`.
 
 **(the resulting layout on the lab computer, not commands)**
@@ -211,7 +211,7 @@ $MMTS_ROOT/
 │   │   └── pedestal_run.py
 │   └── zmq_i2c/                  submodule: the i2c-server, copied to the Kria
 ├── gui-hexmap/                   step 2, channel maps and geometries
-└── Results/alabama/              created on the first run
+└── Results/                      created on the first run
 ```
 
 `hgc-test-systems`, the firmware, is needed only if you rebuild a bitstream and
@@ -241,7 +241,7 @@ $EDITOR "$MM/site.sh"
 | `HEXACTRL` | the native install prefix from 0.6a |
 | `MMTS_VENV` | the virtualenv from 0.6b, or empty for system-wide |
 | `MMTS_FW` | the firmware design, see 0.8e |
-| `RESULTS_DIR` | the output root, `$MMTS_ROOT/Results/alabama` by default |
+| `RESULTS_DIR` | the output root, `$MMTS_ROOT/Results` by default |
 | `GUI_HEXMAP` | the `gui-hexmap` clone from 0.4 |
 
 Put `MMTS_ROOT` and `MM` in your shell profile as well, since this document
@@ -1160,10 +1160,10 @@ together whichever slot it was in:
 **(the output layout on the lab computer, not a command)**
 
 ```
-Results/alabama/<serial>/Mux<slot>/{delay_scan,pedestal_run}/<UTC timestamp>/
+Results/<serial>/Mux<slot>/{delay_scan,pedestal_run}/<UTC timestamp>/
 ```
 
-The serial comes from `Results/alabama/module_ids.json`, a list of
+The serial comes from `Results/module_ids.json`, a list of
 `{slot, from, to, module}` windows in UTC. `register_boards.py` maintains it:
 run it the moment the boards are in and **before** the first bring-up, since the
 scripts name their output directories from it and a stale entry files a whole
@@ -1208,12 +1208,12 @@ export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
 source "$MMTS_ROOT/venv/bin/activate"
 MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
 SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
-OUT=$MMTS_ROOT/Results/alabama/$(python3 "$MM/module_of.py" "$SLOT")
+OUT=$MMTS_ROOT/Results/$(python3 "$MM/module_of.py" "$SLOT")
 ```
 
 `module_of.py` prints the serial for the slot, so `$OUT` lands in the by-board
 layout of 2.8. If the board is not in the registry it prints nothing, and you
-should use `$MMTS_ROOT/Results/alabama` directly.
+should use `$MMTS_ROOT/Results` directly.
 
 **The short form of everything in sections 3 to 5 is one command per slot:**
 
@@ -1268,7 +1268,7 @@ python3 "$MM/gate.py" "$OUT/MuxA"
 **(expected output, not a command)**
 
 ```
-Results/alabama/<serial>/MuxA/delay_scan/<timestamp>
+Results/<serial>/MuxA/delay_scan/<timestamp>
   daq: 3/3  link0=57 link1=61 link4=58
   trg: 6/6  link0=44 link1=51 link2=49 link3=47 link5=52 link6=45
 GATE: PASS -- safe to run pedestals
@@ -1618,8 +1618,8 @@ measurement you actually care about.
 - **Use `MMTS_L1A_LOG2PERIOD=10`.** Never worse than the default and 50 times
   gentler on the ROCs.
 - **Never add an `rm -rf` of the results root to `remap_all.sh`.** The runs
-  themselves live under `Results/alabama/<serial>/`, so a line like
-  `rm -rf Results/alabama/320[TX]*` deletes the data, not just the plots.
+  themselves live under `Results/<serial>/`, so a line like
+  `rm -rf Results/320[TX]*` deletes the data, not just the plots.
 
 ---
 
@@ -1630,11 +1630,12 @@ itself. Newest first.
 
 | date | change |
 |---|---|
-| 2026-09-03 | `hexactrl-script` MR merged `mmts-alabama-configs` into `ROCv3-alper-dev` as `ffb42a2`, and `hexactrl-sw` MR !56 bumped the submodule pointer to it, so the scripts and configs are upstream. Section 0.4 loses the `tvami` fork remote and the branch checkout: `git clone --recurse-submodules` is now the whole step, and the submodules are correctly detached at their pinned commits |
+| 2026-09-03 | The output root is now `Results/` rather than a site-named subdirectory of it. `RESULTS_DIR` in `site.sh` is the one place that sets it |
+| 2026-09-03 | The MMTS scripts branch was merged into `hexactrl-script:ROCv3-alper-dev` as `ffb42a2`, and `hexactrl-sw` MR !56 bumped the submodule pointer to it, so the scripts and configs are upstream. Section 0.4 loses the `tvami` fork remote and the branch checkout: `git clone --recurse-submodules` is now the whole step, and the submodules are correctly detached at their pinned commits |
 | 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The 0.8b occurrences are server-side and stay |
 | 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and 0.8c. The clone step initialised only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of 0.8c had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
 | 2026-09-03 | Bench Kria upgraded from `2026_07_20_23_20_01.45587078` to `2026_09_01_16_56_41.49751f37`. The superseded build predates the DAQ RX equalisation, so any CRC or dead-DAQ-link result recorded on this bench before this date is an unequalised measurement |
-| 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. Configs reduced to exactly one per geometry per slot, `<family>_mux<SLOT>_ped.yaml`, with the family named for the geometry: `initLD-Full-3b`, `initLD-Five-3b`, `initLD-Left-3b`, `initLD-Bottom-3b`, `initHD-Full-trophyV3`, `initHD-Top-trophyV3`, `initHD-Bottom-trophyV3`, `initHD-Semi-trophyV3`. `enableROCs_alabama.py` renamed to `enableROCs.py`, and it now exits 1 when a `--board` address set comes up incomplete instead of reporting a partial enable as success |
+| 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. Configs reduced to exactly one per geometry per slot, `<family>_mux<SLOT>_ped.yaml`, with the family named for the geometry: `initLD-Full-3b`, `initLD-Five-3b`, `initLD-Left-3b`, `initLD-Bottom-3b`, `initHD-Full-trophyV3`, `initHD-Top-trophyV3`, `initHD-Bottom-trophyV3`, `initHD-Semi-trophyV3`. The bring-up script is now `enableROCs.py`, and it exits 1 when a `--board` address set comes up incomplete instead of reporting a partial enable as success |
 | 2026-09-01 | DAQ RX equalisation merged into `feature/multiplexer_board_v2` as `49751f37` and released, so the design has no `-rxeq` suffix any more. Measured against the unequalised build: CRC pass 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 |
 | 2026-08-31 | HD Full characterised on a supply with headroom: 4.43 A at 1.72 V for six chips, 12/12 DAQ links, CRC 1.000 on all twelve halves over 25 runs. At the current limit the rail sagged to 1.35 V and all 24 e-links died, which is where the clipping section of 1.0 comes from. `in_inv_cmd_rx` measured both ways on a v3D board: 0 gives 8/12 trigger, 1 gives 0/12. `--module N` added after a wrong `EN_Mx` bit cost a reseat and a full power-down |
 | 2026-08-30 | `hexactrl-sw` MR !55 and `zmq_i2c` MR !24 merged: the `fifo_latency` mask fix, rebuilding `HwInterface` when `uhal_device` changes, skipping a trigger elink whose chip has no DAQ elink, and the offset finder skipping unreachable links rather than refusing the slot |
