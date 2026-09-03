@@ -244,8 +244,22 @@ $EDITOR "$MM/site.sh"
 | `RESULTS_DIR` | the output root, `$MMTS_ROOT/Results` by default |
 | `GUI_HEXMAP` | the `gui-hexmap` clone from 0.4 |
 
-Put `MMTS_ROOT` and `MM` in your shell profile as well, since this document uses
-both in every command. Any value can also be overridden for one run, for example
+Put `MMTS_ROOT`, `MM` and `SCRIPTS` in your shell profile as well, since this
+document uses all three in every command:
+
+**(on the lab computer, in `~/.bashrc`)**
+
+```bash
+export MMTS_ROOT=$HOME/mmts
+export MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
+export SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
+```
+
+🔑 **`SCRIPTS` is the one that fails silently.** `cd ""` is a no-op in bash that
+returns success, so a shell where `SCRIPTS` is unset does not stop at
+`cd "$SCRIPTS"`: it stays wherever you were and runs `delay_scan.py` there. The
+error you get names a directory you never chose, which reads as a broken clone
+rather than an unset variable. `echo "SCRIPTS=$SCRIPTS"` settles it in one line. Any value can also be overridden for one run, for example
 `MMTS_FW=... "$MM/delay_scan.sh" B`.
 
 🔑 **`site.sh` reaches the scripts, not your shell.** The scripts source it for
@@ -1380,11 +1394,16 @@ Sections 3 to 5 assume this preamble in every client shell:
 ```bash
 export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
 source "$MMTS_ROOT/venv/bin/activate"
-MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
-SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
+export MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
+export SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
 source "$MM/site.sh"
 OUT=$RESULTS_DIR/$(python3 "$MM/module_of.py" "$SLOT")
+ls "$SCRIPTS/delay_scan.py"
 ```
+
+That last `ls` is worth the second it costs: it is the only thing between an
+unset `SCRIPTS` and a `cd ""` that silently leaves you in the wrong directory,
+per 0.5.
 
 The `source "$MM/site.sh"` is what puts `KRIA_IP` and `RESULTS_DIR` into your own
 shell. Every command below expands them locally, so without it
@@ -1753,6 +1772,7 @@ Each of these reads as a result and is not one.
 | All 12 trigger links `ngood=0`, DAQ perfect | Wrong `in_inv_cmd_rx` for the ROC revision. v3C is 1, v3D is 0 |
 | `.raw` unpacks to 0 entries | Stale puller. Restart `daq-client` |
 | `unpack: command not found` in `pedestal_run0.log` | The install's `bin` was not on `PATH` in the shell that launched the run. Section 0.6a |
+| `python3: can't open file '.../delay_scan.py'`, naming a directory you did not choose | `SCRIPTS` is unset, and `cd ""` is a silent no-op that left you where you were. `echo "SCRIPTS=$SCRIPTS"`, then section 0.5 |
 | `source .../ROCv3-alper-dev/etc/env.sh` gives `No such file or directory` on the client | Correct behavior: `env.sh` is installed only by the server build. Set `PATH` instead. Section 0.6a |
 | cmake says `/hexactrl-script/analysis does not contain a CMakeLists.txt`, then `make` says `No targets specified` | The nested submodules were never fetched. `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
 | cmake reports `Found PythonInterp: .../miniforge3/bin/python3` | A conda environment is active. `conda deactivate`, delete the build directory, configure again. Section 0.6a |
