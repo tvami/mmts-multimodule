@@ -167,13 +167,46 @@ def wait_i2c_master(timeout=20.0):
           "the reload; a Kria reboot usually clears this")
 
 
-def mux_board_gpio(slot, readback=False):
+def power_down_others(slot):
+    """Drop PWR_EN on every slot except `slot`, so only one module is ever live.
+
+    Each slot has its OWN 0x20 expander behind its own PCA9848 and P12 (0x04) is
+    that slot's only enable, so this is one write per other slot -- there is no
+    single register that gates all three.
+
+    Why this is unconditional: a bring-up powers the slot it is called for and
+    leaves the previous slot powered, so working A -> B -> C ended with three
+    live modules. Three HD Fulls draw 3 x 4.43 A against a 6.4 A supply, and even
+    HD Tops at ~2.25 A each leave no headroom. Keeping one module live also makes
+    the supply current a real per-slot measurement again.
+
+    A failure here is a WARNING, not fatal: the target slot can still be brought
+    up, and the caller (and the supply) will show that a neighbour stayed on.
+    """
+    for other in [s for s in SWITCH if s != slot]:
+        try:
+            _seq(SWITCH[other], SUB_GPIO, [(MUX_GPIO, DIR_P1, DIR_P1_VAL),
+                                           (MUX_GPIO, OUT_P1, 0x00)])
+            print(f"[mux] switch 0x{SWITCH[other]:02x}: slot {other} PWR_EN low")
+        except OSError as e:
+            print(f"[mux] WARNING: could not drop slot {other} PWR_EN ({e}) -- "
+                  f"it may still be powered; check the supply")
+
+
+def mux_board_gpio(slot, readback=False, exclusive=True):
     """Enable the mux board's per-slot power switches and release the ROC resets.
 
     Only expander 0x20 is touched -- 0x21 (I2C_RST) is absent on this bench and
     writing to it wedges the master. The power-good readback is opt-in for the
     same reason: a read that does not answer wedges the master too.
+
+    `exclusive` (default on) powers DOWN the other two slots first, so exactly
+    one module is live at a time -- see power_down_others(). Pass --keep-others
+    to leave neighbours alone, which is only wanted for a deliberate
+    multi-module test.
     """
+    if exclusive:
+        power_down_others(slot)
     sw = SWITCH[slot]
     print(f"[mux] switch 0x{sw:02x}: S*_PWR_EN high")
     _seq(sw, SUB_GPIO, [(MUX_GPIO, DIR_P1, DIR_P1_VAL),
@@ -288,6 +321,11 @@ def main():
                          "master -- diagnostics only)")
     ap.add_argument("--no-reset", action="store_true",
                     help="skip the fw-loader master reset after powering")
+    ap.add_argument("--keep-others", action="store_true",
+                    help="do NOT power down the other two slots first. Default "
+                         "is exclusive: only the slot being brought up stays "
+                         "live, because a bring-up never dropped the previous "
+                         "slot and three live modules exceed the supply")
     ap.add_argument("--recover", action="store_true",
                     help="full power-cycle + firmware reload first, for a "
                          "wedged master (also clears the EN_Mx latch, so the "
@@ -319,7 +357,7 @@ def main():
         # Powering the module wedges the master -- clear it before going on.
         if not args.no_reset:
             reset_master()
-    mux_board_gpio(slot, readback=args.readback)
+    mux_board_gpio(slot, readback=args.readback, exclusive=not args.keep_others)
     time.sleep(1)
 
     with SMBus(MASTER_BUS) as bus:
@@ -356,6 +394,18 @@ def main():
         print(f"\n--- slot {slot} (switch 0x{SWITCH[slot]:02x}): {len(ok)} ROC(s) "
               f"enabled {[hex(a) for a in ok]}"
               + (f", {len(bad)} FAILED {[hex(a) for a in bad]}" if bad else ""))
+
+        # A chip that never answered the probe is absent from `addrs`, so it is
+        # never attempted and never lands in `bad`.  Without this, a 2-of-3
+        # LD Five exits 0 and the caller starts a server that cannot identify
+        # the board ("ROC addresses [...] do not match a known board").
+        missing = [] if args.board == "any" else [a for a in ROC_ADDRS if a not in ok]
+        if missing:
+            print(f"    board {args.board} needs all {len(ROC_ADDRS)} of "
+                  f"{[hex(a) for a in ROC_ADDRS]}; {[hex(a) for a in missing]} "
+                  "never answered -- the board will NOT identify, so this slot "
+                  "is not usable. Check seating of the missing chip(s).")
+            return 1
         return 0 if ok and not bad else 1
 
 
