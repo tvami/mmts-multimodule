@@ -233,11 +233,6 @@ Put `MMTS_ROOT` and `MM` in your shell profile as well, since this document
 uses both in every command. Any value can also be overridden for one run, for
 example `MMTS_FW=... "$MM/delay_scan.sh" B`.
 
-⚠️ **The Kria's address can change.** A hexacontroller on DHCP moves after a
-reboot, and the symptom is indistinguishable from a dead board: `ssh: Host is
-down`, no ping, `arp -n <ip>` showing `(incomplete)`. Check `hostname -I` on the
-Kria's console before suspecting hardware, then fix `KRIA_IP` in `site.sh`.
-
 ## 0.6 Install the client stack
 
 ### a. hexactrl-sw
@@ -321,13 +316,23 @@ This is a large download, ROOT alone runs to about a gigabyte:
 
 ```bash
 sudo dnf install -y cmake make gcc-c++ boost-devel
-sudo dnf install -y epel-release && sudo dnf install -y root root-devel
+sudo dnf install -y epel-release
+sudo dnf config-manager --set-enabled crb
+sudo dnf install -y root
 cmake --version && root-config --version
 ```
 
 `root` comes from EPEL on AlmaLinux 9. If your site provides ROOT another way,
-through CVMFS or a module, source that instead and skip the EPEL line; cmake
+through CVMFS or a module, source that instead and skip the EPEL lines; cmake
 finds it through `$ROOTSYS`.
+
+⚠️ **Two traps in that block.** There is **no `root-devel`** package: EPEL splits
+ROOT into `root-core`, `root-io` and friends, the headers ship inside
+`root-core`, and the `root` metapackage pulls what you need. Asking for
+`root-devel` gives `Unable to find a match`. And **`crb` must be enabled first**,
+because `root-io` needs `liburing-devel`, which lives in CRB and is disabled by
+default; without it the install dies with `nothing provides liburing-devel` and
+`root-config: command not found` afterwards.
 
 **(on the lab computer)**
 
