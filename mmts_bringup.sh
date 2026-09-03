@@ -49,6 +49,7 @@ RECOVER="--recover"
 NOPOWER=""
 KEEPDAQ=""
 BOARD=""
+MODULE=""
 prev=""
 for a in "$@"; do
     [ "$a" = "--keep-daq-server" ] && KEEPDAQ="1"
@@ -56,6 +57,10 @@ for a in "$@"; do
     case "$a" in --no-power|--external-power) NOPOWER="--external-power" ;; esac
     [ "$prev" = "--board" ] && BOARD="--board $a"
     case "$a" in --board=*) BOARD="--board ${a#--board=}" ;; esac
+    # EN_Mx bit on the power distribution board.  NOT the slot index: it is
+    # which power-board output the module lead is plugged into.
+    [ "$prev" = "--module" ] && MODULE="--module $a"
+    case "$a" in --module=*) MODULE="--module ${a#--module=}" ;; esac
     prev="$a"
 done
 case "$SLOT" in A|B|C) ;; *) echo "usage: $0 [A|B|C] [--no-recover] [--external-power] [--keep-daq-server] [--board NAME]"; exit 2 ;; esac
@@ -71,8 +76,8 @@ sleep 1
 # --recover = kconn_pwr off -> fw-loader load -> kconn_pwr on, then the full
 # power/enable sequence.  Needed at session start and on every slot change.
 # Roughly half of all bring-ups wedge partway: a clean re-run is the fix.
-echo "[2/3] bring-up: slot $SLOT $RECOVER $NOPOWER $BOARD"
-python3 enableROCs_alabama.py "$SLOT" $RECOVER $NOPOWER $BOARD || {
+echo "[2/3] bring-up: slot $SLOT $RECOVER $NOPOWER $BOARD $MODULE"
+python3 enableROCs_alabama.py "$SLOT" $RECOVER $NOPOWER $BOARD $MODULE || {
     echo "!! bring-up failed -- re-run once.  Worse each run => see the header."
     exit 1
 }
