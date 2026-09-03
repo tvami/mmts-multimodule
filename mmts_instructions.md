@@ -153,8 +153,21 @@ git submodule update --init hexactrl-script
 git -C hexactrl-script remote add fork ssh://git@gitlab.cern.ch:7999/tvami/hexactrl-script.git
 git -C hexactrl-script fetch fork
 git -C hexactrl-script checkout mmts-alabama-configs
+git submodule update --init --recursive
 cd "$MMTS_ROOT"
 ```
+
+⚠️ **That last `--recursive` line is not optional, and it comes after the branch
+checkout** so the analysis commit matches the branch. `hexactrl-sw` has a second
+submodule, `zmq_i2c`, and `hexactrl-script` has one of its own, `analysis`, and
+the first `--init hexactrl-script` fetches neither. Both failures come later and
+neither names a submodule:
+
+* `hexactrl-script/CMakeLists.txt` does `add_subdirectory(analysis)`, so the
+  client build of 0.6a dies with `The source directory ... /hexactrl-script/analysis
+  does not contain a CMakeLists.txt file` followed by
+  `make: *** No targets specified and no makefile found`;
+* the `zmq_i2c` tar of 0.7 copies an empty directory to the Kria.
 
 **Step 2, `gui-hexmap`.** The repository is named `hgcal-module-testing-gui`; the
 directory name is yours to choose, and `site.sh` records it as `GUI_HEXMAP`.
@@ -178,8 +191,12 @@ Check everything landed on the right branch before moving on:
 git -C hexactrl-sw rev-parse --abbrev-ref HEAD                    # ROCv3-alper-dev
 git -C hexactrl-sw/hexactrl-script rev-parse --abbrev-ref HEAD    # mmts-alabama-configs
 git -C gui-hexmap  rev-parse --abbrev-ref HEAD                    # master
-ls hexactrl-sw/zmq_i2c hexactrl-sw/hexactrl-script/multimodule gui-hexmap/hexmap
+ls hexactrl-sw/hexactrl-script/multimodule gui-hexmap/hexmap
+ls hexactrl-sw/zmq_i2c/Link.py hexactrl-sw/hexactrl-script/analysis/CMakeLists.txt
 ```
+
+The second line is the submodule check. An empty directory listing rather than
+those two files means the `--recursive` update did not run.
 
 Resulting layout. `Results/alabama` is the default output root; it is set in
 `site.sh` as `RESULTS_DIR`.
@@ -190,12 +207,13 @@ Resulting layout. `Results/alabama` is the default output root; it is set in
 $MMTS_ROOT/
 ├── hexactrl-sw/                  step 1, branch ROCv3-alper-dev
 │   ├── hexactrl-script/          fork branch mmts-alabama-configs
+│   │   ├── analysis/             submodule: the pedestal and scan analyses
 │   │   ├── configs/              the run configs, one per board type and slot
 │   │   ├── multimodule/          THE BENCH SCRIPTS: this is $MM
 │   │   │   └── kria/             the subset copied to the Kria in 0.7
 │   │   ├── delay_scan.py
 │   │   └── pedestal_run.py
-│   └── zmq_i2c/                  the i2c-server, copied to the Kria
+│   └── zmq_i2c/                  submodule: the i2c-server, copied to the Kria
 ├── gui-hexmap/                   step 2, channel maps and geometries
 └── Results/alabama/              created on the first run
 ```
@@ -297,6 +315,22 @@ place, and the failures are quiet:
   everything installs into `/opt/hexactrl/` itself, breaking every path in this
   document.
 * `make install` writes under `/opt`, so it needs `sudo`.
+
+🔑 **Deactivate conda before configuring.** cmake resolves the interpreter with
+`find_package(PythonInterp)`, which takes the first `python3` on `PATH`, so a
+`(base)` prompt puts miniforge's 3.12 into the build and the install writes its
+Python modules and shebangs for an interpreter that cannot import `uproot3`, per
+0.6b. Read the line back out of the configure output:
+
+**(configure output, not a command)**
+
+```
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.9...")
+```
+
+Anything under `miniforge3` or `anaconda3` there means `conda deactivate`, then
+**delete the build directory and configure again**: the interpreter is cached, so
+re-running cmake in place keeps the wrong one.
 
 Build it on the machine that will run it: this is the x86_64 AlmaLinux client,
 and binaries from any other architecture or OS are useless here. The Kria gets
@@ -1507,6 +1541,8 @@ Each of these reads as a result and is not one.
 | All 12 trigger links `ngood=0`, DAQ perfect | Wrong `in_inv_cmd_rx` for the ROC revision. v3C is 1, v3D is 0 |
 | `.raw` unpacks to 0 entries | Stale puller. Restart `daq-client` |
 | `unpack: command not found` in `pedestal_run0.log` | `env.sh` was not sourced in the shell that launched the run. Section 0.6a |
+| cmake says `/hexactrl-script/analysis does not contain a CMakeLists.txt`, then `make` says `No targets specified` | The nested submodules were never fetched. `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
+| cmake reports `Found PythonInterp: .../miniforge3/bin/python3` | A conda environment is active. `conda deactivate`, delete the build directory, configure again. Section 0.6a |
 | `ZMQError: Address already in use` on 5555 | `ssh kria 'pkill -f "[z]mq_ser""ver.py"'` |
 | `daq-client` cannot bind 6001 | An old one is still alive. `pkill -f '[d]aq-client'` |
 | Orphaned holders after a killed server | `pkill -f 'gpioset -m signal -b'` |
@@ -1564,6 +1600,7 @@ itself. Newest first.
 
 | date | change |
 |---|---|
+| 2026-09-03 | First install from these instructions on a fresh AlmaLinux client found two gaps in 0.4 and 0.6a: the clone step initialised only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, which stops the client build at `add_subdirectory(analysis)`; and cmake takes its interpreter from `PATH`, so an active conda base builds against Python 3.12 |
 | 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. `enableROCs_alabama.py` now exits 1 when a `--board` address set comes up incomplete, instead of reporting a partial enable as success |
 | 2026-09-01 | DAQ RX equalisation merged into `feature/multiplexer_board_v2` as `49751f37` and released, so the design has no `-rxeq` suffix any more. Measured against the unequalised build: CRC pass 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 |
 | 2026-08-31 | HD Full characterised on a supply with headroom: 4.43 A at 1.72 V for six chips, 12/12 DAQ links, CRC 1.000 on all twelve halves over 25 runs. At the current limit the rail sagged to 1.35 V and all 24 e-links died, which is where the clipping section of 1.0 comes from. `in_inv_cmd_rx` measured both ways on a v3D board: 0 gives 8/12 trigger, 1 gives 0/12. `--module N` added after a wrong `EN_Mx` bit cost a reseat and a full power-down |
