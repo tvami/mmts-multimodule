@@ -912,14 +912,10 @@ into one 0-6.4 A channel:
 * 🛑 **never wire `+CH1 / −CH2`** — that is the *series* pattern, and in `Ser`
   mode it puts **double** the set voltage on the board.
 
-**How to tell you are clipping**, since this is the failure that wastes days:
-
-* the on-screen mode reads **`CC`**, and the **output voltage is below the
-  setpoint**. That is the reliable test.
-* ⚠️ Do **not** trust the terminal LED color. On the SPD3303X-E the panel prints
-  `C.V.` in green and `C.C.` in red, which is the opposite of the wording in the
-  generic manual. In parallel mode the slave channel always reads CC; that is
-  normal.
+**How to tell you are clipping**, since this is the failure that wastes days: the
+on-screen mode reads **`CC`** and the **output voltage is below the setpoint**.
+Both halves matter, because in parallel mode the slave channel always reads `CC`
+and that on its own is normal.
 
 **What clipping imitates.** Each of these is the sagging rail, and each reads as
 a hardware fault:
