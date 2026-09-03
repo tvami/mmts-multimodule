@@ -1503,12 +1503,6 @@ what it does, for when you need to see one of them on its own.
 
 # 3. Slot A
 
-⚠️ **Slot A is diagnosed but not fixed.** Its chip 1 latches a different BCR,
-landing 252 to 1949 words away from chips 0 and 2 in the orbit, and the offset is
-redrawn at every bring-up. Slots B and C sit flat at 23 to 25 every time.
-Commissioning a new module type on slot A means debugging two unknowns at once,
-so **prove a new board type on slot B first**.
-
 ## 3.1 Bring up slot A
 
 **(on the lab computer)**
@@ -1586,10 +1580,10 @@ Or, with the bring-up, the gate, N runs and the CRC table:
 PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" A 5 LLeft 10000
 ```
 
-**Slot A specific:** the offset finder cannot bootstrap a slot with no good lane,
-so slot A is still the one case that may need `method: 'manual'` with a pinned
-`fifo_latency` and `L1A_offset_or_BX`. Set that in the config yourself.
-Everywhere else, leave the method on `'automatic'`.
+Keep `method: 'automatic'`. The offset finder cannot bootstrap a slot with no
+good lane at all, so a slot in that state needs `method: 'manual'` with a pinned
+`fifo_latency` and `L1A_offset_or_BX` set in the config by hand, but that is a
+symptom of links that are not working rather than a property of any one slot.
 
 Expect about 30 s per run on a healthy slot. Minutes means the finder's phase 2
 is retrying per link, which is a signal the links are marginal.
@@ -1634,20 +1628,13 @@ A good run gives a `.root` of about 5 MB, `unpacker_data/hgcroc` with 2 347 488
 entries, `runsummary/summary` with 234 rows, and nine PNGs. Those numbers are for
 an LD Full; a partial legitimately produces fewer.
 
-## 3.5 Slot A caveats
-
-- `daq.link9` runs `nbad` around 100 out of 512. That is a persistent slot A
-  signature, not a new fault.
-- Chip 1's BCR offset is redrawn at every bring-up, so a slot A result that
-  disagrees with slot B is more likely to be the slot than the module.
-
 ---
 
 # 4. Slot B
 
-**Slot B is the healthiest slot and is the reference.** It reaches 18 of 18 with
-all twelve trigger links on the first try, runs at 30 s per run, and gives full
-yield. Prove any new board type here first.
+A healthy slot B reaches 18 of 18 with all twelve trigger links on the first try,
+runs at 30 s per run, and gives full yield. Use those numbers as the yardstick
+for any slot.
 
 ## 4.1 Bring up slot B
 
