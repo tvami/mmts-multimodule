@@ -25,6 +25,7 @@ only a handful of steps have to be typed on the Kria itself.
 - [4. Slot B](#4-slot-b)
 - [5. Slot C](#5-slot-c)
 - [6. Common mistakes](#6-common-mistakes)
+- [7. Changes](#7-changes)
 
 ---
 
@@ -237,80 +238,21 @@ example `MMTS_FW=... "$MM/delay_scan.sh" B`.
 
 ### a. hexactrl-sw
 
-Install the x86_64 client RPM built from branch **`ROCv3-alper-dev`**.
+Build the client side of `hexactrl-sw` from the branch **`ROCv3-alper-dev`**
+clone you made in 0.4, and install it under `/opt/hexactrl/ROCv3-alper-dev`.
 
-**First get the RPM. It is not in any repository you can `dnf install` by name.**
-The `deploy-eos` job in `hexactrl-sw/.gitlab-ci.yml` runs only for
-`$CI_COMMIT_BRANCH == "ROCv3"`, so the public CERN repository at
-`hgc-online-sw.web.cern.ch` carries `ROCv3` builds and nothing from our branch.
-The `ROCv3-alper-dev` RPM exists only as a GitLab CI job artifact. If you skipped
-this and ran the `dnf install` line below straight away, the shell had no file to
-expand `./hexactrl-sw-*.x86_64.rpm` against, passed the glob through literally,
-and `dnf` reported the missing file.
+**There is no RPM to install.** The `deploy-eos` job in
+`hexactrl-sw/.gitlab-ci.yml` runs only for `$CI_COMMIT_BRANCH == "ROCv3"`, so the
+public CERN repository at `hgc-online-sw.web.cern.ch` carries `ROCv3` builds and
+nothing from our branch. Building from source is the supported route on both the
+client and the Kria.
 
-Fetch it from the pipeline. `artifacts.zip` is GitLab's own name for a job's
-artifact bundle, and there are two ways to get it. They leave the file in
-different places, which is the only difference to the unpacking step below.
+The client build needs **Boost and ROOT**: `unpack` and the pedestal analysis
+read and write ROOT files, and the client links against boost. uHAL is not needed
+here, it belongs to the server build of 0.8b.
 
-**Route A, the browser.** In the GitLab UI, go to
-`gitlab.cern.ch/hgcal-daq-sw/hexactrl-sw` → CI/CD → Pipelines, filter to branch
-`ROCv3-alper-dev`, open the newest green pipeline and download the artifacts of
-job **`build_x86_64_alma9`** (the Kria needs `build_aarch64_alma9`, see 0.8b).
-The browser saves it as `~/Downloads/artifacts.zip`.
-
-**Route B, no browser.** Ask the API for the same bundle, with a GitLab personal
-access token carrying the `read_api` scope. This writes `artifacts.zip` into the
-current directory:
-
-**(on the lab computer)**
-
-```bash
-cd "$MMTS_ROOT"
-export GL_TOKEN=<your-token>
-curl -L -H "PRIVATE-TOKEN: $GL_TOKEN" -o artifacts.zip \
-  "https://gitlab.cern.ch/api/v4/projects/hgcal-daq-sw%2Fhexactrl-sw/jobs/artifacts/ROCv3-alper-dev/download?job=build_x86_64_alma9"
-```
-
-The zip is a few hundred KB and holds the whole repository layout; a few bytes of
-JSON instead means the token or the branch name was wrong. The RPM sits several
-directories deep inside it, under `almalinux/9/x86_64/rpms/`, so pull it up to
-where you are. Point `ZIP` at whichever route you used:
-
-**(on the lab computer)**
-
-```bash
-cd "$MMTS_ROOT"
-ZIP=~/Downloads/artifacts.zip       # route A; for route B it is ./artifacts.zip
-unzip -o "$ZIP" -d artifacts
-find artifacts -name 'hexactrl-sw-*.x86_64.rpm' -exec cp {} . \;
-ls hexactrl-sw-*.x86_64.rpm         # must list exactly one file
-```
-
-Only now install. Use `dnf` rather than `rpm -i` so its dependencies resolve;
-`unpack` and the pedestal analysis need ROOT, and the client needs boost. Let
-`dnf` resolve whatever else the package declares. uHAL is used by the server
-build of 0.8b, not by the client tools.
-
-**(on the lab computer)**
-
-```bash
-sudo dnf install -y ./hexactrl-sw-*.x86_64.rpm
-ls /opt/hexactrl/ROCv3-alper-dev/{bin/daq-client,bin/unpack,etc/env.sh}
-```
-
-If the pipeline artifacts have expired and no green pipeline is left, the two
-fallbacks are to rerun the build job on the branch, or to build from source the
-way CI does. The client build needs **Boost and ROOT**; uHAL is not needed here,
-it belongs to the server build of 0.8b.
-
-🔑 **Rerunning the CI job is much the cheaper of the two.** In the GitLab UI,
-open a pipeline on `ROCv3-alper-dev` and retry `build_x86_64_alma9`, or start a
-new pipeline on the branch. It takes minutes, it needs nothing installed on the
-bench, and it hands you the same RPM as route A above. Build from source only
-when nobody with access to the project can trigger a pipeline.
-
-A stock client has no toolchain, so the source route starts by installing one.
-This is a large download, ROOT alone runs to about a gigabyte:
+A stock client has no toolchain, so the build starts by installing one. This is a
+large download, ROOT alone runs to about a gigabyte:
 
 **(on the lab computer)**
 
@@ -356,9 +298,9 @@ place, and the failures are quiet:
   document.
 * `make install` writes under `/opt`, so it needs `sudo`.
 
-The same three apply to a source zip handed over when CI has nothing to
-download. Build it on the machine that will run it: a client build is x86_64
-AlmaLinux, and binaries from any other architecture or OS are useless here.
+Build it on the machine that will run it: this is the x86_64 AlmaLinux client,
+and binaries from any other architecture or OS are useless here. The Kria gets
+its own aarch64 build in 0.8b.
 
 ⛔ Installing the public `ROCv3` RPM instead is not a substitute. It lands under
 `/opt/hexactrl/ROCv3/`, so every path in this document changes, and it predates
@@ -512,31 +454,43 @@ ssh kria 'command -v fw-loader kconn_pwr; id daq'
 
 ### b. hexactrl-sw under `/opt`
 
-Install the `hexactrl-sw` RPM built from branch **`ROCv3-alper-dev`** for aarch64.
-That branch, not `ROCv3`, is what this bench runs.
+The Kria needs the **server** side of the same branch, built for aarch64. It is a
+different architecture, so the client build of 0.6a is useless here; build it on
+the Kria itself, which has `gcc`, `cmake`, `boost-devel` and uHAL under
+`/opt/cactus` already.
 
-Get this RPM the same way as the client one in 0.6a, from the CI artifacts of the
-`ROCv3-alper-dev` pipeline, but from job **`build_aarch64_alma9`** and from
-`almalinux/9/aarch64/rpms/` inside the zip. It is a different architecture, not
-the same file, and it is likewise absent from the public CERN repository. Confirm
-you have exactly one before copying, since `scp` of an unmatched glob is the same
-`no such file` you get from `dnf`.
+Copy the source over and build it there. The **`-DBUILD_CLIENT` flag is omitted
+on purpose**: OFF is the default and gives `daq-server` and `zmq_i2c`, which is
+what the Kria runs. `BRANCH_NAME` must still be passed, since the copied tree has
+no `.git` for cmake to read it from, and without it everything installs into
+`/opt/hexactrl/` itself.
 
 **(on the lab computer)**
 
 ```bash
-ls hexactrl-sw-*.aarch64.rpm
-scp hexactrl-sw-*.aarch64.rpm kria:
-ssh kria 'sudo dnf install -y ./hexactrl-sw-*.aarch64.rpm'
-ssh kria 'ls /opt/hexactrl/ROCv3-alper-dev/{bin/daq-server,lib/libhexactrl.so,etc/env.sh}'
+cd "$MMTS_ROOT"
+tar czf - --exclude=.git --exclude=build hexactrl-sw | ssh kria 'tar xzf - -C ~'
 ```
 
-🔑 **Use a build from 2026-08-30 or later**, on both the Kria and the client.
-`hexactrl-sw` MR !55 and `zmq_i2c` MR !24 merged on that date and carry the fixes
-this procedure depends on: the `fifo_latency` mask fix, rebuilding `HwInterface`
-when `uhal_device` changes, skipping a trigger elink whose chip has no DAQ elink
-(which used to segfault `daq-server`), and the offset finder skipping unreachable
-links instead of refusing the slot.
+**(on the Kria)**
+
+```bash
+cd ~/hexactrl-sw && mkdir -p build && cd build
+cmake -DBRANCH_NAME=ROCv3-alper-dev \
+      -DCMAKE_INSTALL_PREFIX=/opt/hexactrl/ROCv3-alper-dev ../
+make -j"$(nproc)" && sudo make install
+ls /opt/hexactrl/ROCv3-alper-dev/{bin/daq-server,lib/libhexactrl.so,etc/env.sh}
+```
+
+The Kria is a four-core aarch64 board, so expect this to take considerably longer
+than the client build. `sudo make install` writes under `/opt`, which is outside
+the passwordless rule of 0.3, so run it from a login shell.
+
+🔑 **Build the same commit on the Kria and on the client.** The branch carries
+fixes this procedure depends on: the `fifo_latency` mask fix, rebuilding
+`HwInterface` when `uhal_device` changes, skipping a trigger elink whose chip has
+no DAQ elink, and the offset finder skipping unreachable links instead of
+refusing the slot.
 
 Any Kria shell that runs `daq-server` or the link diagnostics needs the
 environment first. Bring-up and `zmq_server` do not.
@@ -595,11 +549,9 @@ alphabetically largest one, `test_merge_everything`, a 2025 build with no
 equalisation. `dnf install multimodule-hd-tester-trophy-v3` gets you that, and so
 does a routine `dnf update` with this repository enabled.
 
-🔑 **Anything built before 2026-09-01 is not equalised.** The DAQ RX
-equalisation of 0.8e was merged into `feature/multiplexer_board_v2` in
-`49751f37`, so the release string `2026_09_01_16_56_41.49751f37` or later is what
-you want. There is no separate `-rxeq4` design to chase and no fork build to ask
-anyone for.
+🔑 **The release string must be `2026_09_01_16_56_41.49751f37` or later**, the
+build that carries the DAQ RX equalisation of 0.8e. Earlier ones do not, and the
+difference decides whether four of the six DAQ e-links work at all.
 
 ⚠️ `sudo dnf` is not in the passwordless rule of 0.3, which covers `fw-loader`
 and `kconn_pwr` only. Run it from a login shell on the Kria, not through a
@@ -634,8 +586,7 @@ each slot needs its own table with its own blocks renamed to those, and its own
 connection entry. Without them nothing can address a slot.
 
 Make the three tables from the shipped one. This keeps each slot's addresses and
-module files and only renames the ids, which is exactly what the hand-written
-tables on the reference bench contain:
+module files and only renames the ids:
 
 **(the first line is typed on the lab computer, everything after it on the Kria)**
 
@@ -666,31 +617,24 @@ files are yours and survive. Re-check both after every install, per 0.8c.
 
 ### e. The equalised bitstream
 
-🔑 **Check the date of your firmware before trusting a pedestal.** Builds from
-before 2026-09-01 leave the DAQ inputs with `IBUF_LOW_PWR` on and no
-equalisation, and on this board four of the six DAQ e-links then fail 100 % of
-CRCs while looking healthy on entry counts. Halves c0h0, c0h1, c1h0 and c2h1 read
-exactly 0.000. Measured unequalised against equalised: CRC pass 0.000 to 1.000 on
-all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 taps.
+🔑 **Check your firmware release before trusting a pedestal.** An unequalised
+build leaves the DAQ inputs with `IBUF_LOW_PWR` on, and four of the six DAQ
+e-links then fail 100 % of CRCs while looking healthy on entry counts: halves
+c0h0, c0h1, c1h0 and c2h1 read exactly 0.000. Equalised against unequalised, CRC
+pass goes 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, and the eye
+8 taps to 64.
 
-The fix sets `IBUF_LOW_PWR FALSE` and `EQUALIZATION EQ_LEVEL4` on the DAQ inputs,
-in `designs/multimodule-hd-tester-trophy-v3/xdc/daq_rx_eq.xdc`. Levels are
-uncalibrated, so `EQ_LEVEL0..4` were built and compared: `EQ_LEVEL4` gave 100 %
-CRC pass on every link, `EQ_LEVEL2` recovered them but left 1 to 4 % error on
-two, and `IBUF_LOW_PWR` alone changed nothing. These are I/O properties only, so
-no logic, address map, software or routed timing changed.
+The equalisation sets `IBUF_LOW_PWR FALSE` and `EQUALIZATION EQ_LEVEL4` on the
+DAQ inputs, in `designs/multimodule-hd-tester-trophy-v3/xdc/daq_rx_eq.xdc`.
+Levels are uncalibrated, and `EQ_LEVEL4` is the one that gives 100 % CRC pass on
+every link; `EQ_LEVEL2` recovers them but leaves 1 to 4 % error on two, and
+`IBUF_LOW_PWR` alone changes nothing. These are I/O properties only, so no logic,
+address map, software or routed timing changes with them.
 
-It is merged into `feature/multiplexer_board_v2` and released, so the design has
-no suffix any more and there is nothing to build or to ask anyone for: install
-the RPM of 0.8c and set `MMTS_FW=multimodule-hd-tester-trophy-v3`. On a bench
-that predates the merge, `-rxeq4` is that same configuration under the old name
-and `-rxeq2` is the weaker level that did not clear every link, so point
-`MMTS_FW` at the released design and leave the old directories alone.
-
-To confirm what a given firmware is, read the commit out of the RPM's release
-string: `2026_09_01_16_56_41.49751f37` or later carries the equalisation, and
-`45587078` (2026-07-20) and earlier do not. A copied build directory carries no
-such stamp, which is a reason to prefer the RPM.
+Install the RPM of 0.8c and set `MMTS_FW=multimodule-hd-tester-trophy-v3`. Read
+the commit out of the RPM's release string to confirm what you have:
+`2026_09_01_16_56_41.49751f37` or later carries the equalisation. A copied build
+directory carries no such stamp, which is a reason to prefer the RPM.
 
 ⚠️ **`MMTS_FW` is not sticky.** `enableROCs_alabama.py` re-points `active` on
 every run, so a bring-up without it silently reverts the bench to stock. Check
@@ -780,9 +724,9 @@ count, and expect **0 A on the meter** until you do.
 ## 1.0 Size the supply BEFORE you trust any measurement
 
 🔑 **A module at its supply's current limit produces data that looks like broken
-hardware.** Measured on an HD Full 2026-08-31: at the limit the rail sagged from
-1.72 V to **1.35 V**, and **all 24 e-links died**. With headroom the same module
-gave 12/12 DAQ links and CRC 1.000 on every half.
+hardware.** On an HD Full at the limit the rail sags from 1.72 V to **1.35 V**
+and **all 24 e-links die**. With headroom the same module gives 12/12 DAQ links
+and CRC 1.000 on every half.
 
 | board | measured draw, all chips running |
 |---|---|
@@ -811,8 +755,8 @@ into one 0-6.4 A channel:
   generic manual. In parallel mode the slave channel always reads CC; that is
   normal.
 
-**What clipping imitates.** All of these were the sagging rail, and each was
-mistaken for a hardware fault at least once:
+**What clipping imitates.** Each of these is the sagging rail, and each reads as
+a hardware fault:
 
 * the meter wandering between plausible values with nothing running;
 * consecutive bring-ups finding a **different number of ROCs** (4 of 6, then 6
@@ -896,9 +840,7 @@ module on. The default is the slot's own index (`A`→1, `B`→2, `C`→3), and 
 a property of the hardware.
 
 Get it wrong and you see `no ROCs` with **0 A on the meter**, which is
-indistinguishable from a dead module, a bad trophy or a seating fault. On
-2026-08-31 this cost a reseat and a full power-down before anyone tried
-`--module`:
+indistinguishable from a dead module, a bad trophy or a seating fault:
 
 **(on the lab computer)**
 
@@ -983,21 +925,20 @@ wrong value leaves all twelve trigger links at `ngood=0` while DAQ looks
 completely fine. hexactrl-sw reports both revisions as `Siv3b`, so nothing in
 software will tell you which one you have.
 
-Measured both ways on the HD Full above, 2026-08-31, each with its own bring-up:
+Measured both ways on the HD Full above, each with its own bring-up:
 
 | `in_inv_cmd_rx` | DAQ | trigger |
 |---|---|---|
 | **0** (correct for v3D) | 12/12 | 8/12 |
 | 1 | 12/12 | **0/12** |
 
-⚠️ **The rule is per ROC revision, not per board family.** A v3b HD Full needed
-`1`; this v3D HD Full needs `0`. Read character 7 and do not inherit the value
+⚠️ **The rule is per ROC revision, not per board family.** A v3b HD Full needs
+`1` and a v3D HD Full needs `0`. Read character 7 and do not inherit the value
 from another board of the same geometry.
 
 ⚠️ A ROC register only reaches silicon on the **first** initialize of an
 i2c-server's life, so testing a different `in_inv_cmd_rx` needs a **fresh
-bring-up**, not just a rescan. Comparisons made without one are meaningless and
-have been made by mistake before.
+bring-up**, not just a rescan. A comparison made without one is meaningless.
 
 Board type codes follow the GUI repository: `LF LR LL L5 LT LB` and
 `HF HB HL HT HR`. They are not the old `LD` and `HD` names. `hexmap_robust.py`
@@ -1079,7 +1020,7 @@ Do **not** set `elinks_trg: []` — with no trigger links `daq-server` starts an
 then hangs forever producing nothing, which is a documented dead end. Eight good
 trigger links are ample for event building.
 
-**Expected on a healthy HD Full** (measured 2026-08-31, 25 runs):
+**Expected on a healthy HD Full:**
 
 | | |
 |---|---|
@@ -1111,9 +1052,8 @@ Run configs: `configs/initLD-RL-3b_mux{A,B,C}_ped.yaml`.
 Same electrical setup as 2.4: no power board, `--external-power`, two ROCs.
 
 🔑 **An LD Bottom drives THREE trigger links, not six. That is the board type and
-not a fault.** Confirmed on two boards across two slots with repeat scans, and
-pedestals come out clean on the three: gate PASS, CRC 1.000, 0 of 108 channels
-over clip.
+not a fault.** Pedestals come out clean on the three: gate PASS, CRC 1.000, 0 of
+108 channels over clip.
 
 ⚠️ A pedestal does not test the link count. `randomL1A` barely exercises the
 trigger path and would look identical if links were being lost. Use a TPG run to
@@ -1278,18 +1218,18 @@ Or `"$MM/delay_scan.sh" A configs/initLD-RL-3b_muxA_ped.yaml`, which does the
 puller restart, the scan and the gate in one step.
 
 **The gate must PASS before you run a pedestal.** A failure is a retry and not a
-result: re-run bring-up, which also restarts `daq-server`, then scan again. This
-bench genuinely misses a claim or drops a link at init about once a session, and
-the identical sequence then works on the retry, so repeat once before concluding
+result: re-run bring-up, which also restarts `daq-server`, then scan again. A
+missed claim or a link dropped at init happens about once a session, and the
+identical sequence then works on the retry, so repeat once before concluding
 anything.
 
 If trigger reads 0 across the board while DAQ is fine, slot A does not hold the
 trigger claim. Restart `daq-server` and scan A first, per section 1.1.
 
 🛑 A delay scan reading 18 of 18 is **not** a health gate on its own. Idle is the
-easiest pattern to sample, and slots B and C score worse than A on eye width
-while producing far better data. The real health check is an actual START plus
-the offset finder's header positions.
+easiest pattern to sample, and a slot can score worse on eye width while
+producing far better data. The real health check is an actual START plus the
+offset finder's header positions.
 
 ## 3.3 Pedestal on slot A
 
@@ -1434,7 +1374,7 @@ Identical to 3.4 with `MuxA` replaced by `MuxB`.
 
 ## 4.5 What good looks like on slot B
 
-Ten pedestals gave 60 of 60 half-ROCs below corruption 1.0, with robust σ of
+Ten pedestals give 60 of 60 half-ROCs below corruption 1.0, with robust σ of
 **0.741 ADC**. Use that as your yardstick for a healthy LD Full half.
 
 ---
@@ -1494,8 +1434,8 @@ PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 LRight 10000
 **Slot C specific, settled by measurement:** keep `L1A_offset_or_BX: 13` with
 `method: 'automatic'`. Do not "correct" it to 14 even though the finder writes
 14, and note that **20 decodes nothing**. Automatic beats manual 36 of 36 against
-18 of 36 on this slot, because manual 13 and manual 14 fix complementary halves
-while automatic gets all six.
+18 of 36 here, because manual 13 and manual 14 fix complementary halves while
+automatic gets all six.
 
 ## 5.4 Hexmaps and common mode for slot C
 
@@ -1525,26 +1465,24 @@ below corruption 1.0 over ten pedestals.
 
 ## 6.2 The traps that look like results
 
-These each produced a wrong conclusion on a real bench.
+Each of these reads as a result and is not one.
 
 1. **`no ROCs` on every slot after a hardware change.** Check the physical
    pieces before spending a single bring-up: **the loopback first**, then the
    cables you just unplugged, then module seating. The loopback is the easiest
-   thing to forget and nothing in software reports it. One session was lost to
-   exactly this, after eliminating all six ROC bases, both ROC sub-buses, all
-   three slots, enable polarity and a supply theory. Another was lost to the data
-   cable between the power management board and the mux board being left
-   unplugged after a swap, so `EN_Mx` never reached the slots.
+   thing to forget and nothing in software reports it. The data cable between the
+   power management board and the mux board is the other one: leave it unplugged
+   after a swap and `EN_Mx` never reaches the slots.
 2. **Healthy total entry counts while every lane is broken.** Entry count is the
    gate, per-half corruption is the metric, and neither means anything alone.
 3. **`corruption == 0` on a dead half.** A half reporting corruption 0 with
    `adc_mean = adc_stdd = adc_iqr = 0` on every channel is producing well formed
    packets full of zeros. A real pedestal half sits near `adc_mean ≈ 94`.
-4. **Low corruption on a low yield run.** A run that decoded 216 of 10 000 events
-   reported near zero corruption on all six halves and looked perfect. The `.raw`
-   was full size; the unpacker stopped early. This trap is easier to fall into on
-   a partial, which legitimately produces fewer rows, so compute the expected row
-   count from the board's actual chip and channel complement.
+4. **Low corruption on a low yield run.** A run that decodes 216 of 10 000 events
+   reports near zero corruption on all six halves and looks perfect: the `.raw`
+   is full size and the unpacker stopped early. This trap is easier to fall into
+   on a partial, which legitimately produces fewer rows, so compute the expected
+   row count from the board's actual chip and channel complement.
 5. **A stale identify line.** After the first `initialize` in a server process,
    the ROC type read frequently returns `[0, 253, 104]` instead of
    `[0, 125, 104]`. The process stays alive and 5555 stays listening, so `pgrep`
@@ -1577,7 +1515,7 @@ These each produced a wrong conclusion on a real bench.
 | `gpiofind: Permission denied` | The gpiochip udev rule is missing. Section 0.8f |
 | `daq-server` logs `Permission denied` then `impossible to process configure when state is Error` | The uio udev rule is missing. Section 0.8f. Every configure is rejected until `daq-server` restarts |
 | Bring-up dies at `[pwr]` with `[Errno 2] ... '/dev/i2c-2'` | Freshly booted Kria with no bitstream. `fw-loader load` first |
-| Repeated `[Errno 13] Permission denied: '/dev/i2c-2'` after many reloads | The overlay reload is re-creating the node slower than udev sets the group. Seen after roughly 40 overlay reloads in a day. Reboot the Kria |
+| Repeated `[Errno 13] Permission denied: '/dev/i2c-2'` after many reloads | The overlay reload is re-creating the node slower than udev sets the group, which takes roughly 40 reloads in a day to reach. Reboot the Kria |
 | `ROC addresses [...] do not match a known board` | Read the printed address list. It is usually a bad bring-up rather than a wrong board type |
 | Bring-up prints `board X needs all N of [...]; ['0x58'] never answered` | One chip is silent while its neighbours on the same I2C sub-bus answer. The bus is fine; that chip's contact, reset or local rail is not. Reseat; if the same address is missing in every slot, the board is the fault |
 | `retry 5/5` at the `[pwr] power management board 0x27` line, first bring-up after a power cycle | The power board is not in the loop, so `0x27` cannot ACK. The module is fed directly: use `--external-power`. One `--recover --external-power` bring-up clears the wedge without a power cycle |
@@ -1613,7 +1551,21 @@ measurement you actually care about.
   Convert once, at the point you read a wall clock.
 - **Use `MMTS_L1A_LOG2PERIOD=10`.** Never worse than the default and 50 times
   gentler on the ROCs.
-- **`remap_all.sh` must not begin with `rm -rf Results/alabama/320[TX]*`.** That
-  was safe only while raw data lived elsewhere. The runs themselves now live
-  under `Results/alabama/<serial>/`, so that line deletes the data. It was
-  removed and must not be reinstated.
+- **Never add an `rm -rf` of the results root to `remap_all.sh`.** The runs
+  themselves live under `Results/alabama/<serial>/`, so a line like
+  `rm -rf Results/alabama/320[TX]*` deletes the data, not just the plots.
+
+---
+
+# 7. Changes
+
+Dated provenance for the numbers and rules above, kept out of the procedure
+itself. Newest first.
+
+| date | change |
+|---|---|
+| 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. `enableROCs_alabama.py` now exits 1 when a `--board` address set comes up incomplete, instead of reporting a partial enable as success |
+| 2026-09-01 | DAQ RX equalisation merged into `feature/multiplexer_board_v2` as `49751f37` and released, so the design has no `-rxeq` suffix any more. Measured against the unequalised build: CRC pass 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 |
+| 2026-08-31 | HD Full characterised on a supply with headroom: 4.43 A at 1.72 V for six chips, 12/12 DAQ links, CRC 1.000 on all twelve halves over 25 runs. At the current limit the rail sagged to 1.35 V and all 24 e-links died, which is where the clipping section of 1.0 comes from. `in_inv_cmd_rx` measured both ways on a v3D board: 0 gives 8/12 trigger, 1 gives 0/12. `--module N` added after a wrong `EN_Mx` bit cost a reseat and a full power-down |
+| 2026-08-30 | `hexactrl-sw` MR !55 and `zmq_i2c` MR !24 merged: the `fifo_latency` mask fix, rebuilding `HwInterface` when `uhal_device` changes, skipping a trigger elink whose chip has no DAQ elink, and the offset finder skipping unreachable links rather than refusing the slot |
+| 2026-08-28 | Slot C settled on `L1A_offset_or_BX: 13` with `method: 'automatic'`, which beat manual 36 of 36 against 18 of 36 |
