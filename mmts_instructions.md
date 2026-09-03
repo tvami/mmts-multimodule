@@ -1,4 +1,4 @@
-# MMTS setup and operation, for Module Assembly Centres
+# MMTS setup and operation, for Module Assembly Centers
 
 Multi-Module Test System: three hexaboards in one hexacontroller, measured one
 slot at a time. This document takes you from a bare AlmaLinux client and an
@@ -9,8 +9,8 @@ unflashed Kria to pedestals on all three slots.
 `$MM` is the scripts directory, `$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule`.
 Set them once in section 0.5.
 
-Every code block is labelled with where it is typed: **the lab computer**, which
-is the AlmaLinux client, or **the Kria**. A block labelled for the lab computer
+Every code block is labeled with where it is typed: **the lab computer**, which
+is the AlmaLinux client, or **the Kria**. A block labeled for the lab computer
 may still act on the Kria through `ssh`; that is the normal pattern here, and
 only a handful of steps have to be typed on the Kria itself.
 
@@ -601,11 +601,11 @@ on offer.
 update`.** The package version string is the *branch* name, so every branch that
 ever built publishes the same package name, and rpm's version compare picks the
 alphabetically largest one, `test_merge_everything`, a 2025 build with no
-equalisation. `dnf install multimodule-hd-tester-trophy-v3` gets you that, and so
+equalization. `dnf install multimodule-hd-tester-trophy-v3` gets you that, and so
 does a routine `dnf update` with this repository enabled.
 
 🔑 **The release string must be `2026_09_01_16_56_41.49751f37` or later**, the
-build that carries the DAQ RX equalisation of 0.8e. Earlier ones do not, and the
+build that carries the DAQ RX equalization of 0.8e. Earlier ones do not, and the
 difference decides whether four of the six DAQ e-links work at all.
 
 ⚠️ `sudo dnf` is not in the passwordless rule of 0.3, which covers `fw-loader`
@@ -672,16 +672,16 @@ Then keep a `.orig` backup of `connections.xml` and add one block per slot:
 upgrade puts the stock `TOP`-only file back**. The `fw_block_addresses_{A,B,C}`
 files are yours and survive. Re-check both after every install, per 0.8c.
 
-### e. The equalised bitstream
+### e. The equalized bitstream
 
-🔑 **Check your firmware release before trusting a pedestal.** An unequalised
+🔑 **Check your firmware release before trusting a pedestal.** An unequalized
 build leaves the DAQ inputs with `IBUF_LOW_PWR` on, and four of the six DAQ
 e-links then fail 100 % of CRCs while looking healthy on entry counts: halves
-c0h0, c0h1, c1h0 and c2h1 read exactly 0.000. Equalised against unequalised, CRC
+c0h0, c0h1, c1h0 and c2h1 read exactly 0.000. Equalized against unequalized, CRC
 pass goes 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, and the eye
 8 taps to 64.
 
-The equalisation sets `IBUF_LOW_PWR FALSE` and `EQUALIZATION EQ_LEVEL4` on the
+The equalization sets `IBUF_LOW_PWR FALSE` and `EQUALIZATION EQ_LEVEL4` on the
 DAQ inputs, in `designs/multimodule-hd-tester-trophy-v3/xdc/daq_rx_eq.xdc`.
 Levels are uncalibrated, and `EQ_LEVEL4` is the one that gives 100 % CRC pass on
 every link; `EQ_LEVEL2` recovers them but leaves 1 to 4 % error on two, and
@@ -690,7 +690,7 @@ address map, software or routed timing changes with them.
 
 Install the RPM of 0.8c and set `MMTS_FW=multimodule-hd-tester-trophy-v3`. Read
 the commit out of the RPM's release string to confirm what you have:
-`2026_09_01_16_56_41.49751f37` or later carries the equalisation. A copied build
+`2026_09_01_16_56_41.49751f37` or later carries the equalization. A copied build
 directory carries no such stamp, which is a reason to prefer the RPM.
 
 ⚠️ **`MMTS_FW` is not sticky.** `enableROCs.py` re-points `active` on
@@ -796,7 +796,7 @@ channel.** On a SIGLENT SPD3303X-E, CH1 and CH2 are 0-3.2 A each and this is a
 **hardware maximum, not a settable compliance**. Press **`Para`** to link them
 into one 0-6.4 A channel:
 
-* both leads go on **CH1 only**, whose terminals are labelled `Para Out`; CH2's
+* both leads go on **CH1 only**, whose terminals are labeled `Para Out`; CH2's
   terminals stay empty;
 * set the voltage on CH1 and leave the current at its per-channel maximum, since
   the doubling happens in hardware and asking for 6.4 A gives
@@ -808,7 +808,7 @@ into one 0-6.4 A channel:
 
 * the on-screen mode reads **`CC`**, and the **output voltage is below the
   setpoint**. That is the reliable test.
-* ⚠️ Do **not** trust the terminal LED colour. On the SPD3303X-E the panel prints
+* ⚠️ Do **not** trust the terminal LED color. On the SPD3303X-E the panel prints
   `C.V.` in green and `C.C.` in red, which is the opposite of the wording in the
   generic manual. In parallel mode the slave channel always reads CC; that is
   normal.
@@ -1346,7 +1346,7 @@ Report **both** `adc_stdd` and `adc_iqr/1.349`, and trust the robust one.
 `adc_stdd` is inflated by packet corruption, and `adc_mean` is not yet
 reproducible run to run.
 
-If the automatic path ever fails, unpack and analyse offline:
+If the automatic path ever fails, unpack and analyze offline:
 
 **(on the lab computer)**
 
@@ -1567,7 +1567,7 @@ Each of these reads as a result and is not one.
 | All 12 trigger links `ngood=0`, DAQ perfect | Wrong `in_inv_cmd_rx` for the ROC revision. v3C is 1, v3D is 0 |
 | `.raw` unpacks to 0 entries | Stale puller. Restart `daq-client` |
 | `unpack: command not found` in `pedestal_run0.log` | The install's `bin` was not on `PATH` in the shell that launched the run. Section 0.6a |
-| `source .../ROCv3-alper-dev/etc/env.sh` gives `No such file or directory` on the client | Correct behaviour: `env.sh` is installed only by the server build. Set `PATH` instead. Section 0.6a |
+| `source .../ROCv3-alper-dev/etc/env.sh` gives `No such file or directory` on the client | Correct behavior: `env.sh` is installed only by the server build. Set `PATH` instead. Section 0.6a |
 | cmake says `/hexactrl-script/analysis does not contain a CMakeLists.txt`, then `make` says `No targets specified` | The nested submodules were never fetched. `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
 | cmake reports `Found PythonInterp: .../miniforge3/bin/python3` | A conda environment is active. `conda deactivate`, delete the build directory, configure again. Section 0.6a |
 | `make` fails on `yaml-cpp/yaml.h` or `zmq.hpp: No such file or directory` | `yaml-cpp-devel` and `cppzmq-devel` are missing. cmake never checks for them, so this only shows up in `make`. Section 0.6a |
@@ -1633,10 +1633,10 @@ itself. Newest first.
 | 2026-09-03 | The output root is now `Results/` rather than a site-named subdirectory of it. `RESULTS_DIR` in `site.sh` is the one place that sets it |
 | 2026-09-03 | The MMTS scripts branch was merged into `hexactrl-script:ROCv3-alper-dev` as `ffb42a2`, and `hexactrl-sw` MR !56 bumped the submodule pointer to it, so the scripts and configs are upstream. Section 0.4 loses the `tvami` fork remote and the branch checkout: `git clone --recurse-submodules` is now the whole step, and the submodules are correctly detached at their pinned commits |
 | 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The 0.8b occurrences are server-side and stay |
-| 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and 0.8c. The clone step initialised only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of 0.8c had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
-| 2026-09-03 | Bench Kria upgraded from `2026_07_20_23_20_01.45587078` to `2026_09_01_16_56_41.49751f37`. The superseded build predates the DAQ RX equalisation, so any CRC or dead-DAQ-link result recorded on this bench before this date is an unequalised measurement |
+| 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and 0.8c. The clone step initialized only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of 0.8c had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
+| 2026-09-03 | Bench Kria upgraded from `2026_07_20_23_20_01.45587078` to `2026_09_01_16_56_41.49751f37`. The superseded build predates the DAQ RX equalization, so any CRC or dead-DAQ-link result recorded on this bench before this date is an unequalized measurement |
 | 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. Configs reduced to exactly one per geometry per slot, `<family>_mux<SLOT>_ped.yaml`, with the family named for the geometry: `initLD-Full-3b`, `initLD-Five-3b`, `initLD-Left-3b`, `initLD-Bottom-3b`, `initHD-Full-trophyV3`, `initHD-Top-trophyV3`, `initHD-Bottom-trophyV3`, `initHD-Semi-trophyV3`. The bring-up script is now `enableROCs.py`, and it exits 1 when a `--board` address set comes up incomplete instead of reporting a partial enable as success |
-| 2026-09-01 | DAQ RX equalisation merged into `feature/multiplexer_board_v2` as `49751f37` and released, so the design has no `-rxeq` suffix any more. Measured against the unequalised build: CRC pass 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 |
-| 2026-08-31 | HD Full characterised on a supply with headroom: 4.43 A at 1.72 V for six chips, 12/12 DAQ links, CRC 1.000 on all twelve halves over 25 runs. At the current limit the rail sagged to 1.35 V and all 24 e-links died, which is where the clipping section of 1.0 comes from. `in_inv_cmd_rx` measured both ways on a v3D board: 0 gives 8/12 trigger, 1 gives 0/12. `--module N` added after a wrong `EN_Mx` bit cost a reseat and a full power-down |
+| 2026-09-01 | DAQ RX equalization merged into `feature/multiplexer_board_v2` as `49751f37` and released, so the design has no `-rxeq` suffix any more. Measured against the unequalized build: CRC pass 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 |
+| 2026-08-31 | HD Full characterized on a supply with headroom: 4.43 A at 1.72 V for six chips, 12/12 DAQ links, CRC 1.000 on all twelve halves over 25 runs. At the current limit the rail sagged to 1.35 V and all 24 e-links died, which is where the clipping section of 1.0 comes from. `in_inv_cmd_rx` measured both ways on a v3D board: 0 gives 8/12 trigger, 1 gives 0/12. `--module N` added after a wrong `EN_Mx` bit cost a reseat and a full power-down |
 | 2026-08-30 | `hexactrl-sw` MR !55 and `zmq_i2c` MR !24 merged: the `fifo_latency` mask fix, rebuilding `HwInterface` when `uhal_device` changes, skipping a trigger elink whose chip has no DAQ elink, and the offset finder skipping unreachable links rather than refusing the slot |
 | 2026-08-28 | Slot C settled on `L1A_offset_or_BX: 13` with `method: 'automatic'`, which beat manual 36 of 36 against 18 of 36 |
