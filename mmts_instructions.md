@@ -136,31 +136,23 @@ Kria-side helpers all live inside `hexactrl-script`, so there is no separate
 bench repository to fetch.
 
 **Step 1, `hexactrl-sw`.** Branch `ROCv3-alper-dev`, not `ROCv3`. This is the DAQ
-software and the `zmq_i2c` server you later copy to the Kria. Its
-`hexactrl-script` submodule then has to be switched to the branch that carries
-the MMTS scripts and configs, `mmts-alabama-configs` on the `tvami` fork. Ask
-for read access to that fork if the fetch is refused.
+software, the `zmq_i2c` server you later copy to the Kria, and, through its
+`hexactrl-script` submodule, the bench scripts and run configs. No fork remote
+and no branch switching: everything is on the upstream branch.
 
 **(on the lab computer)**
 
 ```bash
 export MMTS_ROOT=$HOME/mmts
 mkdir -p "$MMTS_ROOT" && cd "$MMTS_ROOT"
-git clone -b ROCv3-alper-dev \
+git clone -b ROCv3-alper-dev --recurse-submodules \
   ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/hexactrl-sw.git hexactrl-sw
-cd hexactrl-sw
-git submodule update --init hexactrl-script zmq_i2c
-git -C hexactrl-script remote add fork ssh://git@gitlab.cern.ch:7999/tvami/hexactrl-script.git
-git -C hexactrl-script fetch fork
-git -C hexactrl-script checkout mmts-alabama-configs
-git -C hexactrl-script submodule update --init --recursive
-cd "$MMTS_ROOT"
 ```
 
-⚠️ **Three submodules, two levels, and the order matters.** `hexactrl-sw` has
-`hexactrl-script` and `zmq_i2c`; `hexactrl-script` has `analysis`. Naming only
-`hexactrl-script` on the first line leaves the other two empty, and both failures
-come later without either naming a submodule:
+⚠️ **`--recurse-submodules` is not optional.** There are three submodules across
+two levels: `hexactrl-sw` has `hexactrl-script` and `zmq_i2c`, and
+`hexactrl-script` has `analysis`. A plain clone leaves all three empty, and both
+failures come later without either naming a submodule:
 
 * `hexactrl-script/CMakeLists.txt` does `add_subdirectory(analysis)`, so the
   client build of 0.6a dies with `The source directory ... /hexactrl-script/analysis
@@ -168,14 +160,8 @@ come later without either naming a submodule:
   `make: *** No targets specified and no makefile found`;
 * the `zmq_i2c` tar of 0.7 copies an empty directory to the Kria.
 
-🛑 **The `analysis` line must be `git -C hexactrl-script submodule update`, run
-from inside the submodule, and never `git submodule update --recursive` at the
-top.** `git submodule update` checks out the commit the *superproject* records,
-so a recursive update from `hexactrl-sw` silently drags `hexactrl-script` off
-`mmts-alabama-configs` back to the pinned commit and detaches HEAD. Everything
-still builds; `multimodule/` and the run configs are simply gone, and the first
-symptom is `$MM/puller.sh: No such file or directory` much later. If that happens,
-`git -C hexactrl-script checkout mmts-alabama-configs` puts it back.
+On a clone that already exists, `git submodule update --init --recursive` from
+`hexactrl-sw` does the same job.
 
 **Step 2, `gui-hexmap`.** The repository is named `hgcal-module-testing-gui`; the
 directory name is yours to choose, and `site.sh` records it as `GUI_HEXMAP`.
@@ -197,14 +183,15 @@ Check everything landed on the right branch before moving on:
 
 ```bash
 git -C hexactrl-sw rev-parse --abbrev-ref HEAD                    # ROCv3-alper-dev
-git -C hexactrl-sw/hexactrl-script rev-parse --abbrev-ref HEAD    # mmts-alabama-configs
 git -C gui-hexmap  rev-parse --abbrev-ref HEAD                    # master
-ls hexactrl-sw/hexactrl-script/multimodule gui-hexmap/hexmap
+ls hexactrl-sw/hexactrl-script/multimodule/puller.sh
 ls hexactrl-sw/zmq_i2c/Link.py hexactrl-sw/hexactrl-script/analysis/CMakeLists.txt
 ```
 
-The second line is the submodule check. An empty directory listing rather than
-those two files means the `--recursive` update did not run.
+The last two lines are the submodule check. `No such file or directory` rather
+than the files means the recursive update did not run. The submodules are pinned
+by commit, so `git -C hexactrl-sw/hexactrl-script rev-parse --abbrev-ref HEAD`
+prints a bare `HEAD`: detached is the correct state for a submodule, not a fault.
 
 Resulting layout. `Results/alabama` is the default output root; it is set in
 `site.sh` as `RESULTS_DIR`.
@@ -214,7 +201,7 @@ Resulting layout. `Results/alabama` is the default output root; it is set in
 ```
 $MMTS_ROOT/
 ├── hexactrl-sw/                  step 1, branch ROCv3-alper-dev
-│   ├── hexactrl-script/          fork branch mmts-alabama-configs
+│   ├── hexactrl-script/          submodule: the scripts, configs and analysis
 │   │   ├── analysis/             submodule: the pedestal and scan analyses
 │   │   ├── configs/              the run configs, one per board type and slot
 │   │   ├── multimodule/          THE BENCH SCRIPTS: this is $MM
@@ -1571,7 +1558,7 @@ Each of these reads as a result and is not one.
 | cmake says `/hexactrl-script/analysis does not contain a CMakeLists.txt`, then `make` says `No targets specified` | The nested submodules were never fetched. `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
 | cmake reports `Found PythonInterp: .../miniforge3/bin/python3` | A conda environment is active. `conda deactivate`, delete the build directory, configure again. Section 0.6a |
 | `make` fails on `yaml-cpp/yaml.h` or `zmq.hpp: No such file or directory` | `yaml-cpp-devel` and `cppzmq-devel` are missing. cmake never checks for them, so this only shows up in `make`. Section 0.6a |
-| `$MM/puller.sh: No such file or directory`, and no `multimodule/` at all | A top-level `git submodule update --recursive` reset `hexactrl-script` to the pinned commit. `git -C hexactrl-script checkout mmts-alabama-configs`. Section 0.4 |
+| `$MM/puller.sh: No such file or directory`, and no `multimodule/` at all | The submodules were never fetched, or the clone predates the merge of the scripts upstream. `git pull --ff-only` then `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
 | `dnf` answers `No matching Packages to list` for the firmware, and `dnf repolist` shows `HCGAL-DAQ-SW` alone | The `hgc-online-sw` repo file was never written. Section 0.8c |
 | `ZMQError: Address already in use` on 5555 | `ssh kria 'pkill -f "[z]mq_ser""ver.py"'` |
 | `daq-client` cannot bind 6001 | An old one is still alive. `pkill -f '[d]aq-client'` |
@@ -1630,6 +1617,7 @@ itself. Newest first.
 
 | date | change |
 |---|---|
+| 2026-09-03 | `hexactrl-script` MR merged `mmts-alabama-configs` into `ROCv3-alper-dev` as `ffb42a2`, and `hexactrl-sw` MR !56 bumped the submodule pointer to it, so the scripts and configs are upstream. Section 0.4 loses the `tvami` fork remote and the branch checkout: `git clone --recurse-submodules` is now the whole step, and the submodules are correctly detached at their pinned commits |
 | 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The 0.8b occurrences are server-side and stay |
 | 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and 0.8c. The clone step initialised only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of 0.8c had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
 | 2026-09-03 | Bench Kria upgraded from `2026_07_20_23_20_01.45587078` to `2026_09_01_16_56_41.49751f37`. The superseded build predates the DAQ RX equalisation, so any CRC or dead-DAQ-link result recorded on this bench before this date is an unequalised measurement |
