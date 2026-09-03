@@ -765,7 +765,51 @@ after every bring-up:
 ssh kria 'readlink /opt/cms-hgcal-firmware/hgc-test-systems/active; dmesg | grep "fpga0: writing" | tail -1'
 ```
 
-### f. Device permissions
+### f. Open the three ports
+
+The client drives the bench over ZeroMQ, so a listening socket on the Kria is not
+enough: the packets have to arrive. A stock AlmaLinux firewall on either machine
+blocks them, and the symptom is not a connection error but a **hang**, which
+reads as a broken bring-up rather than a network problem.
+
+Three ports, and they do not all belong to the Kria:
+
+| port | listens on | carries |
+|---|---|---|
+| 5555 | the Kria | the i2c-server, ROC configuration |
+| 6000 | the Kria | `daq-server`, run control |
+| **6001** | **the lab computer** | the event stream, pushed back by `daq-server` |
+
+**(on the Kria)**
+
+```bash
+sudo firewall-cmd --permanent --add-port=5555/tcp --add-port=6000/tcp
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-ports
+```
+
+**(on the lab computer)**
+
+```bash
+sudo firewall-cmd --permanent --add-port=6001/tcp
+sudo firewall-cmd --reload
+```
+
+Prove reachability from the client rather than trusting `ss` on the Kria, since
+`ss` only tells you something is bound locally:
+
+**(on the lab computer)**
+
+```bash
+timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/5555"; echo "5555 exit=$?"
+timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/6000"; echo "6000 exit=$?"
+```
+
+Exit `124` is a timeout and means blocked. Exit `0` or `1` means the port is
+reachable, which is what you want. If your site uses `iptables` or `nft` rather
+than `firewalld`, open the same three ports with those instead.
+
+### g. Device permissions
 
 Two udev rules. Both were needed on a stock image, and both fail in ways that
 waste a session.
@@ -1782,6 +1826,7 @@ Each of these reads as a result and is not one.
 | `KeyError: 'dac_hyst_toa'` | ROC type mis-detected and fell back to Siv3. Redo bring-up plus i2c-server |
 | Client hangs at `ROC(s) CONFIGURED` | `daq-server` is dead or stuck in a previous unfinished run. Restart it |
 | A scan sits at `Initializing i2c sockets` and never proceeds | Nothing is listening on 5555. `mmts_bringup.sh` does not start the i2c-server; run `~/start_i2c.sh SLOT`. Section 1.3 |
+| Same hang, but `ss` on the Kria shows 5555 **and** 6000 listening and the identify line is good | The client cannot reach them. Test with `/dev/tcp` from the lab computer and open the ports, per 0.8f |
 | `status after start cmd : configured`, repeating | **Interrupt at once.** An e-link is unaligned and `start()` retries forever; the backlog can crash the puller and `daq-server`. Read `~/daq-server.log` for which link, then re-run bring-up |
 | `status after start cmd : created`, repeating | You dropped `-I` |
 | 6 DAQ links dead, 12 trigger fine | Multiplex hold lost. `gpiofind Multiplex_A` and `ps aux \| grep "[g]pioset"`; the chip numbers must match |
@@ -1803,8 +1848,8 @@ Each of these reads as a result and is not one.
 | Orphaned holders after a killed server | `pkill -f 'gpioset -m signal -b'` |
 | `daq-client` exits with `std::length_error` or signal 6 | It was sent the run twice by a START refusal spin. Full reset: restart `daq-server`, re-run bring-up, restart the puller |
 | `elink link_capture_daq.linkN is not aligned` | A DAQ link failed to init, which happens about once a session. Re-run bring-up. `--realign` does not fix it, because the delay block is fine and the word aligner needs the `linkReset` that a full configure issues |
-| `gpiofind: Permission denied` | The gpiochip udev rule is missing. Section 0.8f |
-| `daq-server` logs `Permission denied` then `impossible to process configure when state is Error` | The uio udev rule is missing. Section 0.8f. Every configure is rejected until `daq-server` restarts |
+| `gpiofind: Permission denied` | The gpiochip udev rule is missing. Section 0.8g |
+| `daq-server` logs `Permission denied` then `impossible to process configure when state is Error` | The uio udev rule is missing. Section 0.8g. Every configure is rejected until `daq-server` restarts |
 | `fw-loader load: error: the following arguments are required: firmware` | A `$MMTS_FW` from an older copy of these instructions expanded to nothing. Name the design outright: `multimodule-hd-tester-trophy-v3`. Section 0.5 |
 | `sed: -e expression #1, char 49: extra characters after command`, and the echoed line shows `done` where you typed `!d` | Bash history expansion, not sed. Use the loop as written in 0.8d, which contains no `!` |
 | Bring-up dies at `[pwr]` with `[Errno 2] ... '/dev/i2c-2'` | Freshly booted Kria with no bitstream. `fw-loader load` first |
