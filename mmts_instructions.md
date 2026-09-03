@@ -976,6 +976,13 @@ does not cycle power; `--recover` opts into the `kconn_pwr off` then
 recover form, or do the two commands above by hand first. Otherwise every probe
 returns `no ROCs` against an unpowered bus, with all writes still ACKing.
 
+🔑 **The wrappers already do this for you, so do not conclude that a failed
+bring-up was missing `kconn_pwr`.** `mmts_bringup.sh` sets `--recover` as its
+default and takes `--no-recover` to turn it off, and `up_verified.sh` passes your
+flags straight through to it. The default is therefore opposite to
+`enableROCs.py`'s, and a bring-up run through either wrapper has cycled payload
+power on every attempt.
+
 ## 1.3 The bring-up wrappers
 
 `up_verified.sh` runs on the Kria and is the one to use. It retries both
@@ -1010,20 +1017,31 @@ module on. The default is the slot's own index (`A`→1, `B`→2, `C`→3), and 
 **an assumption about which output the module's power lead is plugged into**, not
 a property of the hardware.
 
-Get it wrong and you see `no ROCs` with **0 A on the meter**, which is
-indistinguishable from a dead module, a bad trophy or a seating fault:
+Get it wrong and you see `no ROCs` with **next to nothing on the meter**, which is
+indistinguishable from a dead module, a bad trophy or a seating fault. Sweep the
+three values, keeping `--board` and `EXPECT_ROCS` at your own board's:
 
 **(on the lab computer)**
 
 ```bash
-ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 ~/up_verified.sh A --module 3 --board HD-Full"
+ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 1"
+ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 2"
+ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 3"
 ```
+
+⛔ **Do not change `--board` while sweeping.** It must match the module you
+actually have, from the table at the top of this section. `--board HD-Full` on an
+LD Full demands all six addresses of a six-chip board and can never succeed on a
+three-chip one, so it turns a one-variable sweep into a guaranteed failure that
+costs bring-ups.
 
 🔑 **Diagnostic rule.** If the probe says `no ROCs` but the **mux-board GPIO
 writes succeeded**, the master, the switch and the expander are all fine, because
 those writes never leave the mux board. **Sweep `--module 1/2/3` and watch the
 meter before suspecting the module.** With one module on the bench, any draw at
-all must be that module, so the meter identifies the correct bit immediately.
+all must be that module, so the meter identifies the correct bit immediately. If
+all three read the same near-zero current, the bit is not the problem and the
+power path is: see the low-current row of 6.3.
 
 The flag is forwarded by `bench_up.sh` and `mmts_bringup.sh` directly, by
 `ped_run.sh` as `PED_MODULE`, and by `slot_measure.sh` as `SM_MODULE`.
@@ -1718,6 +1736,7 @@ Each of these reads as a result and is not one.
 | Bring-up prints `board X needs all N of [...]; ['0x58'] never answered` | One chip is silent while its neighbours on the same I2C sub-bus answer. The bus is fine; that chip's contact, reset or local rail is not. Reseat; if the same address is missing in every slot, the board is the fault |
 | `retry 5/5` at the `[pwr] power management board 0x27` line, first bring-up after a power cycle | The power board is not in the loop, so `0x27` cannot ACK. The module is fed directly: use `--external-power`. One `--recover --external-power` bring-up clears the wedge without a power cycle |
 | Supply reads 0.4 to 0.5 A on a channel with nothing brought up | Normal: that slot's rail is on and its ROCs are idle. Three configured LD chips draw about 1.9 A, three HD chips about 2.2 A |
+| Bring-up repeats `0/N ROCs` and the supply sits in **CV at 0.05 to 0.1 A**, well under the 0.4 A quiescent | The power path is open, not the bus. Sweep `--module 1/2/3` first, since `EN_Mx` is cabling; if all three read the same, check the power-management-to-mux cable, then the module's flex and seating. A `0x27` that ACKs proves the data path only |
 
 ## 6.4 When only the power button will do
 
