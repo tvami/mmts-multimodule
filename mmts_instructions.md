@@ -682,27 +682,41 @@ That `grep` must report 1 for each of the three files. Each generated table also
 loses four lines against the shipped one, the two trigger blocks of each of the
 other two slots.
 
-⚠️ **The `OTHERS` line is there to keep `!` out of the loop.** The obvious way to
-write this is `/_${S}\"/!d`, meaning delete the per-slot lines that are not
-mine. Pasted into an interactive shell, bash history expansion eats the `!d` and
-substitutes the last command starting with `d`, which is the loop's own `done`,
-and sed then fails with `extra characters after command` three times over. The
-form above deletes the other two slots' lines instead, computing which those are
-with `tr`, so nothing in the block can be history-expanded.
+**If the `grep` already reports 1 for all three, the tables are made and you can
+skip to the `connections.xml` step below.** The loop is safe to re-run in any
+case: it rebuilds each file from the shipped table and overwrites, so running it
+twice gives the same result as running it once.
 
-Then keep a `.orig` backup of `connections.xml` and add one block per slot:
+Now `connections.xml`, which needs one entry per slot alongside the stock `TOP`.
+This rewrites the whole file rather than asking you to edit XML by hand, and
+keeps a `.orig` of the shipped version the first time it runs:
 
-**(a file on the Kria, `uHAL_xml/connections.xml`)**
+**(on the Kria)**
 
-```xml
-<connection id="TOP_B"
-    uri="uioaxi-1.0:///opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml/fw_block_addresses_B.xml"
-    address_table="file:///opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml/fw_block_addresses_B.xml"/>
+```bash
+cd /opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
+X=/opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
+[ -f connections.xml.orig ] || sudo cp connections.xml connections.xml.orig
+{
+  echo '<?xml version="1.0" encoding="UTF-8"?>'
+  echo
+  echo '<connections>'
+  echo "   <connection id=\"TOP\" uri=\"uioaxi-1.0://$X/fw_block_addresses.xml\" address_table=\"file://$X/fw_block_addresses.xml\"/>"
+  for S in A B C; do
+    echo "   <connection id=\"TOP_$S\" uri=\"uioaxi-1.0://$X/fw_block_addresses_$S.xml\" address_table=\"file://$X/fw_block_addresses_$S.xml\"/>"
+  done
+  echo '</connections>'
+} | sudo tee connections.xml > /dev/null
+grep -c 'id="TOP_[ABC]"' connections.xml
 ```
 
+That `grep` must print 3. If it already printed 3 before you ran the block, the
+file is already correct and the block only rewrites it identically.
+
 ⚠️ `connections.xml` belongs to the firmware RPM, so **a firmware install or
-upgrade puts the stock `TOP`-only file back**. The `fw_block_addresses_{A,B,C}`
-files are yours and survive. Re-check both after every install, per 0.8c.
+upgrade puts the stock `TOP`-only file back**. Re-run the block above after every
+install, per 0.8c. The `fw_block_addresses_{A,B,C}` files are yours and survive,
+so the table loop does not need repeating.
 
 ### e. The equalized bitstream
 
@@ -1618,7 +1632,7 @@ Each of these reads as a result and is not one.
 | `gpiofind: Permission denied` | The gpiochip udev rule is missing. Section 0.8f |
 | `daq-server` logs `Permission denied` then `impossible to process configure when state is Error` | The uio udev rule is missing. Section 0.8f. Every configure is rejected until `daq-server` restarts |
 | `fw-loader load: error: the following arguments are required: firmware` | A `$MMTS_FW` from an older copy of these instructions expanded to nothing. Name the design outright: `multimodule-hd-tester-trophy-v3`. Section 0.5 |
-| `sed: -e expression #1, char 49: extra characters after command`, and the echoed line shows `done` where you typed `!d` | Bash history expansion, not sed. Use the `OTHERS` form of 0.8d, which contains no `!` |
+| `sed: -e expression #1, char 49: extra characters after command`, and the echoed line shows `done` where you typed `!d` | Bash history expansion, not sed. Use the loop as written in 0.8d, which contains no `!` |
 | Bring-up dies at `[pwr]` with `[Errno 2] ... '/dev/i2c-2'` | Freshly booted Kria with no bitstream. `fw-loader load` first |
 | Repeated `[Errno 13] Permission denied: '/dev/i2c-2'` after many reloads | The overlay reload is re-creating the node slower than udev sets the group, which takes roughly 40 reloads in a day to reach. Reboot the Kria |
 | `ROC addresses [...] do not match a known board` | Read the printed address list. It is usually a bad bring-up rather than a wrong board type |
