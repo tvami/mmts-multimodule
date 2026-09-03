@@ -1383,6 +1383,21 @@ run it the moment the boards are in and **before** the first bring-up, since the
 scripts name their output directories from it and a stale entry files a whole
 campaign under the previous module's serial.
 
+⚠️ **On a new bench, seed the registry first.** `register_boards.py` reads the
+file and appends to `d["windows"]`; it does not create it. Without the first line
+below you get `FileNotFoundError`, and an empty file made with `touch` is not
+valid JSON either, so that gives `JSONDecodeError: Expecting value` instead. Do
+this once, ever:
+
+**(on the lab computer)**
+
+```bash
+mkdir -p "$RESULTS_DIR"
+echo '{"windows": []}' > "$RESULTS_DIR/module_ids.json"
+```
+
+Then record the boards, and re-run that second command after every swap:
+
 **(on the lab computer)**
 
 ```bash
@@ -1390,7 +1405,7 @@ campaign under the previous module's serial.
 "$MM/module_of.py" B
 ```
 
-The second line prints the serial now recorded for slot B.
+The last line prints the serial now recorded for slot B.
 
 A slot left out of the command is recorded as empty from then on; `--at
 YYYY-mm-ddTHH:MM:SSZ` backdates a swap that happened earlier. A board with no
@@ -2156,6 +2171,7 @@ Each of these reads as a result and is not one.
 | `.raw` unpacks to 0 entries | Stale puller. Restart `daq-client` |
 | `unpack: command not found` in `pedestal_run0.log` | The install's `bin` was not on `PATH` in the shell that launched the run. Section 0.6a |
 | `python3: can't open file '.../delay_scan.py'`, naming a directory you did not choose | `SCRIPTS` is unset, and `cd ""` is a silent no-op that left you where you were. `echo "SCRIPTS=$SCRIPTS"`, then section 0.5 |
+| `register_boards.py` gives `FileNotFoundError` or `JSONDecodeError: Expecting value` on `module_ids.json` | The registry was never seeded, or was created empty with `touch`. `echo '{"windows": []}' > "$RESULTS_DIR/module_ids.json"`. Section 2.6 |
 | `ModuleNotFoundError: No module named 'zmq'` | The venv is not active, is shadowed by conda, or never got its packages. `which python3` must be `$MMTS_ROOT/venv/bin/python3`; if it is, re-run the `pip install` of 0.6b |
 | Environment variables you just set are gone again | You set them in a subshell and typed `exit`, which discarded them. Put the three exports in `~/.bashrc`, per 0.5 |
 | `source .../ROCv3-alper-dev/etc/env.sh` gives `No such file or directory` on the client | Correct behavior: `env.sh` is installed only by the server build. Set `PATH` instead. Section 0.6a |
