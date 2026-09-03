@@ -122,12 +122,12 @@ does not exist on a fresh Kria, so creating it is expected, not a repair:
 echo "daq ALL=(root) NOPASSWD: /usr/bin/fw-loader, /usr/bin/kconn_pwr" \
   | sudo tee /etc/sudoers.d/hgc-bench
 sudo chmod 440 /etc/sudoers.d/hgc-bench
-sudo -n fw-loader list      # must print without prompting
+sudo -n fw-loader list
 ```
 
-That last line is the only check that matters. A password prompt means the paths
-in the rule are wrong or the file is not mode 440. Log out with `exit` when it
-passes.
+That last line is the only check that matters, and it must print without
+prompting. A password prompt means the paths in the rule are wrong or the file is
+not mode 440. Log out with `exit` when it passes.
 
 ## 0.4 Clone the repositories
 
@@ -182,16 +182,17 @@ Check everything landed on the right branch before moving on:
 **(on the lab computer)**
 
 ```bash
-git -C hexactrl-sw rev-parse --abbrev-ref HEAD                    # ROCv3-alper-dev
-git -C gui-hexmap  rev-parse --abbrev-ref HEAD                    # master
+git -C hexactrl-sw rev-parse --abbrev-ref HEAD
+git -C gui-hexmap  rev-parse --abbrev-ref HEAD
 ls hexactrl-sw/hexactrl-script/multimodule/puller.sh
 ls hexactrl-sw/zmq_i2c/Link.py hexactrl-sw/hexactrl-script/analysis/CMakeLists.txt
 ```
 
-The last two lines are the submodule check. `No such file or directory` rather
-than the files means the recursive update did not run. The submodules are pinned
-by commit, so `git -C hexactrl-sw/hexactrl-script rev-parse --abbrev-ref HEAD`
-prints a bare `HEAD`: detached is the correct state for a submodule, not a fault.
+The first two must print `ROCv3-alper-dev` and `master`. The last two are the
+submodule check: `No such file or directory` rather than the files means the
+recursive update did not run. The submodules are pinned by commit, so
+`git -C hexactrl-sw/hexactrl-script rev-parse --abbrev-ref HEAD` prints a bare
+`HEAD`, and detached is the correct state for a submodule, not a fault.
 
 Resulting layout. `Results/alabama` is the default output root; it is set in
 `site.sh` as `RESULTS_DIR`.
@@ -344,12 +345,13 @@ its own aarch64 build in 0.8b.
 the MR !55 fixes listed in 0.8b.
 
 Confirm what landed, then put the install's `bin` on `PATH` in your profile.
-Every shell that runs a client command needs it:
+Every shell that runs a client command needs it. The `ls` must show
+`daq-client`, `hitproducer` and `unpack`:
 
 **(on the lab computer)**
 
 ```bash
-ls /opt/hexactrl/ROCv3-alper-dev/bin        # daq-client, hitproducer, unpack
+ls /opt/hexactrl/ROCv3-alper-dev/bin
 export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
 ```
 
@@ -399,13 +401,15 @@ conda `base` environment on the client shadows `/usr/bin/python3`, and
 `python3 -m venv` then builds a 3.12 venv without saying so. The same mistake
 also defeats `--system-site-packages`, since the RPM installs its Python modules
 for the system interpreter. Check the version the venv was built with, and
-rebuild it if it is not the system one:
+rebuild it if it is not the system one. The `ls` must show `python3.9` on
+AlmaLinux 9, and the `conda deactivate` is needed only if a `(base)` prompt is
+showing:
 
 **(on the lab computer)**
 
 ```bash
-ls "$MMTS_ROOT/venv/lib"          # must be python3.9 on AlmaLinux 9
-conda deactivate                  # if a (base) prompt is showing
+ls "$MMTS_ROOT/venv/lib"
+conda deactivate
 rm -rf "$MMTS_ROOT/venv"
 /usr/bin/python3 -m venv --system-site-packages "$MMTS_ROOT/venv"
 ```
@@ -422,8 +426,10 @@ ones you will type.
 ```bash
 cd "$MM"
 chmod +x *.sh *.py kria/*
-./puller.sh                 # check: should print "puller up on 6001"
+./puller.sh
 ```
+
+The last line should print `puller up on 6001`.
 
 | script | what |
 |---|---|
@@ -454,23 +460,22 @@ procedure by hand if you prefer.
 
 The Kria gets the contents of `$MM/kria/` and the i2c-server. No git on the Kria.
 
+Three transfers, in the order below. The bring-up, mux and power helpers go to
+`~/multimodule`; the three wrappers you type by hand go to the home directory
+itself, for the reason given after the block; and the i2c-server goes under
+`~/multimodule/hexactrl-sw`, from where it is run **and not** from the RPM copy
+under `/opt`.
+
 **(on the lab computer)**
 
 ```bash
 cd "$MM/kria"
 ssh kria 'mkdir -p ~/multimodule/hexactrl-sw'
-
-# bring-up, mux and power helpers -> ~/multimodule
 tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py \
   | ssh kria 'tar xf - -C ~/multimodule'
-
-# home directory wrappers -> ~
 tar cf - up_verified.sh start_i2c.sh set_pwr_en.py | ssh kria 'tar xf - -C ~'
-
-# the i2c-server, run from here and NOT from the RPM copy under /opt
 cd "$MMTS_ROOT/hexactrl-sw"
 tar czf - --exclude=__pycache__ zmq_i2c | ssh kria 'tar xzf - -C ~/multimodule/hexactrl-sw'
-
 ssh kria 'chmod +x ~/multimodule/*.sh ~/*.sh ~/*.py'
 ```
 
@@ -648,8 +653,10 @@ for S in A B C; do
     | sed -E "s/id=\"(bram_trg|link_capture_trg)_${S}\"/id=\"\1\"/" \
     | sudo tee fw_block_addresses_${S}.xml > /dev/null
 done
-grep -c 'id="bram_trg"' fw_block_addresses_[ABC].xml    # each must print 1
+grep -c 'id="bram_trg"' fw_block_addresses_[ABC].xml
 ```
+
+That `grep` must report 1 for each of the three files.
 
 Then keep a `.orig` backup of `connections.xml` and add one block per slot:
 
@@ -701,17 +708,18 @@ ssh kria 'readlink /opt/cms-hgcal-firmware/hgc-test-systems/active; dmesg | grep
 Two udev rules. Both were needed on a stock image, and both fail in ways that
 waste a session.
 
+The **gpiochip** rule comes first: the Zynq PS chips are `root:root` 0600, which
+makes `gpiofind` abort. The **uio** rule is second: `/dev/uio*` at `root:root`
+0600 stops `daq-server` opening the firmware's UIO devices, so it logs
+`Permission denied`, goes to state `Error`, and rejects every configure, leaving
+scans with a header-only `.root` and no plots.
+
 **(on the Kria)**
 
 ```bash
-# gpiochip: the Zynq PS chips are root:root 0600, which makes gpiofind abort
 echo 'SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"' \
   | sudo tee /etc/udev/rules.d/99-gpiochip-all.rules
 sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=gpio
-
-# /dev/uio*: root:root 0600 stops daq-server opening the firmware's UIO devices.
-# It logs "Permission denied", goes to state Error, and rejects every configure,
-# so scans produce a header-only .root and no plots.
 echo 'SUBSYSTEM=="uio", KERNEL=="uio*", GROUP="daq", MODE="0660"' \
   | sudo tee /etc/udev/rules.d/99-uio-daq.rules
 sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=uio
@@ -908,13 +916,14 @@ The flag is forwarded by `bench_up.sh` and `mmts_bringup.sh` directly, by
 `ped_run.sh` as `PED_MODULE`, and by `slot_measure.sh` as `SM_MODULE`.
 
 `bench_up.sh` on the client does the cold start in the only order that works, and
-needs no adaptation since it only calls `ssh`:
+needs no adaptation since it only calls `ssh`. The first line below is the form
+for a partial, the second for an LD Full:
 
 **(on the lab computer)**
 
 ```bash
-"$MM/bench_up.sh" A --board LD-Semi --expect 2               # partials
-"$MM/bench_up.sh" A --board LD-Full --expect 3 --power-board # LD Fulls
+"$MM/bench_up.sh" A --board LD-Semi --expect 2
+"$MM/bench_up.sh" A --board LD-Full --expect 3 --power-board
 ```
 
 ## 1.4 What good looks like, and when to just re-run
@@ -1021,12 +1030,12 @@ boards would not be found on the mux path.
 ## 2.3 LD Full (LF)
 
 Power distribution board **fitted**. Three ROCs. Six DAQ links and twelve trigger
-links.
+links. The environment for `slot_measure.sh`:
 
 **(on the lab computer)**
 
 ```bash
-SM_BOARD=LD-Full SM_EXPECT=3 SM_EXTPOWER=0     # environment for slot_measure.sh
+SM_BOARD=LD-Full SM_EXPECT=3 SM_EXTPOWER=0
 ```
 
 ⚠️ **`SM_EXTPOWER=0` is required with the power board in.** The `0x27` `EN_Mx`
@@ -1040,12 +1049,13 @@ Run configs: `configs/initLD-Full-3b_mux{A,B,C}_ped.yaml`.
 
 Power distribution board **fitted**. **Six** ROCs, **twelve** DAQ links and
 twelve trigger links — **24 e-links**, double an LD Full. Twelve halves in the
-pedestal output, not six.
+pedestal output, not six. The first line is the environment for
+`slot_measure.sh`, the second a bring-up:
 
 **(on the lab computer)**
 
 ```bash
-SM_BOARD=HD-Full SM_EXPECT=6 SM_EXTPOWER=0 SM_MODULE=<n>   # slot_measure.sh
+SM_BOARD=HD-Full SM_EXPECT=6 SM_EXTPOWER=0 SM_MODULE=<n>
 "$MM/bench_up.sh" A --board HD-Full --expect 6 --power-board --module <n>
 ```
 
@@ -1077,12 +1087,13 @@ trigger links are ample for event building.
 
 **No power distribution board.** These are fed from the bench supply directly, so
 every bring-up takes `--external-power`. Two ROCs at `0x48 0x58`. Three DAQ links
-and six trigger links.
+and six trigger links. This is also what `slot_measure.sh` assumes when you set
+nothing:
 
 **(on the lab computer)**
 
 ```bash
-SM_BOARD=LD-Semi SM_EXPECT=2 SM_EXTPOWER=1     # this is the default
+SM_BOARD=LD-Semi SM_EXPECT=2 SM_EXTPOWER=1
 ```
 
 Without `--external-power`, bring-up drives a `0x27` power board that is not
@@ -1162,8 +1173,10 @@ campaign under the previous module's serial.
 
 ```bash
 "$MM/register_boards.py" A=320XLF4DQR00332 B=320XLF4DME01621 C=320XLF4DME01744
-"$MM/module_of.py" B          # prints the serial now in slot B
+"$MM/module_of.py" B
 ```
+
+The second line prints the serial now recorded for slot B.
 
 A slot left out of the command is recorded as empty from then on; `--at
 YYYY-mm-ddTHH:MM:SSZ` backdates a swap that happened earlier. A board with no
