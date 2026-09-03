@@ -836,52 +836,17 @@ slot B (switch 0x73): no ROCs [bus wedged during probe]
 slot C: mux GPIO write failed ([Errno 5] Input/output error)
 ```
 
-Work through these in order, and **stop at the first one that clears it**. Do not
-simply re-run `findslot.py` repeatedly: every extra probe against a wedged master
-degrades it further.
+**Do not try to fix it from here. Go on to section 1 and power the bench up in
+the documented order**, then come back and run `findslot.py` once more. The usual
+cause at this point is simply that nothing has powered the bench yet: a freshly
+booted Kria has payload power off, `findslot.py` does not turn it on, and 1.2 is
+the step that does. If the probe still fails after a clean cold start, 6.3 and
+6.4 cover the wedge and its recovery.
 
-1. **Payload power has not been turned on.** A freshly booted Kria has it off,
-   and `findslot.py` does not turn it on for you. This is the common case on a
-   first run and costs nothing to rule out.
-
-   **(on the Kria)**
-
-   ```bash
-   sudo kconn_pwr on
-   cd ~/multimodule && python3 findslot.py
-   ```
-
-2. **No bitstream, or the wrong one.** `fw-loader load` must have run since the
-   last boot. `Loaded the device tree overlay successfully` in your scrollback is
-   that confirmation; if it is absent, load it and probe again, per 0.8c.
-
-3. **The master is wedged.** One recover-form bring-up clears it more often than
-   not, and it is the only recovery that does not cost a power cycle. Give it two
-   attempts, no more.
-
-   **(on the Kria)**
-
-   ```bash
-   cd ~/multimodule && python3 enableROCs.py A --recover
-   ```
-
-   ⚠️ **Match the power flag to the board, per 2.9.** `--board` defaults to
-   `LD-Full` and `--external-power` is opt-in, so the line above is already right
-   for an LD Full or an HD Full, which have a power distribution board fitted.
-   Add `--external-power` only for a partial that is fed from the bench supply
-   directly, where there is no `0x27` to answer.
-
-4. **Still `[Errno 5]`, or it is getting worse run over run.** Halt and use the
-   power button. A `reboot` is not enough for this: the clock synthesizer sits on
-   the Kria's PS I2C rail and no software reset reaches it. See 6.4.
-
-⛔ **Do not run `i2cdetect -y 2` to "check whether the bus is alive".** Reads
-wedge this master, so the diagnostic causes the fault it is looking for. The same
-goes for hammering a slot that is not answering.
-
-One more thing to rule out before blaming the hexacontroller, if this bench has
-just been assembled or re-cabled: the loopback. Nothing in software reports a
-missing one, and it is the single easiest omission on a new setup. See 6.2.
+Two things not to do meanwhile, because both make the fault worse rather than
+diagnosing it: re-running `findslot.py` over and over, and reaching for
+`i2cdetect -y 2` to see whether the bus is alive. Reads wedge this master, so
+that check causes the very fault it is looking for.
 
 ---
 
@@ -961,7 +926,9 @@ skipping this is the easiest way to spend an hour debugging leftovers.
 
 ## 1.2 Cold start after a mains cycle
 
-A freshly booted Kria has no bitstream, and payload power is off.
+A freshly booted Kria has no bitstream, and payload power is off. These two lines
+are also the answer to a `findslot.py` that failed with `[Errno 5]` at 0.9: run
+them, then probe once more before concluding anything about the bus.
 
 **(on the lab computer)**
 
@@ -1667,7 +1634,7 @@ Each of these reads as a result and is not one.
 | symptom | do |
 |---|---|
 | Everything returns `[Errno 5]`, switches do not ACK | Bring-up in the recover form. Expect to run it twice |
-| `findslot.py` prints `mux GPIO write failed ([Errno 5] ...)` or `bus wedged during probe` | Not the same as `no ROCs`. Work the ordered list at the end of 0.9: payload power, then bitstream, then one recover bring-up, then the power button |
+| `findslot.py` prints `mux GPIO write failed ([Errno 5] ...)` or `bus wedged during probe` | Not the same as `no ROCs`: the master answered, not the module. Cold start in the order of 1.2 and probe once more. If it survives that, it is the wedge of 6.4 |
 | `KeyError: 'dac_hyst_toa'` | ROC type mis-detected and fell back to Siv3. Redo bring-up plus i2c-server |
 | Client hangs at `ROC(s) CONFIGURED` | `daq-server` is dead or stuck in a previous unfinished run. Restart it |
 | `status after start cmd : configured`, repeating | **Interrupt at once.** An e-link is unaligned and `start()` retries forever; the backlog can crash the puller and `daq-server`. Read `~/daq-server.log` for which link, then re-run bring-up |
