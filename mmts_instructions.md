@@ -862,8 +862,14 @@ degrades it further.
    **(on the Kria)**
 
    ```bash
-   cd ~/multimodule && python3 enableROCs.py A --recover --external-power
+   cd ~/multimodule && python3 enableROCs.py A --recover
    ```
+
+   ⚠️ **Match the power flag to the board, per 2.9.** `--board` defaults to
+   `LD-Full` and `--external-power` is opt-in, so the line above is already right
+   for an LD Full or an HD Full, which have a power distribution board fitted.
+   Add `--external-power` only for a partial that is fed from the bench supply
+   directly, where there is no `0x27` to answer.
 
 4. **Still `[Errno 5]`, or it is getting worse run over run.** Halt and use the
    power button. A `reboot` is not enough for this: the clock synthesizer sits on
