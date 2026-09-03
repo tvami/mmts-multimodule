@@ -21,11 +21,21 @@ only a handful of steps have to be typed on the Kria itself.
 - [0. From a bare AlmaLinux client to a working bench](#0-from-a-bare-almalinux-client-to-a-working-bench)
 - [1. Powering up](#1-powering-up)
 - [2. Board types: choose your parameters first](#2-board-types-choose-your-parameters-first)
-- [3. Slot A](#3-slot-a)
-- [4. Slot B](#4-slot-b)
-- [5. Slot C](#5-slot-c)
-- [6. Common mistakes](#6-common-mistakes)
-- [7. Changes](#7-changes)
+- [3. Running a slot: the common procedure](#3-running-a-slot-the-common-procedure)
+- [4. LD Full (LF)](#4-ld-full-lf)
+- [5. LD Five (L5)](#5-ld-five-l5)
+- [6. LD Left and LD Right (LL, LR)](#6-ld-left-and-ld-right-ll-lr)
+- [7. LD Bottom and LD Top (LB, LT)](#7-ld-bottom-and-ld-top-lb-lt)
+- [8. HD Full (HF)](#8-hd-full-hf)
+- [9. HD Top (HT)](#9-hd-top-ht)
+- [10. HD Bottom (HB)](#10-hd-bottom-hb)
+- [11. HD Semi (HL, HR)](#11-hd-semi-hl-hr)
+- [12. Common mistakes](#12-common-mistakes)
+- [13. Changes](#13-changes)
+
+Sections 4 to 11 are one per hexaboard type, each with a subsection per slot.
+Section 3 is the procedure they all share, so read it once and then work from
+your board's section.
 
 ---
 
@@ -424,7 +434,7 @@ nothing else: no `lib`, no `etc`.
 The bench scripts already handle this for themselves. `multimodule/lib.sh`
 sources `$HEXACTRL/etc/env.sh` only if the file exists and then prepends
 `$HEXACTRL/bin` to `PATH` regardless, so the export above matters for the
-hand-driven commands of sections 3 to 5, not for `partial_slot.sh` and its kin.
+hand-driven commands of sections 3 to 11, not for `partial_slot.sh` and its kin.
 
 ### b. Python dependencies
 
@@ -917,8 +927,8 @@ slot C: mux GPIO write failed ([Errno 5] Input/output error)
 the documented order**, then come back and run `findslot.py` once more. The usual
 cause at this point is simply that nothing has powered the bench yet: a freshly
 booted Kria has payload power off, `findslot.py` does not turn it on, and 1.2 is
-the step that does. If the probe still fails after a clean cold start, 6.3 and
-6.4 cover the wedge and its recovery.
+the step that does. If the probe still fails after a clean cold start, 12.3 and
+12.4 cover the wedge and its recovery.
 
 Two things not to do meanwhile, because both make the fault worse rather than
 diagnosing it: re-running `findslot.py` over and over, and reaching for
@@ -929,7 +939,7 @@ that check causes the very fault it is looking for.
 
 # 1. Powering up
 
-🔑 **Read your board's row in 2.9 before you run anything here.** Every bring-up
+🔑 **Read your board's row in 2.7 before you run anything here.** Every bring-up
 command in this section takes three values that come from the board type, not
 from the bench: `--board`, the ROC count in `EXPECT_ROCS`, and whether the module
 has a power distribution board, which decides `--external-power`. Getting them
@@ -1105,12 +1115,12 @@ unpowered module, a wrong `--module` bit, an open power path, they are eight
 identical failures that take minutes, give the I2C master eight more chances to
 wedge, and show you only `0/3 ROCs` while the actual error sits unread in
 `~/bu_<slot>.log`. **A run of identical zero-ROC tries is a fault, not bad luck:
-interrupt it, read that log, and go back to `mmts_bringup.sh`.** 6.4 makes the
+interrupt it, read that log, and go back to `mmts_bringup.sh`.** 12.4 makes the
 same point in terms of counting retries rather than outcomes.
 
 Once the slot is known good, `up_verified.sh` is the one to use, because it also
 starts the i2c-server and checks the things a log line will happily lie about,
-including the stale-identify trap of 6.2. This is the LD Full form:
+including the stale-identify trap of 12.2. This is the LD Full form:
 
 **(on the lab computer)**
 
@@ -1164,7 +1174,7 @@ those writes never leave the mux board. **Sweep `--module 1/2/3` and watch the
 meter before suspecting the module.** With one module on the bench, any draw at
 all must be that module, so the meter identifies the correct bit immediately. If
 all three read the same near-zero current, the bit is not the problem and the
-power path is: see the low-current row of 6.3.
+power path is: see the low-current row of 12.3.
 
 The flag is forwarded by `bench_up.sh` and `mmts_bringup.sh` directly, by
 `ped_run.sh` as `PED_MODULE`, and by `slot_measure.sh` as `SM_MODULE`.
@@ -1226,7 +1236,7 @@ will not help. Switch to `mmts_bringup.sh` and read the error, per 1.3.
 
 # 2. Board types: choose your parameters first
 
-Everything in sections 3 to 5 depends on four values: the `--board` name, the
+Everything in sections 3 to 11 depends on four values: the `--board` name, the
 expected ROC count, whether the module has a power distribution board, and which
 run config to use. Fix them here before touching a slot.
 
@@ -1292,101 +1302,40 @@ The mux probe list is `[0x08, 0x18, 0x28, 0x48, 0x58, 0x68]`, so discovery cover
 all V3 partials. It does not cover `0x00/0x20/0x40/0x60`, so ROCv2 LD and NSH
 boards would not be found on the mux path.
 
-## 2.3 LD Full (LF)
+## 2.3 Where each type's parameters live
 
-Power distribution board **fitted**. Three ROCs. Six DAQ links and twelve trigger
-links. The environment for `slot_measure.sh`:
+One section per hexaboard type, sections 4 to 11, each carrying its `--board`
+name, ROC count, power flag, run configs, expected gate and the commands for all
+three slots. Go there once you know your type; this section is only for working
+out what the type is.
+
+| type | section | `--board` | ROCs | power distribution board |
+|---|---|---|---|---|
+| LD Full (LF) | 4 | `LD-Full` | 3 | fitted |
+| LD Five (L5) | 5 | `LD-Five` | 3 | none |
+| LD Left, LD Right (LL, LR) | 6 | `LD-Semi` | 2 | none |
+| LD Bottom, LD Top (LB, LT) | 7 | `LD-Semi` | 2 | none |
+| HD Full (HF) | 8 | `HD-Full` | 6 | fitted |
+| HD Top (HT) | 9 | `HD-Top` | 3 | check the board |
+| HD Bottom (HB) | 10 | `HD-Bottom` | 4 | check the board |
+| HD Semi (HL, HR) | 11 | `HD-Semi` | 2 | check the board |
+
+On the first board of a type you have not run before, probe with `--board any`
+and read the printed address list before pinning `--board` and `EXPECT_ROCS`.
+
+`slot_measure.sh` takes the same three values from the environment instead of
+flags, and **`SM_EXTPOWER` is inverted relative to `--external-power`**: 0 means
+the power distribution board is fitted.
 
 **(on the lab computer)**
 
 ```bash
 SM_BOARD=LD-Full SM_EXPECT=3 SM_EXTPOWER=0
-```
-
-⚠️ **`SM_EXTPOWER=0` is required with the power board in.** The `0x27` `EN_Mx`
-write is what powers the module, and `--external-power` skips it, so the default
-would leave the module dead. `bench_up.sh` takes `--power-board` for the same
-reason.
-
-Run configs: `configs/initLD-Full-3b_mux{A,B,C}_ped.yaml`.
-
-## 2.3b HD Full (HF)
-
-Power distribution board **fitted**. **Six** ROCs, **twelve** DAQ links and
-twelve trigger links — **24 e-links**, double an LD Full. Twelve halves in the
-pedestal output, not six. The first line is the environment for
-`slot_measure.sh`, the second a bring-up:
-
-**(on the lab computer)**
-
-```bash
 SM_BOARD=HD-Full SM_EXPECT=6 SM_EXTPOWER=0 SM_MODULE=<n>
-"$MM/bench_up.sh" A --board HD-Full --expect 6 --power-board --module <n>
-```
-
-⚠️ **Check the supply first — see 1.0.** Six chips draw **4.43 A at 1.72 V**,
-which is more than one channel of a typical 3.2 A bench supply. Everything else
-about an HD Full is unremarkable *provided* the rail holds; at the limit all 24
-e-links die and the module looks catastrophically broken.
-
-⚠️ **A partial enable is not success.** Require `EXPECT_ROCS=6` **and** no
-`FAILED` in the log.
-
-Run configs: `configs/initHD-Full-trophyV3_mux{A,B,C}_ped.yaml`.
-
-🔑 **If some trigger links will not align, drop *those* links and keep the rest.**
-Do **not** set `elinks_trg: []` — with no trigger links `daq-server` starts and
-then hangs forever producing nothing, which is a documented dead end. Eight good
-trigger links are ample for event building.
-
-**Expected on a healthy HD Full:**
-
-| | |
-|---|---|
-| DAQ links | 12/12, `wmax` 42-92 |
-| CRC pass | **1.000 on all 12 halves**, `badBX` 0.000 |
-| entries per 10 000-event run | 4 694 976 |
-| `adc_stdd` median | ~1.24 |
-
-## 2.4 LD Left (LL) and LD Right (LR)
-
-**No power distribution board.** These are fed from the bench supply directly, so
-every bring-up takes `--external-power`. Two ROCs at `0x48 0x58`. Three DAQ links
-and six trigger links. This is also what `slot_measure.sh` assumes when you set
-nothing:
-
-**(on the lab computer)**
-
-```bash
 SM_BOARD=LD-Semi SM_EXPECT=2 SM_EXTPOWER=1
 ```
 
-Without `--external-power`, bring-up drives a `0x27` power board that is not
-there. Probe with `--board any` first on the first board of a type and read the
-printed address list before pinning `--board` and `EXPECT_ROCS`.
-
-Run configs: `configs/initLD-Left-3b_mux{A,B,C}_ped.yaml`.
-
-## 2.5 LD Bottom (LB)
-
-Same electrical setup as 2.4: no power board, `--external-power`, two ROCs.
-
-🔑 **An LD Bottom drives THREE trigger links, not six. That is the board type and
-not a fault.** Pedestals come out clean on the three: gate PASS, CRC 1.000, 0 of
-108 channels over clip.
-
-⚠️ A pedestal does not test the link count. `randomL1A` barely exercises the
-trigger path and would look identical if links were being lost. Use a TPG run to
-test that.
-
-Run configs: `configs/initLD-Bottom-3b_mux{A,B,C}_ped.yaml`.
-
-An **LD Top** has the same two ROCs and the same electrical setup, but its link
-map has not been measured, so it has no file of its own yet. Probe one with
-`partial_slot.sh` and no `SKIP_PROBE=1`, per 2.6, before trusting the LD Bottom
-map on it.
-
-## 2.6 Measured link sets
+## 2.4 Measured link sets
 
 DAQ is links 0, 1 and 4 for every partial. **The trigger set depends on the slot
 as well as the board type.**
@@ -1411,13 +1360,13 @@ before running any pedestal. That last step is not optional: the probe arms all
 twelve capture blocks and `LinkAligner` never clears `invert`, so a pedestal in
 the same bring-up stalls at 64 events.
 
-## 2.7 Trophies
+## 2.5 Trophies
 
 Trophies are shared across geometries. LB shares with LR, and LB shares with LT.
 A mismatch between the trophy's type code and the module's type code is **not**
 evidence of a wrong trophy.
 
-## 2.8 Register the board
+## 2.6 Register the board
 
 The output layout is grouped by board, so one module's whole history sits
 together whichever slot it was in:
@@ -1449,22 +1398,26 @@ window falls back to the flat layout and the plotter prints `module: UNKNOWN`.
 Fix the registry rather than passing `-m` on every command, so the swap history
 stays in one place.
 
-## 2.9 Summary
+## 2.7 Summary
 
-| | LD Full (LF) | LD Left, LD Right | LD Bottom (LB) |
-|---|---|---|---|
-| power distribution board | fitted | none | none |
-| `--external-power` | **no** | yes | yes |
-| `--board` | `LD-Full` | `LD-Semi` | `LD-Semi` |
-| ROCs | 3, at `0x08 0x18 0x28` | 2, at `0x48 0x58` | 2, at `0x48 0x58` |
-| DAQ links | 6 | 3 | 3 |
-| trigger links | 12 | 6 | **3** |
-| delay scan gate | 18 of 18 | 9 of 9 | 6 of 6 |
-| run config | `initLD-Full-3b_mux*_ped.yaml` | `initLD-Left-3b_mux*_ped.yaml` | `initLD-Bottom-3b_mux*_ped.yaml` |
+The four types with measured link sets. The rest are in their own sections, 5 and
+9 to 11, with the same rows.
+
+| | LD Full (LF) | HD Full (HF) | LD Left, LD Right | LD Bottom (LB) |
+|---|---|---|---|---|
+| section | 4 | 8 | 6 | 7 |
+| power distribution board | fitted | fitted | none | none |
+| `--external-power` | **no** | **no** | yes | yes |
+| `--board` | `LD-Full` | `HD-Full` | `LD-Semi` | `LD-Semi` |
+| ROCs | 3, at `0x08 0x18 0x28` | 6, all six | 2, at `0x48 0x58` | 2, at `0x48 0x58` |
+| DAQ links | 6 | 12 | 3 | 3 |
+| trigger links | 12 | 12 | 6 | **3** |
+| delay scan gate | 18 of 18 | 24 of 24 | 9 of 9 | 6 of 6 |
+| run config | `initLD-Full-3b_mux*_ped.yaml` | `initHD-Full-trophyV3_mux*_ped.yaml` | `initLD-Left-3b_mux*_ped.yaml` | `initLD-Bottom-3b_mux*_ped.yaml` |
 
 ---
 
-Sections 3 to 5 assume this preamble in every client shell:
+Sections 3 to 11 assume this preamble in every client shell:
 
 **(on the lab computer)**
 
@@ -1482,10 +1435,10 @@ leaves you where you were, `-i ""` hangs, and `-o ""` writes the run somewhere
 you will not find it.
 
 `module_of.py` prints the serial for the slot, so `$OUT` lands in the by-board
-layout of 2.8. If the board is not in the registry it prints nothing, and you
+layout of 2.6. If the board is not in the registry it prints nothing, and you
 should use `$RESULTS_DIR` directly.
 
-**The short form of everything in sections 3 to 5 is one command per slot:**
+**The short form of everything in sections 3 to 11 is one command per slot:**
 
 **(on the lab computer)**
 
@@ -1501,32 +1454,52 @@ what it does, for when you need to see one of them on its own.
 
 ---
 
-# 3. Slot A
+# 3. Running a slot: the common procedure
 
-## 3.1 Bring up slot A
+Every board type follows the same four steps, and only two things change with the
+type: the bring-up flags and the run config. This section is the procedure with
+those two left blank; sections 4 to 11 fill them in per board type and per slot.
+
+Read your type's section for the exact commands. Come back here for what each
+step means and what to do when one of them misbehaves.
+
+## 3.1 Bring up the slot
 
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh A --external-power --board LD-Semi"
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=<N> \
+  ~/up_verified.sh <SLOT> --board <BOARD>"
 ```
 
-For an LD Full drop `--external-power`, and use `EXPECT_ROCS=3 --board LD-Full`.
+Wait for `READY`. If it prints `FAILED to bring slot <SLOT> up cleanly`, run it
+again before investigating anything: a healthy bench needs two to four attempts.
+Repeated `0/N` is a different matter and means a fault, per 1.3 and 1.4.
 
-Wait for `READY`. If it prints `FAILED to bring slot A up cleanly`, run it again
-before investigating anything.
+Add `--external-power` for a board with no power distribution board fitted. Add
+`--module N` if `EN_Mx` does not match the slot index, per 1.3.
 
-## 3.2 Delay scan on slot A
+## 3.2 Delay scan and the gate
+
+Always before a pedestal, never after.
+
+**(on the lab computer)**
+
+```bash
+"$MM/delay_scan.sh" <SLOT> configs/<FAMILY>_mux<SLOT>_ped.yaml
+```
+
+That restarts the puller, scans and prints the gate in one step. The long form,
+if you want the pieces separately:
 
 **(on the lab computer)**
 
 ```bash
 "$MM/puller.sh"
 cd "$SCRIPTS"
-python3 delay_scan.py -d MuxA -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-Left-3b_muxA_ped.yaml
-python3 "$MM/gate.py" "$OUT/MuxA"
+python3 delay_scan.py -d Mux<SLOT> -i "$KRIA_IP" -o "$OUT" \
+    -I -f configs/<FAMILY>_mux<SLOT>_ped.yaml
+python3 "$MM/gate.py" "$OUT/Mux<SLOT>"
 ```
 
 **(expected output, not a command)**
@@ -1538,24 +1511,21 @@ Results/<serial>/MuxA/delay_scan/<timestamp>
 GATE: PASS -- safe to run pedestals
 ```
 
-Or `"$MM/delay_scan.sh" A configs/initLD-Left-3b_muxA_ped.yaml`, which does the
-puller restart, the scan and the gate in one step.
-
 **The gate must PASS before you run a pedestal.** A failure is a retry and not a
 result: re-run bring-up, which also restarts `daq-server`, then scan again. A
 missed claim or a link dropped at init happens about once a session, and the
 identical sequence then works on the retry, so repeat once before concluding
 anything.
 
-If trigger reads 0 across the board while DAQ is fine, slot A does not hold the
-trigger claim. Restart `daq-server` and scan A first, per section 1.1.
+If trigger reads 0 across the board while DAQ is fine, this slot does not hold
+the trigger claim. Restart `daq-server` and scan this slot first, per 1.1.
 
-🛑 A delay scan reading 18 of 18 is **not** a health gate on its own. Idle is the
+🛑 A full-marks delay scan is **not** a health gate on its own. Idle is the
 easiest pattern to sample, and a slot can score worse on eye width while
 producing far better data. The real health check is an actual START plus the
 offset finder's header positions.
 
-## 3.3 Pedestal on slot A
+## 3.3 Pedestal
 
 Restart the puller first. The `daq-client` from the delay scan is not reusable.
 
@@ -1565,30 +1535,35 @@ Restart the puller first. The `daq-client` from the delay scan is not reusable.
 "$MM/puller.sh"
 cd "$SCRIPTS"
 PYTHONPATH=$PWD/analysis \
-  python3 pedestal_run.py -d MuxA -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-Left-3b_muxA_ped.yaml
+  python3 pedestal_run.py -d Mux<SLOT> -i "$KRIA_IP" -o "$OUT" \
+    -I -f configs/<FAMILY>_mux<SLOT>_ped.yaml
 ```
 
 `-I` is **required**. Without it `daq-server` never leaves `created` and the
 client spins forever.
 
-Or, with the bring-up, the gate, N runs and the CRC table:
+Or, with the bring-up, the gate, N runs and the CRC table in one command:
 
 **(on the lab computer)**
 
 ```bash
-PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" A 5 LLeft 10000
+PED_BOARD=<BOARD> "$MM/ped_run.sh" <SLOT> 5 <label> 10000
 ```
 
-Keep `method: 'automatic'`. The offset finder cannot bootstrap a slot with no
-good lane at all, so a slot in that state needs `method: 'manual'` with a pinned
-`fifo_latency` and `L1A_offset_or_BX` set in the config by hand, but that is a
-symptom of links that are not working rather than a property of any one slot.
+Add `PED_EXTPOWER=1` for a board with no power distribution board, and
+`PED_MODULE=N` if the bring-up needed `--module`.
+
+Keep `method: 'automatic'`. It wins because it sets **per-link** `fifo_latency`,
+not because of the offset value; manual applies one shared value to every link
+and can only ever fix a subset. The exception is a slot with no good lane at all,
+which the finder cannot bootstrap, and there you pin `fifo_latency` and
+`L1A_offset_or_BX` by hand. That is a symptom of broken links rather than a
+property of a slot.
 
 Expect about 30 s per run on a healthy slot. Minutes means the finder's phase 2
 is retrying per link, which is a signal the links are marginal.
 
-## 3.4 Hexmaps and common mode for slot A
+## 3.4 Hexmaps and common mode
 
 Unpacking and analysis run automatically as long as the installation's `bin` is
 on `PATH` in this shell, which the `~/.bashrc` block of 0.5 handles. A good run
@@ -1598,8 +1573,8 @@ it worked.
 **(on the lab computer)**
 
 ```bash
-python3 "$MM/hexmap_robust.py" <run-dir> -l LLeft --clip 5
-python3 "$MM/cm_analysis.py" "$OUT/MuxA/pedestal_run/run_*"
+python3 "$MM/hexmap_robust.py" <run-dir> -l <label> --clip 5
+python3 "$MM/cm_analysis.py" "$OUT/Mux<SLOT>/pedestal_run/run_*"
 ```
 
 Read the printed `module:` and mapping lines every time. Mapping version matters:
@@ -1610,12 +1585,12 @@ Report **both** `adc_stdd` and `adc_iqr/1.349`, and trust the robust one.
 `adc_stdd` is inflated by packet corruption, and `adc_mean` is not yet
 reproducible run to run.
 
-If the automatic path ever fails, unpack and analyze offline:
+## 3.5 Offline unpack, when the automatic path fails
 
 **(on the lab computer)**
 
 ```bash
-D=$OUT/MuxA/pedestal_run/run_<timestamp>
+D=$OUT/Mux<SLOT>/pedestal_run/run_<timestamp>
 unpack -i $D/pedestal_run0.raw -o $D/pedestal_run0.root -M $D/pedestal_run0.yaml
 cd "$SCRIPTS" && python3 -c "
 import sys; sys.path.insert(0,'analysis')
@@ -1624,156 +1599,503 @@ a = A.pedestal_run_analyzer(odir='$D'); a.add('$D/pedestal_run0.root')
 a.mergeData(); a.makePlots()"
 ```
 
-A good run gives a `.root` of about 5 MB, `unpacker_data/hgcroc` with 2 347 488
-entries, `runsummary/summary` with 234 rows, and nine PNGs. Those numbers are for
-an LD Full; a partial legitimately produces fewer.
+A good LD Full run gives a `.root` of about 5 MB, `unpacker_data/hgcroc` with
+2 347 488 entries, `runsummary/summary` with 234 rows, and nine PNGs. A partial
+legitimately produces fewer, so compute the expected row count from the board's
+own chip and channel complement rather than comparing to these.
+
+## 3.6 Slot quirks that apply to every board type
+
+These follow the slot, not the module, so they are stated once here rather than
+repeated in every type section.
+
+- **Only one slot carries trigger at a time**, the first slot `daq-server`
+  scanned since it last started. The other two read 0 of 12 with DAQ perfect.
+  Restart `daq-server` and scan the slot you want first. See 1.1.
+- **Slot C: sub-bus 7 hangs the bus** if it is selected. It is no longer probed,
+  so do not add it back.
+- **Slot C: the trigger link set differs from A and B** on the same board type,
+  0, 1, 2, 4, 5, 11 rather than 0, 1, 2, 3, 5, 6 on an LD Left or Right. Using
+  slot A's or B's config on slot C gives a FAIL that is a config error and not a
+  hardware fault. See 2.4.
+- **Slot C: keep `L1A_offset_or_BX: 13`** with `method: 'automatic'`, measured on
+  an LD Full. Do not "correct" it to 14 even though the finder writes 14, and
+  note that 20 decodes nothing. Automatic beat manual 36 of 36 against 18 of 36,
+  because manual 13 and manual 14 fix complementary halves while automatic gets
+  all six.
+
+## 3.7 What a good result looks like
+
+Ten pedestals on a healthy LD Full slot give 60 of 60 half-ROCs below corruption
+1.0, with robust σ of **0.741 ADC**. A healthy slot reaches its full gate on the
+first try and runs at 30 s per run. Use those as the yardstick for any slot.
 
 ---
 
-# 4. Slot B
+# 4. LD Full (LF)
 
-A healthy slot B reaches 18 of 18 with all twelve trigger links on the first try,
-runs at 30 s per run, and gives full yield. Use those numbers as the yardstick
-for any slot.
+| | |
+|---|---|
+| `--board` | `LD-Full` |
+| ROCs | 3, at `0x08 0x18 0x28` |
+| power distribution board | **fitted**, so no `--external-power` |
+| DAQ links | 6 |
+| trigger links | 12 |
+| delay scan gate | 18 of 18 |
+| run configs | `configs/initLD-Full-3b_mux{A,B,C}_ped.yaml` |
+| draw, all chips running | ~1.2 A at 1.72 V |
 
-## 4.1 Bring up slot B
+⚠️ **The power flag is the one to get right.** The `0x27` `EN_Mx` write is what
+powers the module, and `--external-power` skips it, so adding it leaves the
+module dead. With `bench_up.sh` the same choice is spelled the other way, as
+`--power-board`, per 1.3.
+
+One command end to end, per slot:
+
+**(on the lab computer)**
+
+```bash
+POWER= SKIP_PROBE=1 "$MM/partial_slot.sh" A initLD-Full-3b LD-Full 3 ldfull 5
+```
+
+## 4.1 Slot A
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh A --board LD-Full"
+"$MM/delay_scan.sh" A configs/initLD-Full-3b_muxA_ped.yaml
+PED_BOARD=LD-Full "$MM/ped_run.sh" A 5 ldfull 10000
+```
+
+## 4.2 Slot B
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh B --board LD-Full"
+"$MM/delay_scan.sh" B configs/initLD-Full-3b_muxB_ped.yaml
+PED_BOARD=LD-Full "$MM/ped_run.sh" B 5 ldfull 10000
+```
+
+## 4.3 Slot C
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh C --board LD-Full"
+"$MM/delay_scan.sh" C configs/initLD-Full-3b_muxC_ped.yaml
+PED_BOARD=LD-Full "$MM/ped_run.sh" C 5 ldfull 10000
+```
+
+Keep `L1A_offset_or_BX: 13` in the slot C config, per 3.6.
+
+---
+
+# 5. LD Five (L5)
+
+| | |
+|---|---|
+| `--board` | `LD-Five` |
+| ROCs | 3, at `0x48 0x58 0x68` |
+| power distribution board | none, so `--external-power` |
+| delay scan gate | not yet measured; read the per-link `ngood` |
+| run configs | `configs/initLD-Five-3b_mux{A,B,C}_ped.yaml` |
+
+🔑 **A 2-of-3 enable with `0x58` missing is a known bad-board signature**, not a
+bench problem. `enableROCs.py` exits 1 on an incomplete set rather than reporting
+a partial enable as success, so trust that exit code.
+
+**(on the lab computer)**
+
+```bash
+"$MM/partial_slot.sh" A initLD-Five-3b LD-Five 3 ldfive 5
+```
+
+## 5.1 Slot A
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh A --external-power --board LD-Five"
+"$MM/delay_scan.sh" A configs/initLD-Five-3b_muxA_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=LD-Five "$MM/ped_run.sh" A 5 ldfive 10000
+```
+
+## 5.2 Slot B
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh B --external-power --board LD-Five"
+"$MM/delay_scan.sh" B configs/initLD-Five-3b_muxB_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=LD-Five "$MM/ped_run.sh" B 5 ldfive 10000
+```
+
+## 5.3 Slot C
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh C --external-power --board LD-Five"
+"$MM/delay_scan.sh" C configs/initLD-Five-3b_muxC_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=LD-Five "$MM/ped_run.sh" C 5 ldfive 10000
+```
+
+---
+
+# 6. LD Left and LD Right (LL, LR)
+
+| | |
+|---|---|
+| `--board` | `LD-Semi` |
+| ROCs | 2, at `0x48 0x58` |
+| power distribution board | none, so `--external-power` |
+| DAQ links | 3, links 0, 1 and 4 |
+| trigger links | 6 |
+| delay scan gate | 9 of 9 |
+| run configs | `configs/initLD-Left-3b_mux{A,B,C}_ped.yaml` |
+
+Both geometries use the same `LD-Left` config family. The trigger set is
+0, 1, 2, 3, 5, 6 on slots A and B, and 0, 1, 2, 4, 5, 11 on slot C.
+
+**(on the lab computer)**
+
+```bash
+SKIP_PROBE=1 "$MM/partial_slot.sh" A initLD-Left-3b LD-Semi 2 ldleft 5
+```
+
+## 6.1 Slot A
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
+  ~/up_verified.sh A --external-power --board LD-Semi"
+"$MM/delay_scan.sh" A configs/initLD-Left-3b_muxA_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" A 5 ldleft 10000
+```
+
+## 6.2 Slot B
 
 **(on the lab computer)**
 
 ```bash
 ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
   ~/up_verified.sh B --external-power --board LD-Semi"
+"$MM/delay_scan.sh" B configs/initLD-Left-3b_muxB_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" B 5 ldleft 10000
 ```
 
-As in 3.1, an LD Full drops `--external-power` and uses
-`EXPECT_ROCS=3 --board LD-Full`.
-
-## 4.2 Delay scan on slot B
-
-**(on the lab computer)**
-
-```bash
-"$MM/puller.sh"
-cd "$SCRIPTS"
-python3 delay_scan.py -d MuxB -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-Left-3b_muxB_ped.yaml
-python3 "$MM/gate.py" "$OUT/MuxB"
-```
-
-Or `"$MM/delay_scan.sh" B configs/initLD-Left-3b_muxB_ped.yaml`.
-
-Same gate rule as 3.2: PASS before a pedestal, and a FAIL is a retry.
-
-## 4.3 Pedestal on slot B
-
-**(on the lab computer)**
-
-```bash
-"$MM/puller.sh"
-cd "$SCRIPTS"
-PYTHONPATH=$PWD/analysis \
-  python3 pedestal_run.py -d MuxB -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-Left-3b_muxB_ped.yaml
-```
-
-Or, with the bring-up, the gate, N runs and the CRC table:
-
-**(on the lab computer)**
-
-```bash
-PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" B 5 LLeft 10000
-```
-
-Keep `method: 'automatic'`. It wins because it sets **per-link** `fifo_latency`,
-not because of the offset value. Manual applies one shared value to every link
-and can only ever fix a subset.
-
-## 4.4 Hexmaps and common mode for slot B
-
-Identical to 3.4 with `MuxA` replaced by `MuxB`.
-
-## 4.5 What good looks like on slot B
-
-Ten pedestals give 60 of 60 half-ROCs below corruption 1.0, with robust σ of
-**0.741 ADC**. Use that as your yardstick for a healthy LD Full half.
-
----
-
-# 5. Slot C
-
-## 5.1 Bring up slot C
+## 6.3 Slot C
 
 **(on the lab computer)**
 
 ```bash
 ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
   ~/up_verified.sh C --external-power --board LD-Semi"
+"$MM/delay_scan.sh" C configs/initLD-Left-3b_muxC_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 ldleft 10000
 ```
-
-As in 3.1, an LD Full drops `--external-power` and uses
-`EXPECT_ROCS=3 --board LD-Full`.
-
-⚠️ Sub-bus 7 hangs the bus if it is selected on slot C. It is no longer probed,
-so do not add it back.
-
-## 5.2 Delay scan on slot C
-
-**(on the lab computer)**
-
-```bash
-"$MM/puller.sh"
-cd "$SCRIPTS"
-python3 delay_scan.py -d MuxC -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-Left-3b_muxC_ped.yaml
-python3 "$MM/gate.py" "$OUT/MuxC"
-```
-
-Or `"$MM/delay_scan.sh" C configs/initLD-Left-3b_muxC_ped.yaml`.
-
-Note from 2.6 that slot C's trigger set differs from A and B on the same board
-type: 0, 1, 2, 4, 5, 11 rather than 0, 1, 2, 3, 5, 6. Using slot A's or B's
-config on slot C produces a FAIL that is a config error and not a hardware fault.
-
-## 5.3 Pedestal on slot C
-
-**(on the lab computer)**
-
-```bash
-"$MM/puller.sh"
-cd "$SCRIPTS"
-PYTHONPATH=$PWD/analysis \
-  python3 pedestal_run.py -d MuxC -i "$KRIA_IP" -o "$OUT" \
-    -I -f configs/initLD-Left-3b_muxC_ped.yaml
-```
-
-Or, with the bring-up, the gate, N runs and the CRC table:
-
-**(on the lab computer)**
-
-```bash
-PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 LLeft 10000
-```
-
-**Slot C specific, settled by measurement:** keep `L1A_offset_or_BX: 13` with
-`method: 'automatic'`. Do not "correct" it to 14 even though the finder writes
-14, and note that **20 decodes nothing**. Automatic beats manual 36 of 36 against
-18 of 36 here, because manual 13 and manual 14 fix complementary halves while
-automatic gets all six.
-
-## 5.4 Hexmaps and common mode for slot C
-
-Identical to 3.4 with `MuxA` replaced by `MuxC`.
-
-## 5.5 Slot C notes
-
-Slot C matches slot B on quality: robust σ **0.741 ADC**, 60 of 60 half-ROCs
-below corruption 1.0 over ten pedestals.
 
 ---
 
-# 6. Common mistakes
+# 7. LD Bottom and LD Top (LB, LT)
 
-## 6.1 Never do these
+| | |
+|---|---|
+| `--board` | `LD-Semi` |
+| ROCs | 2, at `0x48 0x58` |
+| power distribution board | none, so `--external-power` |
+| DAQ links | 3 |
+| trigger links | **3** on an LD Bottom |
+| delay scan gate | 6 of 6 |
+| run configs | `configs/initLD-Bottom-3b_mux{A,B,C}_ped.yaml` |
+
+🔑 **An LD Bottom drives THREE trigger links, not six. That is the board type and
+not a fault.** Pedestals come out clean on the three: gate PASS, CRC 1.000, 0 of
+108 channels over clip. The measured sets are 1, 2, 6 on slot A and 1, 2, 5 on
+slot B; slot C is not measured.
+
+⚠️ A pedestal does not test the link count. `randomL1A` barely exercises the
+trigger path and would look identical if links were being lost. Use a TPG run for
+that.
+
+An **LD Top** has the same two ROCs and the same electrical setup, but its link
+map has not been measured, so it has no config family of its own. Probe one with
+`partial_slot.sh` and no `SKIP_PROBE=1`, per 2.4, before trusting the LD Bottom
+map on it.
+
+**(on the lab computer)**
+
+```bash
+SKIP_PROBE=1 "$MM/partial_slot.sh" A initLD-Bottom-3b LD-Semi 2 ldbottom 5
+```
+
+## 7.1 Slot A
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
+  ~/up_verified.sh A --external-power --board LD-Semi"
+"$MM/delay_scan.sh" A configs/initLD-Bottom-3b_muxA_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" A 5 ldbottom 10000
+```
+
+## 7.2 Slot B
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
+  ~/up_verified.sh B --external-power --board LD-Semi"
+"$MM/delay_scan.sh" B configs/initLD-Bottom-3b_muxB_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" B 5 ldbottom 10000
+```
+
+## 7.3 Slot C
+
+Not measured. Probe the live links first, per 2.4, then use the config the probe
+writes.
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
+  ~/up_verified.sh C --external-power --board LD-Semi"
+"$MM/partial_slot.sh" C initLD-Bottom-3b LD-Semi 2 ldbottom 5
+```
+
+---
+
+# 8. HD Full (HF)
+
+| | |
+|---|---|
+| `--board` | `HD-Full` |
+| ROCs | **6**, at `0x08 0x18 0x28 0x48 0x58 0x68` |
+| power distribution board | **fitted**, so no `--external-power` |
+| DAQ links | 12 |
+| trigger links | 12, so **24 e-links**, double an LD Full |
+| halves in the pedestal output | twelve, not six |
+| run configs | `configs/initHD-Full-trophyV3_mux{A,B,C}_ped.yaml` |
+| draw, all chips running | **4.43 A at 1.72 V** |
+
+⚠️ **Check the supply first, per 1.0.** Six chips draw more than one channel of a
+typical 3.2 A bench supply. At the limit the rail sags to 1.35 V, all 24 e-links
+die, and the module looks catastrophically broken.
+
+⚠️ **A partial enable is not success.** Require `EXPECT_ROCS=6` **and** no
+`FAILED` in the log.
+
+🔑 **If some trigger links will not align, drop *those* links and keep the rest.**
+Do **not** set `elinks_trg: []`: with no trigger links `daq-server` starts and
+then hangs forever producing nothing, which is a documented dead end. Eight good
+trigger links are ample for event building.
+
+**Expected on a healthy HD Full:**
+
+| | |
+|---|---|
+| DAQ links | 12/12, `wmax` 42-92 |
+| CRC pass | **1.000 on all 12 halves**, `badBX` 0.000 |
+| entries per 10 000-event run | 4 694 976 |
+| `adc_stdd` median | ~1.24 |
+
+**(on the lab computer)**
+
+```bash
+POWER= SKIP_PROBE=1 "$MM/partial_slot.sh" A initHD-Full-trophyV3 HD-Full 6 hdfull 5
+```
+
+## 8.1 Slot A
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 \
+  ~/up_verified.sh A --board HD-Full"
+"$MM/delay_scan.sh" A configs/initHD-Full-trophyV3_muxA_ped.yaml
+PED_BOARD=HD-Full "$MM/ped_run.sh" A 5 hdfull 10000
+```
+
+## 8.2 Slot B
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 \
+  ~/up_verified.sh B --board HD-Full"
+"$MM/delay_scan.sh" B configs/initHD-Full-trophyV3_muxB_ped.yaml
+PED_BOARD=HD-Full "$MM/ped_run.sh" B 5 hdfull 10000
+```
+
+## 8.3 Slot C
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 \
+  ~/up_verified.sh C --board HD-Full"
+"$MM/delay_scan.sh" C configs/initHD-Full-trophyV3_muxC_ped.yaml
+PED_BOARD=HD-Full "$MM/ped_run.sh" C 5 hdfull 10000
+```
+
+---
+
+# 9. HD Top (HT)
+
+| | |
+|---|---|
+| `--board` | `HD-Top` |
+| ROCs | 3, at `0x18 0x58 0x28` |
+| power distribution board | check the board; add `--external-power` if there is none |
+| delay scan gate | not yet measured; read the per-link `ngood` |
+| run configs | `configs/initHD-Top-trophyV3_mux{A,B,C}_ped.yaml` |
+
+⚠️ **HD trophies swap four P/N pairs per module.** If a set of trigger links is
+dead, the fix is `polarity: 0` per e-link in the yaml, not a different bitstream
+and not `in_inv_cmd_rx`.
+
+## 9.1 Slot A
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh A --external-power --board HD-Top"
+"$MM/delay_scan.sh" A configs/initHD-Top-trophyV3_muxA_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Top "$MM/ped_run.sh" A 5 hdtop 10000
+```
+
+## 9.2 Slot B
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh B --external-power --board HD-Top"
+"$MM/delay_scan.sh" B configs/initHD-Top-trophyV3_muxB_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Top "$MM/ped_run.sh" B 5 hdtop 10000
+```
+
+## 9.3 Slot C
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
+  ~/up_verified.sh C --external-power --board HD-Top"
+"$MM/delay_scan.sh" C configs/initHD-Top-trophyV3_muxC_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Top "$MM/ped_run.sh" C 5 hdtop 10000
+```
+
+---
+
+# 10. HD Bottom (HB)
+
+| | |
+|---|---|
+| `--board` | `HD-Bottom` |
+| ROCs | 4, at `0x18 0x58 0x28 0x68` |
+| power distribution board | check the board; add `--external-power` if there is none |
+| delay scan gate | not yet measured; read the per-link `ngood` |
+| run configs | `configs/initHD-Bottom-trophyV3_mux{A,B,C}_ped.yaml` |
+
+The trophy P/N warning of section 9 applies here too.
+
+## 10.1 Slot A
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 \
+  ~/up_verified.sh A --external-power --board HD-Bottom"
+"$MM/delay_scan.sh" A configs/initHD-Bottom-trophyV3_muxA_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Bottom "$MM/ped_run.sh" A 5 hdbottom 10000
+```
+
+## 10.2 Slot B
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 \
+  ~/up_verified.sh B --external-power --board HD-Bottom"
+"$MM/delay_scan.sh" B configs/initHD-Bottom-trophyV3_muxB_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Bottom "$MM/ped_run.sh" B 5 hdbottom 10000
+```
+
+## 10.3 Slot C
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 \
+  ~/up_verified.sh C --external-power --board HD-Bottom"
+"$MM/delay_scan.sh" C configs/initHD-Bottom-trophyV3_muxC_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Bottom "$MM/ped_run.sh" C 5 hdbottom 10000
+```
+
+---
+
+# 11. HD Semi (HL, HR)
+
+| | |
+|---|---|
+| `--board` | `HD-Semi` |
+| ROCs | 2, at `0x08 0x18` |
+| power distribution board | check the board; add `--external-power` if there is none |
+| delay scan gate | not yet measured; read the per-link `ngood` |
+| run configs | `configs/initHD-Semi-trophyV3_mux{A,B,C}_ped.yaml` |
+
+The trophy P/N warning of section 9 applies here too.
+
+## 11.1 Slot A
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
+  ~/up_verified.sh A --external-power --board HD-Semi"
+"$MM/delay_scan.sh" A configs/initHD-Semi-trophyV3_muxA_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Semi "$MM/ped_run.sh" A 5 hdsemi 10000
+```
+
+## 11.2 Slot B
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
+  ~/up_verified.sh B --external-power --board HD-Semi"
+"$MM/delay_scan.sh" B configs/initHD-Semi-trophyV3_muxB_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Semi "$MM/ped_run.sh" B 5 hdsemi 10000
+```
+
+## 11.3 Slot C
+
+**(on the lab computer)**
+
+```bash
+ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
+  ~/up_verified.sh C --external-power --board HD-Semi"
+"$MM/delay_scan.sh" C configs/initHD-Semi-trophyV3_muxC_ped.yaml
+PED_EXTPOWER=1 PED_BOARD=HD-Semi "$MM/ped_run.sh" C 5 hdsemi 10000
+```
+
+---
+
+# 12. Common mistakes
+
+## 12.1 Never do these
 
 | never | why, and what it costs |
 |---|---|
@@ -1786,7 +2108,7 @@ below corruption 1.0 over ten pedestals.
 | **Reuse a `daq-client` between runs** | One that saw a failed START silently produces data that decodes to nothing. Restart it per run |
 | **Drop `-I`** | `daq-server` never leaves `created` and the client spins forever |
 
-## 6.2 The traps that look like results
+## 12.2 The traps that look like results
 
 Each of these reads as a result and is not one.
 
@@ -1816,12 +2138,12 @@ Each of these reads as a result and is not one.
 6. **Config applied only on the first `initialize`.** Later runs report numbers
    for settings that were never applied. Always read the register back.
 
-## 6.3 Symptom to action
+## 12.3 Symptom to action
 
 | symptom | do |
 |---|---|
 | Everything returns `[Errno 5]`, switches do not ACK | Bring-up in the recover form. Expect to run it twice |
-| `findslot.py` prints `mux GPIO write failed ([Errno 5] ...)` or `bus wedged during probe` | Not the same as `no ROCs`: the master answered, not the module. Cold start in the order of 1.2 and probe once more. If it survives that, it is the wedge of 6.4 |
+| `findslot.py` prints `mux GPIO write failed ([Errno 5] ...)` or `bus wedged during probe` | Not the same as `no ROCs`: the master answered, not the module. Cold start in the order of 1.2 and probe once more. If it survives that, it is the wedge of 12.4 |
 | `KeyError: 'dac_hyst_toa'` | ROC type mis-detected and fell back to Siv3. Redo bring-up plus i2c-server |
 | Client hangs at `ROC(s) CONFIGURED` | `daq-server` is dead or stuck in a previous unfinished run. Restart it |
 | A scan sits at `Initializing i2c sockets` and never proceeds | Nothing is listening on 5555. `mmts_bringup.sh` does not start the i2c-server; run `~/start_i2c.sh SLOT`. Section 1.3 |
@@ -1859,7 +2181,7 @@ Each of these reads as a result and is not one.
 | Supply reads 0.4 to 0.5 A on a channel with nothing brought up | Normal: that slot's rail is on and its ROCs are idle. Three configured LD chips draw about 1.9 A, three HD chips about 2.2 A |
 | Bring-up repeats `0/N ROCs` and the supply sits in **CV at 0.05 to 0.1 A**, well under the 0.4 A quiescent | The power path is open, not the bus. Sweep `--module 1/2/3` first, since `EN_Mx` is cabling; if all three read the same, check the power-management-to-mux cable, then the module's flex and seating. A `0x27` that ACKs proves the data path only |
 
-## 6.4 When only the power button will do
+## 12.4 When only the power button will do
 
 - **Retries climb from 1/5 to 5/5 across successive runs, ROCs dropping mid
   config.** The PL I2C master is wedged. `up_verified.sh` retries 8 times per
@@ -1877,7 +2199,7 @@ Each of these reads as a result and is not one.
 Plan the session around this. Rest first, then spend the good bring-ups on the
 measurement you actually care about.
 
-## 6.5 A few smaller ones
+## 12.5 A few smaller ones
 
 - **`pkill -f "zmq_server.py"` over ssh kills your own ssh command**, because the
   remote `bash -c` line contains that string. Use `pkill -f "[z]mq_server.py"`,
@@ -1896,15 +2218,16 @@ measurement you actually care about.
 
 ---
 
-# 7. Changes
+# 13. Changes
 
 Dated provenance for the numbers and rules above, kept out of the procedure
 itself. Newest first.
 
 | date | change |
 |---|---|
+| 2026-09-03 | Restructured around hexaboard type instead of slot. The old sections 3, 4 and 5 were Slot A, Slot B and Slot C, which meant a board type's parameters were scattered across three places and the commands for one module were interleaved with two others. Now section 3 is the procedure every type shares, sections 4 to 11 are one per type with a subsection per slot, and 12 and 13 are the old 6 and 7. Section 2's per-type subsections collapsed into a single pointer table, and the slot-level quirks that used to be repeated per slot, the trigger claim, slot C's sub-bus 7, its trigger set and its `L1A_offset_or_BX: 13`, are stated once in 3.6 |
 | 2026-09-03 | The output root is now `Results/` rather than a site-named subdirectory of it. `RESULTS_DIR` in `site.sh` is the one place that sets it |
-| 2026-09-03 | `site.sh` is sourced by the scripts but not by your shell, so the hand-typed commands were expanding an empty `$MMTS_FW` and `$KRIA_IP`. The firmware design is now spelled out in every command instead of going through the variable, and section 0.5 and the preamble to sections 3 to 5 source `site.sh` for the rest |
+| 2026-09-03 | `site.sh` is sourced by the scripts but not by your shell, so the hand-typed commands were expanding an empty `$MMTS_FW` and `$KRIA_IP`. The firmware design is now spelled out in every command instead of going through the variable, and section 0.5 and the preamble to sections 3 to 11 source `site.sh` for the rest |
 | 2026-09-03 | The MMTS scripts branch was merged into `hexactrl-script:ROCv3-alper-dev` as `ffb42a2`, and `hexactrl-sw` MR !56 bumped the submodule pointer to it, so the scripts and configs are upstream. Section 0.4 loses the `tvami` fork remote and the branch checkout: `git clone --recurse-submodules` is now the whole step, and the submodules are correctly detached at their pinned commits |
 | 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The 0.8b occurrences are server-side and stay |
 | 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and 0.8c. The clone step initialized only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of 0.8c had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
