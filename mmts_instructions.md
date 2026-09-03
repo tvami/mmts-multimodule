@@ -224,65 +224,76 @@ dangerous. `gui-hexmap` is the only correct source.
 
 ## 0.5 Site settings
 
-Every script takes its site values from one file, `$MM/site.sh`. Edit that and
-nothing else; no script carries a hardcoded path or address.
+Set these once in `~/.bashrc`. Every value that follows is either a path you
+chose in 0.4 or something about your own bench, so **edit the two marked lines
+before pasting**: your hexacontroller's address, and the results root if you want
+it somewhere other than under `$MMTS_ROOT`.
 
-**(on the lab computer)**
-
-```bash
-export MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
-$EDITOR "$MM/site.sh"
-```
-
-| variable | set it to |
-|---|---|
-| `MMTS_ROOT` | the directory from 0.4 |
-| `KRIA_IP`, `KRIA_USER` | your hexacontroller, user `daq` by default |
-| `HEXACTRL` | the native install prefix from 0.6a |
-| `MMTS_VENV` | the virtualenv from 0.6b, or empty for system-wide |
-| `MMTS_FW` | the firmware design, see 0.8e |
-| `RESULTS_DIR` | the output root, `$MMTS_ROOT/Results` by default |
-| `GUI_HEXMAP` | the `gui-hexmap` clone from 0.4 |
-
-Put `MMTS_ROOT`, `MM` and `SCRIPTS` in your shell profile as well, since this
-document uses all three in every command:
-
-**(on the lab computer, in `~/.bashrc`)**
+**(on the lab computer, appended to `~/.bashrc`)**
 
 ```bash
 export MMTS_ROOT=$HOME/mmts
 export MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
 export SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
+export KRIA_IP=10.0.0.1
+export KRIA_USER=daq
+export HEXACTRL=/opt/hexactrl/ROCv3-alper-dev
+export MMTS_VENV=$MMTS_ROOT/venv
+export MMTS_FW=multimodule-hd-tester-trophy-v3
+export RESULTS_DIR=$MMTS_ROOT/Results
+export GUI_HEXMAP=$MMTS_ROOT/gui-hexmap
+export PATH=$HEXACTRL/bin:$PATH
 ```
 
-🔑 **`SCRIPTS` is the one that fails silently.** `cd ""` is a no-op in bash that
-returns success, so a shell where `SCRIPTS` is unset does not stop at
-`cd "$SCRIPTS"`: it stays wherever you were and runs `delay_scan.py` there. The
-error you get names a directory you never chose, which reads as a broken clone
-rather than an unset variable. `echo "SCRIPTS=$SCRIPTS"` settles it in one line. Any value can also be overridden for one run, for example
-`MMTS_FW=... "$MM/delay_scan.sh" B`.
-
-🔑 **`site.sh` reaches the scripts, not your shell.** The scripts source it for
-themselves, but a command you type by hand expands its variables in your own
-shell, where they are unset, and the failures are confusing rather than obvious:
-an empty firmware name gives `fw-loader load: error: the following arguments are
-required: firmware`, and an empty `$KRIA_IP` gives a connection error naming no
-host. This document therefore spells the firmware design out in every command
-rather than using `$MMTS_FW`. For `$KRIA_IP` and `$RESULTS_DIR` there is no such
-shortcut, so source the file yourself in any shell where you drive the bench by
-hand, which is what the preamble to sections 3 to 5 does:
+Then open a new shell, or `source ~/.bashrc`, and check that all of it took:
 
 **(on the lab computer)**
 
 ```bash
-source "$MM/site.sh"
+echo "MMTS_ROOT=$MMTS_ROOT SCRIPTS=$SCRIPTS KRIA_IP=$KRIA_IP"
+ls "$SCRIPTS/delay_scan.py" "$MM/puller.sh"
+timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/5555"; echo "5555 exit=$?"
 ```
 
-⚠️ **Check `MMTS_FW` in `site.sh` before you rely on the scripts.** Older copies
-default to `multimodule-hd-tester-trophy-v3-rxeq4`, a hand-copied build directory
-that predates the merged equalization. The RPM design name is
-`multimodule-hd-tester-trophy-v3` with no suffix, per 0.8e, and that is what the
-commands in this document load.
+| variable | what it is |
+|---|---|
+| `MMTS_ROOT` | the directory from 0.4, the parent of `hexactrl-sw` |
+| `MM` | the bench scripts, `hexactrl-script/multimodule` |
+| `SCRIPTS` | `hexactrl-script` itself, where `delay_scan.py` lives |
+| `KRIA_IP`, `KRIA_USER` | **your hexacontroller**, user `daq` by default |
+| `HEXACTRL` | the install prefix from 0.6a |
+| `MMTS_VENV` | the virtualenv from 0.6b, or empty for system-wide |
+| `MMTS_FW` | the firmware design, see 0.8e |
+| `RESULTS_DIR` | the output root |
+| `GUI_HEXMAP` | the `gui-hexmap` clone from 0.4 |
+
+The scripts read the same names from `$MM/site.sh`, which is a set of
+`${VAR:-default}` fallbacks. **Exporting a value wins over the file**, so the
+block above is all you need and `site.sh` can stay as shipped. Edit `site.sh`
+only if you would rather the values live with the clone than in your profile, and
+override for a single run on the command line, for example
+`MMTS_FW=... "$MM/delay_scan.sh" B`.
+
+Three of these fail in ways that do not look like an unset variable, which is why
+the check block above is worth the ten seconds:
+
+🛑 **`KRIA_IP` unset gives you `site.sh`'s placeholder, `192.0.2.7`, and that
+hangs rather than erroring.** `192.0.2.0/24` is TEST-NET-1, reserved for
+documentation, so it routes nowhere and `delay_scan.py` waits forever at
+`Initializing i2c sockets` with a perfectly healthy Kria at the other end of the
+room. Worse, **`ssh kria` keeps working throughout**, because that resolves
+through `~/.ssh/config` from 0.3 rather than `KRIA_IP`: every bring-up, every log
+and every port check on the Kria succeeds, and only the ZeroMQ connections fail.
+
+🔑 **`SCRIPTS` unset fails silently.** `cd ""` is a no-op that returns success, so
+`cd "$SCRIPTS"` does not stop: it leaves you wherever you were and runs
+`delay_scan.py` there. The error names a directory you never chose, which reads
+as a broken clone rather than an unset variable.
+
+⚠️ **`MMTS_FW` in an older `site.sh` defaults to
+`multimodule-hd-tester-trophy-v3-rxeq4`**, a hand-copied build directory that
+predates the merged equalization. The RPM design name has no suffix, per 0.8e,
+and exporting it as above keeps the stale default out of the way.
 
 ## 0.6 Install the client stack
 
@@ -380,16 +391,16 @@ its own aarch64 build in 0.8b.
 `/opt/hexactrl/ROCv3/`, so every path in this document changes, and it predates
 the MR !55 fixes listed in 0.8b.
 
-Confirm what landed, then put the install's `bin` on `PATH` in your profile.
-Every shell that runs a client command needs it. The `ls` must show
-`daq-client`, `hitproducer` and `unpack`:
+Confirm what landed. The `ls` must show `daq-client`, `hitproducer` and `unpack`:
 
 **(on the lab computer)**
 
 ```bash
 ls /opt/hexactrl/ROCv3-alper-dev/bin
-export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
 ```
+
+Every shell that runs a client command needs that directory on `PATH`, which the
+`~/.bashrc` block of 0.5 already does with `export PATH=$HEXACTRL/bin:$PATH`.
 
 🔑 That `PATH` is the fix for the most common analysis failure. The notifier
 shells out to a bare `unpack`, so if the installation's `bin` is not on `PATH` in
@@ -850,8 +861,7 @@ ssh kria 'cd ~/multimodule && python3 findslot.py'
 **(on the lab computer, checking the lab computer)**
 
 ```bash
-export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
-source "$MMTS_ROOT/venv/bin/activate"
+source "$MMTS_VENV/bin/activate"
 command -v daq-client unpack
 python3 -c "import uproot, uproot3, numpy, zmq; print(uproot.__version__)"
 "$MM/puller.sh"
@@ -1452,22 +1462,17 @@ Sections 3 to 5 assume this preamble in every client shell:
 **(on the lab computer)**
 
 ```bash
-export PATH=/opt/hexactrl/ROCv3-alper-dev/bin:$PATH
-source "$MMTS_ROOT/venv/bin/activate"
-export MM=$MMTS_ROOT/hexactrl-sw/hexactrl-script/multimodule
-export SCRIPTS=$MMTS_ROOT/hexactrl-sw/hexactrl-script
-source "$MM/site.sh"
+source "$MMTS_VENV/bin/activate"
+SLOT=A
 OUT=$RESULTS_DIR/$(python3 "$MM/module_of.py" "$SLOT")
-ls "$SCRIPTS/delay_scan.py"
+echo "SCRIPTS=$SCRIPTS KRIA_IP=$KRIA_IP OUT=$OUT"
 ```
 
-That last `ls` is worth the second it costs: it is the only thing between an
-unset `SCRIPTS` and a `cd ""` that silently leaves you in the wrong directory,
-per 0.5.
-
-The `source "$MM/site.sh"` is what puts `KRIA_IP` and `RESULTS_DIR` into your own
-shell. Every command below expands them locally, so without it
-`delay_scan.py -i "$KRIA_IP"` is given no address.
+Everything else, `PATH` included, comes from the exports you put in `~/.bashrc`
+at 0.5. That `echo` is worth the second it costs: all three are expanded locally
+by the commands below, and an empty one does not stop anything. `cd ""` silently
+leaves you where you were, `-i ""` hangs, and `-o ""` writes the run somewhere
+you will not find it.
 
 `module_of.py` prints the serial for the slot, so `$OUT` lands in the by-board
 layout of 2.8. If the board is not in the registry it prints nothing, and you
@@ -1585,7 +1590,7 @@ is retrying per link, which is a signal the links are marginal.
 ## 3.4 Hexmaps and common mode for slot A
 
 Unpacking and analysis run automatically as long as the installation's `bin` is
-on `PATH` in this shell, which the preamble's `export PATH` handles. A good run
+on `PATH` in this shell, which the `~/.bashrc` block of 0.5 handles. A good run
 writes its own `.root` and nine PNGs unattended, and no `crash_report.log` means
 it worked.
 
@@ -1826,7 +1831,7 @@ Each of these reads as a result and is not one.
 | `KeyError: 'dac_hyst_toa'` | ROC type mis-detected and fell back to Siv3. Redo bring-up plus i2c-server |
 | Client hangs at `ROC(s) CONFIGURED` | `daq-server` is dead or stuck in a previous unfinished run. Restart it |
 | A scan sits at `Initializing i2c sockets` and never proceeds | Nothing is listening on 5555. `mmts_bringup.sh` does not start the i2c-server; run `~/start_i2c.sh SLOT`. Section 1.3 |
-| Same hang, but `ss` on the Kria shows 5555 **and** 6000 listening and the identify line is good | The client cannot reach them. Test with `/dev/tcp` from the lab computer and open the ports, per 0.8f |
+| Same hang, but `ss` on the Kria shows 5555 **and** 6000 listening and the identify line is good | The client cannot reach them. `echo "KRIA_IP=$KRIA_IP"` first: `192.0.2.7` is the unedited placeholder of 0.5 and routes nowhere. If the address is right, it is the firewall, per 0.8f |
 | `status after start cmd : configured`, repeating | **Interrupt at once.** An e-link is unaligned and `start()` retries forever; the backlog can crash the puller and `daq-server`. Read `~/daq-server.log` for which link, then re-run bring-up |
 | `status after start cmd : created`, repeating | You dropped `-I` |
 | 6 DAQ links dead, 12 trigger fine | Multiplex hold lost. `gpiofind Multiplex_A` and `ps aux \| grep "[g]pioset"`; the chip numbers must match |
