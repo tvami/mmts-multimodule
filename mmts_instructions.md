@@ -985,9 +985,42 @@ power on every attempt.
 
 ## 1.3 The bring-up wrappers
 
-`up_verified.sh` runs on the Kria and is the one to use. It retries both
-lotteries, bring-up and i2c discovery, and verifies the result rather than
-trusting a log line. This is the LD Full form:
+There are two, and picking the wrong one is what makes a bad bench feel
+mysterious. **`mmts_bringup.sh` for a first bring-up or when anything is wrong;
+`up_verified.sh` for routine measurement on a bench that already works.**
+
+| | `mmts_bringup.sh SLOT` | `up_verified.sh SLOT` |
+|---|---|---|
+| attempts | one | up to 8 bring-ups, then up to 3 i2c-server starts |
+| output | on your screen | to `~/bu_<slot>.log`, one summary line per try |
+| starts the i2c-server | no | yes |
+| verifies the result | no | ROC count, no `FAILED`, board identified, 5555 and 6000 listening |
+| use it | commissioning, diagnosis, anything unexplained | a slot you have brought up before |
+
+🔑 **Start a new board, a new bench, or any investigation with
+`mmts_bringup.sh`.** It runs once and puts the real error in front of you. Its
+`--recover` default means it still cycles payload power, so it is a complete
+bring-up and not a reduced one:
+
+**(on the Kria)**
+
+```bash
+cd ~/multimodule && ./mmts_bringup.sh A --board LD-Full
+```
+
+⚠️ **`up_verified.sh` retries what should not be retried.** Its eight attempts
+are calibrated for the bring-up lottery of 1.4, where a healthy bench needs two
+to four goes and each failure is a *partial* enable. Against a real fault, an
+unpowered module, a wrong `--module` bit, an open power path, they are eight
+identical failures that take minutes, give the I2C master eight more chances to
+wedge, and show you only `0/3 ROCs` while the actual error sits unread in
+`~/bu_<slot>.log`. **A run of identical zero-ROC tries is a fault, not bad luck:
+interrupt it, read that log, and go back to `mmts_bringup.sh`.** 6.4 makes the
+same point in terms of counting retries rather than outcomes.
+
+Once the slot is known good, `up_verified.sh` is the one to use, because it also
+starts the i2c-server and checks the things a log line will happily lie about,
+including the stale-identify trap of 6.2. This is the LD Full form:
 
 **(on the lab computer)**
 
@@ -1092,6 +1125,11 @@ early may be the previous attempt's. Check the mtime if in doubt.
 **Fewer ROCs than expected means run it again.** Bring-up needs two to four
 attempts routinely on a healthy bench. A few `transient I2C error ... retry n/5`
 lines are normal.
+
+⚠️ **That applies to a *partial* enable, which is what the lottery looks like:
+some ROCs answer and one does not, and a different one each time.** Repeated
+`0/N`, the same result every attempt, is not the lottery and running it again
+will not help. Switch to `mmts_bringup.sh` and read the error, per 1.3.
 
 ---
 
@@ -1744,7 +1782,8 @@ Each of these reads as a result and is not one.
   config.** The PL I2C master is wedged. `up_verified.sh` retries 8 times per
   call, so a handful of failed calls is 40 bring-ups; count the retries in
   `~/bu_<slot>.log` rather than the outcome, and stop as soon as they are being
-  exhausted instead of succeeding on attempt 1 or 2. `--recover` does not help
+  exhausted instead of succeeding on attempt 1 or 2. Diagnose with
+  `mmts_bringup.sh`, which runs once and shows you the error, per 1.3. `--recover` does not help
   once it has reached this state. Either `sudo shutdown -h now` plus a power
   button cycle, or rest the bench. Afterwards prove the bus on a known-good slot
   before spending another bring-up on the suspect one: `no ROCs` measured on a
