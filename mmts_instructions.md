@@ -422,7 +422,7 @@ ones you will type.
 ```bash
 cd "$MM"
 chmod +x *.sh *.py kria/*
-./puller.sh                 # smoke test: should print "puller up on 6001"
+./puller.sh                 # check: should print "puller up on 6001"
 ```
 
 | script | what |
@@ -720,7 +720,7 @@ sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=ui
 Confirm the `daq` user is in the `i2c` and `gpio` groups, and log out and back in
 after any `usermod`.
 
-## 0.9 Smoke test
+## 0.9 Check the installation
 
 All of it is typed on the lab computer. The first three lines check the Kria over
 `ssh`; the rest check the client stack, which exists only on the lab computer.
@@ -754,7 +754,7 @@ one you are on: `x86_64` is the lab computer, `aarch64` is the Kria.
 and it is the cheapest diagnostic on the bench.
 
 🔑 **`no ROCs` on all three slots is the expected result here, and it is not a
-fault.** At smoke-test time nothing has powered a module yet. `findslot.py`
+fault.** At this point nothing has powered a module yet. `findslot.py`
 writes the mux board's own `S*_PWR_EN` itself, but it does not run
 `kconn_pwr on`, and it never touches `EN_Mx` on the power distribution board at
 `0x27`, which is written only by the bring-up. It also probes the LD-Full
@@ -1210,7 +1210,7 @@ should use `$MMTS_ROOT/Results/alabama` directly.
 SKIP_PROBE=1 "$MM/partial_slot.sh" B initLD-Left-3b LD-Semi 2 LLeft 5
 ```
 
-That is bring-up, gate, a one-run smoke test, the remaining runs, the finder
+That is bring-up, gate, a one-run trial, the remaining runs, the finder
 line, hexmaps and a per-half check, each stage stopping the sequence on failure
 instead of burning the next stage's timeout. `POWER=` in front of it selects the
 power distribution board for an LD or HD Full. The hand-driven steps below are
