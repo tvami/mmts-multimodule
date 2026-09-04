@@ -1152,7 +1152,33 @@ the bring-up ended in its ROC list, `3 ROC(s) enabled [...]` for an LD Full, per
 1.4. If it ended in `bring-up failed`, or in a traceback, the next step is 12.3
 and 12.4, not this one.
 
-🔑 **On a failure, re-run this block exactly once, and decide on the retry counts
+**(on the Kria, only after the bring-up printed its ROC list)**
+
+```bash
+~/start_i2c.sh A
+```
+
+⚠️ **This block is not optional, and nothing reminds you of it.**
+`mmts_bringup.sh` brings the slot up and restarts `daq-server` on 6000, but it
+does **not** start the i2c-server on 5555; only `start_i2c.sh` does, and
+`up_verified.sh` is what normally calls it for you. Skip it and the bring-up
+looks perfectly healthy while the next scan sits at `Initializing i2c sockets`
+with nothing to talk to. `ss -ltn | grep -E '5555|6000'` must show both.
+
+`start_i2c.sh` takes about 25 s and ends by printing the identify line, which is
+the second thing to read: **`Identify a board with HGCROC Siv3b`** is what you
+want, and plain `Siv3` means redo the bring-up rather than continue, per 1.4.
+
+🔑 **Running it on a failed bring-up costs you the next attempt.** It starts and
+binds 5555 regardless, so `--- listening ---` and an `ss` line appear under the
+traceback and read as partial success. What you actually have is a server holding
+the I2C bus with nothing configured behind it, and the re-run you are about to
+type is then a bring-up under a live server, which is 12.1. If you have already
+done it, `pkill -f '[z]mq_server'` before re-running the bring-up.
+
+### When the bring-up fails instead
+
+🔑 **Re-run the bring-up block exactly once, and decide on the retry counts
 rather than the ROC count.** A partial enable with a different chip missing each
 time is the lottery of 1.4 and wants another go. What does not want another go is
 `[Errno 5]` on the `[mux]` writes to `0x71`, `0x73` and `0x77`: those never leave
@@ -1181,30 +1207,6 @@ Run the bring-ups **back to back** rather than one per boot: a slot that failed
 on five separate fresh boots came up 4 of 10 in a row, with the error count
 falling on every attempt. 12.4 is the long form, and it also covers the case
 where a power cycle is not enough.
-
-**(on the Kria, only after the bring-up printed its ROC list)**
-
-```bash
-~/start_i2c.sh A
-```
-
-⚠️ **This block is not optional, and nothing reminds you of it.**
-`mmts_bringup.sh` brings the slot up and restarts `daq-server` on 6000, but it
-does **not** start the i2c-server on 5555; only `start_i2c.sh` does, and
-`up_verified.sh` is what normally calls it for you. Skip it and the bring-up
-looks perfectly healthy while the next scan sits at `Initializing i2c sockets`
-with nothing to talk to. `ss -ltn | grep -E '5555|6000'` must show both.
-
-`start_i2c.sh` takes about 25 s and ends by printing the identify line, which is
-the second thing to read: **`Identify a board with HGCROC Siv3b`** is what you
-want, and plain `Siv3` means redo the bring-up rather than continue, per 1.4.
-
-🔑 **Running it on a failed bring-up costs you the next attempt.** It starts and
-binds 5555 regardless, so `--- listening ---` and an `ss` line appear under the
-traceback and read as partial success. What you actually have is a server holding
-the I2C bus with nothing configured behind it, and the re-run you are about to
-type is then a bring-up under a live server, which is 12.1. If you have already
-done it, `pkill -f '[z]mq_server'` before re-running the bring-up.
 
 ⚠️ **`up_verified.sh` retries what should not be retried.** Its eight attempts
 are calibrated for the bring-up lottery of 1.4, where a healthy bench needs two
