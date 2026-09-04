@@ -1220,22 +1220,14 @@ same point in terms of counting retries rather than outcomes.
 
 Once the slot is known good, `up_verified.sh` is the one to use, because it also
 starts the i2c-server and checks the things a log line will happily lie about,
-including the stale-identify trap of 12.2. This is the LD Full form:
+including the stale-identify trap of 12.2. This is the LD Full form; your own
+board type's section, 4 to 11, carries the exact line for each of its slots:
 
 **(on the lab computer)**
 
 ```bash
 ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
   ~/up_verified.sh A --board LD-Full"
-```
-
-For a partial, which has no power distribution board, it becomes:
-
-**(on the lab computer)**
-
-```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh A --external-power --board LD-Semi"
 ```
 
 ⚠️ `EXPECT_ROCS` defaults to 3. Set it to your board's ROC count. With the
