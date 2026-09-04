@@ -835,7 +835,18 @@ sudo firewall-cmd --list-ports
 ```bash
 sudo firewall-cmd --permanent --add-port=6001/tcp
 sudo firewall-cmd --reload
+sudo firewall-cmd --list-ports
 ```
+
+🛑 **That last line must print `6001/tcp`, and an empty answer is the failure to
+look for.** A stock AlmaLinux client runs firewalld with no ports open at all, so
+`--list-ports` prints a blank line and everything in section 0 still passes: the
+client only ever dials *out* to the Kria until the first run. The cost lands much
+later and does not look like a firewall. The bring-up is clean, the scan
+initializes, configures and reaches `status after start cmd : running`, and then
+nothing arrives for 180 s, because `daq-server` is pushing the event stream at a
+port that is dropping it. The gate then says `no summary.json`. Seen on a new
+client on 2026-09-04, three minutes per attempt.
 
 Prove reachability from the client rather than trusting `ss` on the Kria, since
 `ss` only tells you something is bound locally:
@@ -857,7 +868,23 @@ done
 server or as a refusal. **A refusal is a pass**, and until a bring-up has run
 that is the only answer either port can give, since nothing is listening yet.
 Only the timeout is a fault, and it is silent, which is why the `case` prints a
-verdict rather than leaving you to read `Connection refused` and guess. If your
+verdict rather than leaving you to read `Connection refused` and guess.
+
+🔑 **Then test 6001 in the other direction, which is the one no other check in
+this document covers.** Start the puller so something is listening, and dial the
+client from the Kria. Substitute your client's address, which the Kria's own
+login banner shows as the host you connected `from`:
+
+**(on the lab computer)**
+
+```bash
+"$MM/puller.sh"
+ssh kria "timeout 5 bash -c 'cat < /dev/tcp/<client-ip>/6001'; echo rc=\$?"
+```
+
+`rc=0` or `rc=1` is a pass. `rc=124` is the closed client firewall above, and it
+is worth ten seconds here because the same fault costs 180 s per scan later and
+presents as a hung run rather than as a network problem. If your
 site uses `iptables` or `nft` rather than `firewalld`, open the same three ports
 with those instead.
 
@@ -2707,6 +2734,7 @@ Each of these reads as a result and is not one.
 | `dnf` answers `No matching Packages to list` for the firmware, and `dnf repolist` shows `HCGAL-DAQ-SW` alone | The `hgc-online-sw` repo file was never written. Section 0.8c |
 | `ZMQError: Address already in use` on 5555 | `ssh kria 'pkill -f "[z]mq_ser""ver.py"'` |
 | `daq-client` cannot bind 6001 | An old one is still alive. `pkill -f '[d]aq-client'` |
+| The scan reaches `status after start cmd : running` and then nothing for minutes, and the gate says `no summary.json` | The event stream is not getting back to the client. `sudo firewall-cmd --list-ports` **on the lab computer**: an empty answer means 6001 was never opened, section 0.8f. Everything else passes without it, since the client only dials out until the first run |
 | Orphaned holders after a killed server | `pkill -f 'gpioset -m signal -b'` |
 | `daq-client` exits with `std::length_error` or signal 6 | It was sent the run twice by a START refusal spin. Full reset: restart `daq-server`, re-run bring-up, restart the puller |
 | `elink link_capture_daq.linkN is not aligned` | A DAQ link failed to init, which happens about once a session. Re-run bring-up. `--realign` does not fix it, because the delay block is fine and the word aligner needs the `linkReset` that a full configure issues |
