@@ -1296,14 +1296,16 @@ The flag is forwarded by `bench_up.sh` and `mmts_bringup.sh` directly, by
 `ped_run.sh` as `PED_MODULE`, and by `slot_measure.sh` as `SM_MODULE`.
 
 `bench_up.sh` on the client does the cold start in the only order that works, and
-needs no adaptation since it only calls `ssh`. The first line below is the form
-for an LD Full, the second for a partial:
+needs no adaptation since it only calls `ssh`. It is a commissioning and
+diagnosis tool, not part of a routine measurement, which goes through
+`up_verified.sh` or `run_slot.sh`. Reach for it when you want the cold start
+driven from the client rather than from a shell on the Kria. The LD Full form,
+with each board type's own line in its section, 4 to 11:
 
-**(on the lab computer)**
+**(on the lab computer, when driving a cold start by hand, not in a normal run)**
 
 ```bash
 "$MM/bench_up.sh" A --board LD-Full --expect 3 --power-board
-"$MM/bench_up.sh" A --board LD-Semi --expect 2
 ```
 
 ⚠️ **`bench_up.sh` spells the power board the other way round from
@@ -2137,6 +2139,16 @@ taken out of the bring-up, per 2.4.
 
 ```bash
 SKIP_PROBE=1 "$MM/run_slot.sh" A initLD-Left-3b LD-Semi 2 ldleft 5
+```
+
+The `bench_up.sh` cold start of 1.3, in its partial form. Every LD partial takes
+this same line, so LD Bottom and LD Top of section 7 use it unchanged. There is
+no `--power-board`, since none of them has a power distribution board:
+
+**(on the lab computer, when driving a cold start by hand, not in a normal run)**
+
+```bash
+"$MM/bench_up.sh" A --board LD-Semi --expect 2
 ```
 
 ## 6.1 Slot A
