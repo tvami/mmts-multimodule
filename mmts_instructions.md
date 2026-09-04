@@ -822,7 +822,16 @@ Three ports, and they do not all belong to the Kria:
 |---|---|---|
 | 5555 | the Kria | the i2c-server, ROC configuration |
 | 6000 | the Kria | `daq-server`, run control |
-| **6001** | **the lab computer** | the event stream, pushed back by `daq-server` |
+| **8888** | **the Kria** | **the event stream**, which the puller connects out to and pulls |
+| 6001 | the lab computer | control of the puller, from `delay_scan.py` on the same machine |
+
+⚠️ **6001 is a local control socket, not the data path.** `delay_scan.py:62`
+opens it as `daqController("localhost", pullerPort)`, so it never crosses the
+network on a normal bench. The events travel the other way: `daq-server` binds
+**8888** on the Kria and `daq-client` connects out to it, with
+`delay_scan.py:71` pointing the puller at the Kria's address at initialize.
+Opening 6001 on the client is harmless and worth doing, but it is 8888 on the
+Kria that the event stream actually needs.
 
 **(on the Kria)**
 
@@ -872,23 +881,89 @@ that is the only answer either port can give, since nothing is listening yet.
 Only the timeout is a fault, and it is silent, which is why the `case` prints a
 verdict rather than leaving you to read `Connection refused` and guess.
 
-🔑 **Then test 6001 in the other direction, which is the one no other check in
-this document covers.** Start the puller so something is listening, and dial the
-client from the Kria. Substitute your client's address, which the Kria's own
-login banner shows as the host you connected `from`:
+🔑 **Then test 8888, the port the data actually uses.** It only listens while
+`daq-server` is up, so run this after a bring-up. Use the `exec` form, **not**
+`cat`:
 
 **(on the lab computer)**
 
 ```bash
-"$MM/puller.sh"
-ssh kria "timeout 5 bash -c 'cat < /dev/tcp/<client-ip>/6001'; echo rc=\$?"
+timeout 5 bash -c "exec 3<>/dev/tcp/$KRIA_IP/8888"; echo "8888 rc=$?"
 ```
 
-`rc=0` or `rc=1` is a pass. `rc=124` is the closed client firewall above, and it
-is worth ten seconds here because the same fault costs 180 s per scan later and
-presents as a hung run rather than as a network problem. If your
-site uses `iptables` or `nft` rather than `firewalld`, open the same three ports
-with those instead.
+`rc=0` is a pass, `rc=1` a refusal, `rc=124` a block.
+
+⛔ **Do not test a port that has a live server on it with `cat < /dev/tcp/...`.**
+`cat` connects and then waits for data, so against anything that listens and
+stays quiet it always burns the full timeout and reports `rc=124`, which reads as
+blocked when the port is perfectly fine. That form is safe for 5555 and 6000
+above only because nothing is listening there when you run them and a refusal
+comes back at once. Use `exec 3<>` whenever a server is up. This mistake cost
+half a session.
+
+If your site uses `iptables` or `nft` rather than `firewalld`, open the same
+ports with those instead.
+
+### One puller at a time
+
+🛑 **A Kria serves exactly one `daq-client`, and a second one anywhere on the
+network silently takes half your data.** `daq-server` pushes over a ZeroMQ PUSH
+socket, which **round-robins** across every connected puller. With two, the
+`START_RUN_DELAY_SCAN` string that opens a run goes to one of them and the data
+archives to the other, so your client reads an archive where it expected the
+run header and stays one message out of step for the whole run.
+
+The symptom names nothing: the bring-up is clean, the gate says
+`no summary.json`, the run directory holds only `initial_full_config.yaml`, and
+`~/daq-server.log` on the Kria ends in a perfectly healthy `STOP`. The only
+place it is visible is the puller's own log, `$MMTS_ROOT/daq-client.log`, which
+shows the archive being read as a run header:
+
+**(expected output of a failure, not a command)**
+
+```
+Error : serialization::archive ... not in dataTypeMap
+```
+
+Check who is connected before believing any empty run. It costs one line, needs
+no bring-up, and only shows peers while a run is in flight, so run it during the
+gate:
+
+**(on the lab computer, during a scan)**
+
+```bash
+ssh kria 'ss -tn | grep 8888'
+```
+
+There must be exactly **one** peer, and it must be your client's address. Any
+other address is a machine running a stray `daq-client`, and it has to be
+stopped there:
+
+**(on the other machine)**
+
+```bash
+pkill -f '[d]aq-client'
+```
+
+⚠️ **Look for containers too, not just processes.** On a machine where the
+client stack runs in Docker, `pgrep -af daq-client` finds nothing while the
+container holds the socket. `lsof -nP -iTCP | grep 8888` names the real owner,
+and `docker ps` then finds the container to stop. A container left up for hours
+after someone's earlier session is the likeliest source, and this exact case cost
+a morning on 2026-09-04.
+
+The mirror of this rule: if you take a bench over from another machine, stop that
+machine's puller first, and expect the same in reverse when you hand it back.
+
+**(on the lab computer, the full picture in one line)**
+
+```bash
+pgrep -af '[d]aq-client'; ssh kria 'pgrep -af "[d]aq-server|[z]mq_server"; ss -tn | grep 8888'
+```
+
+One `daq-client` here, one `daq-server` and one `zmq_server` on the Kria, and one
+peer on 8888. Two `daq-server` processes, or an old `zmq_server` from another
+slot, cause their own trouble, per 12.1.
 
 ### g. Device permissions
 
@@ -2745,6 +2820,9 @@ Each of these reads as a result and is not one.
 | `dnf` answers `No matching Packages to list` for the firmware, and `dnf repolist` shows `HCGAL-DAQ-SW` alone | The `hgc-online-sw` repo file was never written. Section 0.8c |
 | `ZMQError: Address already in use` on 5555 | `ssh kria 'pkill -f "[z]mq_ser""ver.py"'` |
 | `daq-client` cannot bind 6001 | An old one is still alive. `pkill -f '[d]aq-client'` |
+| The gate says `no summary.json`, the run directory holds only `initial_full_config.yaml`, and `~/daq-server.log` ends in a healthy `STOP` | A second puller somewhere on the network is taking half the stream. `ssh kria 'ss -tn \| grep 8888'` during a scan must show exactly one peer, your client. Section 0.8f, "One puller at a time" |
+| `Error : serialization::archive ... not in dataTypeMap` in `$MMTS_ROOT/daq-client.log`, followed by pages of misparsed `link_capture_daq.link0` | The same thing: the run header went to the other puller, so this one read a data archive as the header. Not a version mismatch, and not worth rebuilding anything over |
+| A port test gives `rc=124` on a port that `ss` shows listening | The test, not the port. `cat < /dev/tcp/...` waits for data and always times out against a quiet server. Use `timeout 5 bash -c "exec 3<>/dev/tcp/HOST/PORT"`. Section 0.8f |
 | The scan reaches `status after start cmd : running` and then nothing for minutes, and the gate says `no summary.json` | The event stream is not getting back to the client. `sudo firewall-cmd --list-ports` **on the lab computer**: an empty answer means 6001 was never opened, section 0.8f. Everything else passes without it, since the client only dials out until the first run |
 | Orphaned holders after a killed server | `pkill -f 'gpioset -m signal -b'` |
 | `daq-client` exits with `std::length_error` or signal 6 | It was sent the run twice by a START refusal spin. Full reset: restart `daq-server`, re-run bring-up, restart the puller |
@@ -2843,6 +2921,7 @@ itself. Newest first.
 
 | date | change |
 |---|---|
+| 2026-09-04 | **A Kria serves one puller.** `daq-server` pushes over a ZeroMQ PUSH socket, which round-robins across every connected `daq-client`, so a second one anywhere on the network takes half the messages: the client reads a data archive where the `START_RUN_DELAY_SCAN` header should be and stays out of step for the whole run. It presents as an empty run directory and `no summary.json` behind a clean bring-up and a `daq-server` that ran to `STOP`, and is visible only in `daq-client.log` as `Error : serialization::archive ... not in dataTypeMap`. Found after half a day of chasing it as a firewall, a Boost mismatch and a build mismatch, all of which were ruled out; the second puller was a Docker container left up on another machine, which `pgrep` does not find. 0.8f gains the check, the port table gains 8888 and corrects 6001 to what it is, a localhost control socket. Also corrected there: a port test must use `exec 3<>/dev/tcp/...` and not `cat <`, which always times out against a listening server and reports a healthy port as blocked |
 | 2026-09-04 | The stock image keeps **no persistent journal**, so a Kria that hangs and needs the power button leaves nothing behind: `journalctl -b -1` answers `no persistent journal was found`, and `/var/log/journal` is not adopted even when created with the right ownership. 12.4 now says to start `dmesg -w >> ~/kernel.log` before chasing a hang, since the home directory does survive. Also recorded there: the Kria boots with a wrong date, `2025-12-04` on this bench, so its logs cannot be correlated with the client's until the clock is set |
 | 2026-09-04 | Restructured so the routine path comes before the reference material. Section 2 is now "Running a board": which type, register, `run_slot.sh`, then its stages one at a time in 2.4 to 2.7, the old 3.1 to 3.4. The per-type sections moved up one, to 3 to 10. What an operator does not need on the routine path went to a new section 11, Reference: the ROC revision and `in_inv_cmd_rx` (old 2.1), ROC addresses (old 2.2), measured link sets and the probe (old 2.4), trophies (old 2.5), offline unpack (old 3.5), slot quirks and the yardstick (old 3.6 and 3.7). The two parameter tables of old 2.3 and 2.7 became one, in 2.1, and the `run_slot.sh` walkthrough moved from the LD Full section into 2.3. Same day, from the second client install: 0.5 and 0.8f print PASS or FAIL instead of `Connection refused`, 0.8f checks 6001 from the Kria side, `start_i2c.sh` is its own block in 1.3 with the wedge escalation under it, 1.2 is marked as not needed before a wrapper bring-up, 1.4 documents the identify line naming a wrong board type on a partial enable, and 2.4 says not to re-bring-up a verified slot |
 | 2026-09-03 | Scripts changed to match, in one `hexactrl-script` MR. `site.sh` is gone: `lib.sh` reads the environment, requires `MMTS_ROOT` and `KRIA_IP` and stops naming a missing one, and defaults the rest, so no placeholder address or stale firmware name can hang a scan later. `partial_slot.sh` is `run_slot.sh`, since it runs full boards too, and it streams every stage instead of holding the output until the end. `up_verified.sh` kills the previous slot's i2c-server before the first try and announces each try, so the hand-driven blocks lost their `pkill` line again. `delay_scan.sh` keeps the scan's log, times out at 180 s, and `gate.py` refuses a summary older than the scan and prints both logs' tails when there is nothing to report. `register_boards.py` creates the registry. `module_of.py` and `hexmap_robust.py` lost their site-named results default |
