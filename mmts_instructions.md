@@ -1329,6 +1329,41 @@ A good i2c-server prints **`Identify a board with HGCROC Siv3b`**. If it prints
 plain `Siv3`, interrupt it and redo bring-up plus i2c-server, otherwise the next
 configure dies with `KeyError: 'dac_hyst_toa'`.
 
+🛑 **Read the `[I2C] Board identification` line above it as well, and stop if it
+names a board type you do not have.** `Link.py` matches the exact address set, so
+when a partial enable leaves a subset that happens to be *another* board's whole
+set, the server identifies that other board, prints a perfectly clean `Siv3b`
+line, and binds 5555. Nothing downstream contradicts it, and you get that board
+type's link map applied to yours. Seen on an LD Full whose `0x28` never came up:
+
+**(expected output of a failure, not a command)**
+
+```
+[I2C] Board identification: V3 HD Semi-left or HD Semi-right HB
+Identify a board with HGCROC Siv3b
+--- listening ---
+```
+
+The subsets that collide, from the table in 2.2. An HD Full is the dangerous one,
+since five different board types sit inside its address set:
+
+| you have | missing | identifies as |
+|---|---|---|
+| LD Full | `0x28` | HD Semi |
+| LD Five | `0x68` | LD Semi |
+| HD Bottom | `0x68` | HD Top |
+| HD Full | `0x48 0x58 0x68` | LD Full |
+| HD Full | `0x28 0x48 0x58 0x68` | HD Semi |
+| HD Full | `0x08 0x18 0x28` | LD Five |
+
+The cure is the bring-up, not the server: re-run it and require the full ROC
+list, `3 ROC(s) enabled ['0x8', '0x18', '0x28']` for an LD Full. `up_verified.sh`
+catches this for you, since it rejects any try whose log contains `FAILED`; a
+hand-driven `mmts_bringup.sh` plus `start_i2c.sh` does not, which is why 1.3
+makes you read the ROC list before starting the server. If the same address is
+missing every time, it is 12.3's silent chip: reseat, and suspect the board if it
+is missing in every slot.
+
 ⏳ **Give each step time.** Both look broken partway through.
 
 | step | takes | what it looks like mid-flight, which is not failure |
