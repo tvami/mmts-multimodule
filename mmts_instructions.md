@@ -576,6 +576,82 @@ client's `$MM/kria/` is the source of truth; do not edit the copies on the Kria.
 
 ## 0.8 One-time Kria setup
 
+Two ways to get a Kria to the state this document expects. **Route A** writes a
+prepared image, a snapshot of a working bench Kria, onto the SD card, and is the
+one to take unless you have a reason not to. **Route B** is the same result built
+by hand, step by step, and is also what you consult when a Route A Kria fails one
+of the checks in 0.9. Both end at 0.9.
+
+### Route A: flash the prepared image
+
+The image is `kria-ua-v2.img`, kept on FNAL EOS:
+
+```
+root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img
+```
+
+**Fetch it.** You need the XRootD client and a way to authenticate to FNAL EOS,
+either a valid grid proxy or a Fermilab Kerberos ticket. This is a multi-gigabyte
+download, so put it somewhere with room:
+
+**(on the lab computer)**
+
+```bash
+sudo dnf install -y xrootd-client
+cd "$MMTS_ROOT"
+xrdcp root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img .
+ls -l kria-ua-v2.img
+```
+
+If `xrdcp` fails on authentication, `voms-proxy-init -voms cms` with a grid
+certificate, or `kinit <user>@FNAL.GOV` with a Fermilab account, are the two
+routes in; if you have neither, ask the image's owner for a copy.
+
+**Write it to the SD card.** Identify the card first, and check it twice: `dd`
+writes to whatever you name with no confirmation, and naming your system disk
+destroys the lab computer.
+
+**(on the lab computer)**
+
+```bash
+lsblk -d -o NAME,SIZE,MODEL,TRAN
+```
+
+The card is the removable device whose size matches your card, usually `sdb` or
+`mmcblk0`, and it must be at least as large as the image file from the `ls`
+above. With that name in place of `sdX`, and every partition of it unmounted:
+
+**(on the lab computer)**
+
+```bash
+sudo umount /dev/sdX* 2>/dev/null
+sudo dd if="$MMTS_ROOT/kria-ua-v2.img" of=/dev/sdX bs=4M status=progress conv=fsync
+sync
+```
+
+Expect it to take several minutes. Then move the card to the Kria, power it on,
+and find it on the network. The image gets its address by DHCP, so read it from
+your DHCP server, from the Kria's own console, or by watching for a new host on
+the bench subnet; that address is `KRIA_IP` in 0.5.
+
+**What the image does and does not settle.** It is a snapshot, so it carries a
+built `hexactrl-sw` under `/opt`, a firmware RPM, the `TOP_A/B/C` connection
+map, the udev rules and the open ports as they were on the day it was made. It
+does **not** know about your client, so three things are still yours to do:
+
+* 0.3, the ssh key and the passwordless `sudo` rule, which are per client;
+* 0.7, the bench scripts and the i2c-server, which change far more often than
+  the image and must be the same version as the client's clone;
+* 0.9, every check, before the first bring-up. A snapshot goes stale: if the
+  firmware release in 0.8c has moved on, or `connections.xml` fails its `grep`,
+  apply that one step from Route B rather than rebuilding the whole Kria.
+
+### Route B: set it up yourself
+
+Steps a to g below build, one piece at a time, what the image contains. Take them
+in order on a Kria that has only the stock hexacontroller image, or take a single
+one on a Route A Kria that failed the matching check in 0.9.
+
 ### a. Base image
 
 Flash the standard HGCAL hexacontroller image for your Kria. It provides the
@@ -2921,6 +2997,7 @@ itself. Newest first.
 
 | date | change |
 |---|---|
+| 2026-09-04 | 0.8 split into two routes. **Route A** flashes the prepared image `kria-ua-v2.img` from FNAL EOS (`root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img`) onto the SD card with `xrdcp` and `dd`, and says what a snapshot does not settle: 0.3, 0.7 and every 0.9 check are still per client. **Route B** is the former step-by-step 0.8a to 0.8g, unchanged, also used one step at a time to repair a Route A Kria that fails a check |
 | 2026-09-04 | **A Kria serves one puller.** `daq-server` pushes over a ZeroMQ PUSH socket, which round-robins across every connected `daq-client`, so a second one anywhere on the network takes half the messages: the client reads a data archive where the `START_RUN_DELAY_SCAN` header should be and stays out of step for the whole run. It presents as an empty run directory and `no summary.json` behind a clean bring-up and a `daq-server` that ran to `STOP`, and is visible only in `daq-client.log` as `Error : serialization::archive ... not in dataTypeMap`. Found after half a day of chasing it as a firewall, a Boost mismatch and a build mismatch, all of which were ruled out; the second puller was a Docker container left up on another machine, which `pgrep` does not find. 0.8f gains the check, the port table gains 8888 and corrects 6001 to what it is, a localhost control socket. Also corrected there: a port test must use `exec 3<>/dev/tcp/...` and not `cat <`, which always times out against a listening server and reports a healthy port as blocked |
 | 2026-09-04 | The stock image keeps **no persistent journal**, so a Kria that hangs and needs the power button leaves nothing behind: `journalctl -b -1` answers `no persistent journal was found`, and `/var/log/journal` is not adopted even when created with the right ownership. 12.4 now says to start `dmesg -w >> ~/kernel.log` before chasing a hang, since the home directory does survive. Also recorded there: the Kria boots with a wrong date, `2025-12-04` on this bench, so its logs cannot be correlated with the client's until the clock is set |
 | 2026-09-04 | Restructured so the routine path comes before the reference material. Section 2 is now "Running a board": which type, register, `run_slot.sh`, then its stages one at a time in 2.4 to 2.7, the old 3.1 to 3.4. The per-type sections moved up one, to 3 to 10. What an operator does not need on the routine path went to a new section 11, Reference: the ROC revision and `in_inv_cmd_rx` (old 2.1), ROC addresses (old 2.2), measured link sets and the probe (old 2.4), trophies (old 2.5), offline unpack (old 3.5), slot quirks and the yardstick (old 3.6 and 3.7). The two parameter tables of old 2.3 and 2.7 became one, in 2.1, and the `run_slot.sh` walkthrough moved from the LD Full section into 2.3. Same day, from the second client install: 0.5 and 0.8f print PASS or FAIL instead of `Connection refused`, 0.8f checks 6001 from the Kria side, `start_i2c.sh` is its own block in 1.3 with the wedge escalation under it, 1.2 is marked as not needed before a wrapper bring-up, 1.4 documents the identify line naming a wrong board type on a partial enable, and 2.4 says not to re-bring-up a verified slot |
