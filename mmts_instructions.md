@@ -1084,11 +1084,19 @@ claim automatically. Use `--keep-daq-server` to override.
 `daq-server` and restart the puller. Both hold state from the dead run, and
 skipping this is the easiest way to spend an hour debugging leftovers.
 
-## 1.2 Cold start after a mains cycle
+## 1.2 Powering the bench without a bring-up
 
-A freshly booted Kria has no bitstream, and payload power is off. These two lines
-are also the answer to a `findslot.py` that failed with `[Errno 5]` at 0.9: run
-them, then probe once more before concluding anything about the bus.
+🔑 **Skip this section if your next command is a bring-up.** `mmts_bringup.sh`
+and `up_verified.sh` default to `--recover`, which does exactly these two things
+and a `kconn_pwr off` first, before it touches I2C, so a wrapper bring-up on a
+freshly booted Kria needs nothing in front of it. This section is for the case
+where you want the bench powered and are **not** about to run one.
+
+A freshly booted Kria has no bitstream, and payload power is off. There are two
+occasions to fix that by hand. One is a `findslot.py` that failed with `[Errno 5]`
+at 0.9: run these, then probe once more before concluding anything about the bus.
+The other is driving `enableROCs.py` yourself, which defaults the opposite way
+from the wrappers, per the warning below.
 
 **(on the lab computer)**
 
@@ -1137,10 +1145,50 @@ bring-up and not a reduced one:
 ```bash
 pkill -f '[z]mq_server'
 cd ~/multimodule && ./mmts_bringup.sh A --board LD-Full
+```
+
+🛑 **Stop here and read the result before typing anything else.** Go on only when
+the bring-up ended in its ROC list, `3 ROC(s) enabled [...]` for an LD Full, per
+1.4. If it ended in `bring-up failed`, or in a traceback, the next step is 12.3
+and 12.4, not this one.
+
+🔑 **On a failure, re-run this block exactly once, and decide on the retry counts
+rather than the ROC count.** A partial enable with a different chip missing each
+time is the lottery of 1.4 and wants another go. What does not want another go is
+`[Errno 5]` on the `[mux]` writes to `0x71`, `0x73` and `0x77`: those never leave
+the mux board, so the PL I2C master is what is failing, not the module. Compare
+the two runs, and **if the retries reach `5/5`, or reach it earlier than they did
+last time, stop**. `--recover` cannot clear that state and every further attempt
+degrades it. Halt the Kria and cycle it at the power button:
+
+**(on the Kria)**
+
+```bash
+sudo shutdown -h now
+```
+
+Then press the power button, wait for `ssh kria` to answer again, and **restart
+at the bring-up block of this section, 1.3. Nothing else has to be redone.**
+Everything a reboot could cost is on disk and survives it: the udev rules of
+0.8g, `connections.xml` and the per-slot tables of 0.8d, the firewall of 0.8f,
+the sudoers rule of 0.3, the firmware RPM, and the Kria-side scripts of 0.7. The
+cold-start lines of 1.2 are not needed either, because `mmts_bringup.sh` defaults
+to `--recover`, whose `[rec]` step does `kconn_pwr off`, `fw-loader load` and
+`kconn_pwr on` before it touches I2C. Only a firmware install sends you back into
+section 0, and only to 0.8d.
+
+Run the bring-ups **back to back** rather than one per boot: a slot that failed
+on five separate fresh boots came up 4 of 10 in a row, with the error count
+falling on every attempt. 12.4 is the long form, and it also covers the case
+where a power cycle is not enough.
+
+**(on the Kria, only after the bring-up printed its ROC list)**
+
+```bash
 ~/start_i2c.sh A
 ```
 
-⚠️ **The second line is not optional, and nothing reminds you of it.**
+⚠️ **This block is not optional, and nothing reminds you of it.**
 `mmts_bringup.sh` brings the slot up and restarts `daq-server` on 6000, but it
 does **not** start the i2c-server on 5555; only `start_i2c.sh` does, and
 `up_verified.sh` is what normally calls it for you. Skip it and the bring-up
@@ -1150,6 +1198,13 @@ with nothing to talk to. `ss -ltn | grep -E '5555|6000'` must show both.
 `start_i2c.sh` takes about 25 s and ends by printing the identify line, which is
 the second thing to read: **`Identify a board with HGCROC Siv3b`** is what you
 want, and plain `Siv3` means redo the bring-up rather than continue, per 1.4.
+
+🔑 **Running it on a failed bring-up costs you the next attempt.** It starts and
+binds 5555 regardless, so `--- listening ---` and an `ss` line appear under the
+traceback and read as partial success. What you actually have is a server holding
+the I2C bus with nothing configured behind it, and the re-run you are about to
+type is then a bring-up under a live server, which is 12.1. If you have already
+done it, `pkill -f '[z]mq_server'` before re-running the bring-up.
 
 ⚠️ **`up_verified.sh` retries what should not be retried.** Its eight attempts
 are calibrated for the bring-up lottery of 1.4, where a healthy bench needs two
