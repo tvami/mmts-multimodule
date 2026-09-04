@@ -1714,6 +1714,24 @@ Always before a pedestal, never after.
 "$MM/delay_scan.sh" <SLOT> configs/<FAMILY>_mux<SLOT>_ped.yaml
 ```
 
+`<FAMILY>` is your board type's config family, from the last row of the table in
+2.7. Filled in for an LD Full on slot A, the type every worked example up to here
+has used, and with the pedestal of 3.3 after it, this is the pair to type on a
+slot you already brought up by hand in 1.3:
+
+**(on the lab computer)**
+
+```bash
+"$MM/delay_scan.sh" A configs/initLD-Full-3b_muxA_ped.yaml
+PED_BOARD=LD-Full "$MM/ped_run.sh" A 5 ldfull 10000
+```
+
+Every other type has the same pair, per slot, in its own section: LD Five in 5,
+LD Left and Right in 6, LD Bottom and Top in 7, HD Full in 8, HD Top in 9, HD
+Bottom in 10, HD Semi in 11. Do not carry an LD Full config onto another type or
+onto another slot, since the trigger set is per slot as well as per type, per
+2.4.
+
 That restarts the puller, scans and prints the gate in one step. It prints its
 header line, then `scanning, 20 to 40 s` with the path of the log it keeps,
 `Mux<SLOT>/delay_scan.log` next to the output, and then the gate. The long form
