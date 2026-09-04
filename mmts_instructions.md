@@ -1642,6 +1642,19 @@ step means and what to do when one of them misbehaves.
 
 ## 3.1 Bring up the slot
 
+🔑 **Skip this step if you already have a verified slot**, that is, if 1.3 has
+just given you the full ROC list and an `[I2C] Board identification` line naming
+your board type. Go straight to 3.2, or equivalently to the **last two lines** of
+your type's slot block in sections 4 to 11, and leave its bring-up line untyped.
+
+⚠️ **In that case do not reach for the one-command `run_slot.sh` form either.**
+It always starts with its own `up_verified.sh`, because what it promises is a
+verified slot, and it has no flag to skip that. On a bench where the bring-up is
+going first time that costs a minute; on the bus of 12.4, where you spent several
+attempts and a power cycle earning the state you are standing in, it throws that
+state away and re-rolls the lottery. Hand-drive the remaining steps instead, and
+keep `run_slot.sh` for a bench that brings up on the first or second try.
+
 **(on the lab computer)**
 
 ```bash
@@ -1920,7 +1933,9 @@ stall. The shipped configs carry the right edge for each slot; check `header
 positions` in `daq-server.log` before touching anything else, every link at 23
 is right.
 
-One command end to end, per slot:
+One command end to end, per slot. It begins with its own bring-up, so **use it
+from a slot you have not brought up yet**; if you are already standing on a
+verified slot from 1.3, go to 4.1 and type only its last two lines, per 3.1:
 
 **(on the lab computer)**
 
