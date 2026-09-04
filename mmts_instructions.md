@@ -1178,6 +1178,33 @@ done it, `pkill -f '[z]mq_server'` before re-running the bring-up.
 
 ### When the bring-up fails instead
 
+The two wrappers say it differently, and the difference is how much has already
+been spent when you read it:
+
+| message | from | means |
+|---|---|---|
+| `!! bring-up failed -- re-run once.` | `mmts_bringup.sh` | one attempt failed |
+| `FAILED to bring slot A up cleanly -- read ~/bu_A.log and ~/zmq_srvA.log` | `up_verified.sh` | **eight** bring-ups failed, each with up to three i2c-server starts, so roughly ten minutes and eight payload power cycles are already gone |
+
+🔑 **`up_verified.sh` failing after a hand-run `mmts_bringup.sh` that looked fine
+is not a contradiction.** It does not trust the log line: a try counts as good
+only when the ROC count reaches `EXPECT_ROCS`, the string `FAILED` appears
+nowhere in the log, the i2c-server logged `Board identification`, and 5555 and
+6000 are both listening. Any one of those can be missing behind a bring-up that
+read as healthy on your screen.
+
+**Read its per-try lines first, because they say which half failed**, and the two
+halves have different causes:
+
+* `bringup try 3: 0/3 ROCs ...` is the bring-up, and the rest of this subsection
+  applies;
+* `i2c try 1: 4 errors, 5555=0 ...` is the i2c-server, which is the stale
+  identify trap of 12.2 or the dead-reads case of 9.4, not the bus wedge below.
+
+Then read the logs it names, `~/bu_A.log` for the bring-up and `~/zmq_srvA.log`
+for the server. Both are truncated on each launch, so read them before running
+anything else.
+
 🔑 **Re-run the bring-up block exactly once, and decide on the retry counts
 rather than the ROC count.** A partial enable with a different chip missing each
 time is the lottery of 1.4 and wants another go. What does not want another go is
