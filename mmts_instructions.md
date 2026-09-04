@@ -1263,10 +1263,14 @@ module on. The default is the slot's own index (`A`→1, `B`→2, `C`→3), and 
 a property of the hardware.
 
 Get it wrong and you see `no ROCs` with **next to nothing on the meter**, which is
-indistinguishable from a dead module, a bad trophy or a seating fault. Sweep the
-three values, keeping `--board` and `EXPECT_ROCS` at your own board's:
+indistinguishable from a dead module, a bad trophy or a seating fault. The
+default is right on a normally cabled bench, so leave `--module` off until it
+fails that way. When it does, sweep the three values one at a time, keeping
+`--board` and `EXPECT_ROCS` at your own board's, and watch the meter rather than
+the ROC count:
 
-**(on the lab computer)**
+**(on the lab computer, only after a bring-up gave `no ROCs` at near-zero
+current; run one line at a time and stop at the one that draws current)**
 
 ```bash
 ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 1"
