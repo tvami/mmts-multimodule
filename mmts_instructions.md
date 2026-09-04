@@ -2789,6 +2789,34 @@ Each of these reads as a result and is not one.
 Plan the session around this. Rest first, then spend the good bring-ups on the
 measurement you actually care about.
 
+🔑 **Start a kernel recorder before you chase one of these, because the stock
+image keeps no journal across a reboot.** `journalctl --list-boots` on a fresh
+Kria lists boot `0` alone and answers `no persistent journal was found`, so
+whatever the board printed on its way down is gone the moment you press the
+button, and a `journalctl -b -1` after the fact tells you nothing. `/var/log`
+is not writable by journald on this image either, so do not spend the session on
+making it persistent. The home directory does survive, which is enough:
+
+**(on the Kria)**
+
+```bash
+setsid bash -c 'dmesg -w >> ~/kernel.log' < /dev/null > /dev/null 2>&1 &
+pgrep -af 'dmesg -w'
+```
+
+`dmesg -w` follows the kernel ring buffer, which is where a hang prints, and
+appends it to a file on disk. The shell reports `Done` immediately because
+`setsid` exits at once and leaves the child running, so trust `pgrep` and not
+that message. It does not survive a reboot, so restart it after every power
+cycle, and read it with `tail -50 ~/kernel.log` once the board is back.
+
+⚠️ **The Kria boots with a wrong clock**, on this bench `2025-12-04` until
+something sets it. That is not a time zone difference, per 12.5, it is a wrong
+date, so `~/daq-server.log`, `~/bu_<slot>.log` and `~/kernel.log` cannot be lined
+up against the client's timestamps until the clock is set. When you need that
+correlation, use a wall clock the client also sees, such as a `ping` with a
+timestamp printed on the client side, rather than trusting the Kria's own.
+
 ## 12.5 A few smaller ones
 
 - **`pkill -f "zmq_server.py"` over ssh kills your own ssh command**, because the
@@ -2815,6 +2843,7 @@ itself. Newest first.
 
 | date | change |
 |---|---|
+| 2026-09-04 | The stock image keeps **no persistent journal**, so a Kria that hangs and needs the power button leaves nothing behind: `journalctl -b -1` answers `no persistent journal was found`, and `/var/log/journal` is not adopted even when created with the right ownership. 12.4 now says to start `dmesg -w >> ~/kernel.log` before chasing a hang, since the home directory does survive. Also recorded there: the Kria boots with a wrong date, `2025-12-04` on this bench, so its logs cannot be correlated with the client's until the clock is set |
 | 2026-09-04 | Restructured so the routine path comes before the reference material. Section 2 is now "Running a board": which type, register, `run_slot.sh`, then its stages one at a time in 2.4 to 2.7, the old 3.1 to 3.4. The per-type sections moved up one, to 3 to 10. What an operator does not need on the routine path went to a new section 11, Reference: the ROC revision and `in_inv_cmd_rx` (old 2.1), ROC addresses (old 2.2), measured link sets and the probe (old 2.4), trophies (old 2.5), offline unpack (old 3.5), slot quirks and the yardstick (old 3.6 and 3.7). The two parameter tables of old 2.3 and 2.7 became one, in 2.1, and the `run_slot.sh` walkthrough moved from the LD Full section into 2.3. Same day, from the second client install: 0.5 and 0.8f print PASS or FAIL instead of `Connection refused`, 0.8f checks 6001 from the Kria side, `start_i2c.sh` is its own block in 1.3 with the wedge escalation under it, 1.2 is marked as not needed before a wrapper bring-up, 1.4 documents the identify line naming a wrong board type on a partial enable, and 2.4 says not to re-bring-up a verified slot |
 | 2026-09-03 | Scripts changed to match, in one `hexactrl-script` MR. `site.sh` is gone: `lib.sh` reads the environment, requires `MMTS_ROOT` and `KRIA_IP` and stops naming a missing one, and defaults the rest, so no placeholder address or stale firmware name can hang a scan later. `partial_slot.sh` is `run_slot.sh`, since it runs full boards too, and it streams every stage instead of holding the output until the end. `up_verified.sh` kills the previous slot's i2c-server before the first try and announces each try, so the hand-driven blocks lost their `pkill` line again. `delay_scan.sh` keeps the scan's log, times out at 180 s, and `gate.py` refuses a summary older than the scan and prints both logs' tails when there is nothing to report. `register_boards.py` creates the registry. `module_of.py` and `hexmap_robust.py` lost their site-named results default |
 | 2026-09-03 | Corrected against two full sessions: the HD Top campaign on the reference bench and the first LD Full attempt from these instructions on a new client, which reached the gate and no further. Every hand-driven bring-up now kills the previous slot's i2c-server first, which `run_slot.sh` always did and `up_verified.sh` never does. Sections 3.1 to 3.3 and 4 say what each step prints, how long its silence lasts, which log to `tail -f`, and what the meter reads at each point. The gate's missing age check is documented. `ped_run.sh` is described as what it is, N runs on the slot as it stands, rather than as a bring-up plus gate. The `in_inv_cmd_rx` revision rule is restricted to the boards it holds for, since the LD Full keeps 1. 0.9 checks `connections.xml`, whose stock `TOP`-only form is what stopped the new client at the gate. The HD Top section carries its measured gates, per-slot trigger sets, edge settings and the three failures seen that day; its configs' claim of a power distribution board was wrong |
