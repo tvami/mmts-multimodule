@@ -1212,16 +1212,9 @@ time is the lottery of 1.4 and wants another go. What does not want another go i
 the mux board, so the PL I2C master is what is failing, not the module. Compare
 the two runs, and **if the retries reach `5/5`, or reach it earlier than they did
 last time, stop**. `--recover` cannot clear that state and every further attempt
-degrades it. Halt the Kria and cycle it at the power button:
-
-**(on the Kria)**
-
-```bash
-sudo shutdown -h now
-```
-
-Then press the power button, wait for `ssh kria` to answer again, and **restart
-at the bring-up block of this section, 1.3. Nothing else has to be redone.**
+degrades it. Only then, halt the Kria with `sudo shutdown -h now`, press the
+power button, wait for `ssh kria` to answer again, and **restart at the bring-up
+block of this section, 1.3. Nothing else has to be redone.**
 Everything a reboot could cost is on disk and survives it: the udev rules of
 0.8g, `connections.xml` and the per-slot tables of 0.8d, the firewall of 0.8f,
 the sudoers rule of 0.3, the firmware RPM, and the Kria-side scripts of 0.7. The
