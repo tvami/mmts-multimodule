@@ -267,8 +267,21 @@ Then open a new shell, or `source ~/.bashrc`, and check that all of it took:
 ```bash
 echo "MMTS_ROOT=$MMTS_ROOT SCRIPTS=$SCRIPTS KRIA_IP=$KRIA_IP"
 ls "$SCRIPTS/delay_scan.py" "$MM/puller.sh"
-timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/5555"; echo "5555 exit=$?"
+timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/5555" 2>/dev/null; rc=$?
+case $rc in
+  0|1) echo "KRIA_IP PASS: $KRIA_IP answered" ;;
+  124) echo "KRIA_IP FAIL: nothing answered at $KRIA_IP (timed out)" ;;
+  *)   echo "KRIA_IP unexpected rc=$rc" ;;
+esac
 ```
+
+🔑 **The `case` is there because the raw form of this check reads backwards.**
+Nothing listens on 5555 until a bring-up starts the i2c-server, so the healthy
+answer is a refusal: run bare, it prints `Connection refused` and `exit=1`, which
+looks like a failure and is the result you want. What it proves is that the
+packet reached the Kria and something sent an RST back, so the address is right
+and nothing is silently dropping it. The failure is the opposite, a five second
+silence, `rc=124`, which is a wrong `KRIA_IP` or a firewall.
 
 | variable | what it is |
 |---|---|
@@ -830,13 +843,23 @@ Prove reachability from the client rather than trusting `ss` on the Kria, since
 **(on the lab computer)**
 
 ```bash
-timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/5555"; echo "5555 exit=$?"
-timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/6000"; echo "6000 exit=$?"
+for p in 5555 6000; do
+  timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/$p" 2>/dev/null; rc=$?
+  case $rc in
+    0|1) echo "port $p PASS: reachable" ;;
+    124) echo "port $p FAIL: blocked (timed out)" ;;
+    *)   echo "port $p unexpected rc=$rc" ;;
+  esac
+done
 ```
 
-Exit `124` is a timeout and means blocked. Exit `0` or `1` means the port is
-reachable, which is what you want. If your site uses `iptables` or `nft` rather
-than `firewalld`, open the same three ports with those instead.
+`PASS` here means the packet arrived and got an answer, either from a listening
+server or as a refusal. **A refusal is a pass**, and until a bring-up has run
+that is the only answer either port can give, since nothing is listening yet.
+Only the timeout is a fault, and it is silent, which is why the `case` prints a
+verdict rather than leaving you to read `Connection refused` and guess. If your
+site uses `iptables` or `nft` rather than `firewalld`, open the same three ports
+with those instead.
 
 ### g. Device permissions
 
