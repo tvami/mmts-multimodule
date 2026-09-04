@@ -1826,6 +1826,19 @@ Or N runs in a row, each on a fresh puller, scored by CRC in one table:
 PED_BOARD=<BOARD> "$MM/ped_run.sh" <SLOT> 5 <label> 10000
 ```
 
+Filled in for an LD Full on slot A, the type every worked example up to here has
+used. `<label>` is yours to choose and only names the output; `5` is the number
+of runs and `10000` the events per run:
+
+**(on the lab computer)**
+
+```bash
+PED_BOARD=LD-Full "$MM/ped_run.sh" A 5 ldfull 10000
+```
+
+Each other type differs only in `PED_BOARD`, and the partials additionally need
+`PED_EXTPOWER=1`; the exact line per slot is in that type's section, 5 to 11.
+
 It runs on the slot as it stands: **no bring-up and no gate**, so 3.1 and 3.2
 come first. `PED_BRINGUP=1` adds a fresh bring-up before every run, and only
 then do `PED_BOARD`, `PED_EXTPOWER=1` for a board with no power distribution
@@ -1857,6 +1870,23 @@ it worked.
 python3 "$MM/hexmap_robust.py" <run-dir> -l <label> --clip 5
 python3 "$MM/cm_analysis.py" "$OUT/Mux<SLOT>/pedestal_run/run_*"
 ```
+
+Filled in for the LD Full slot A runs of 3.3, the type every worked example up to
+here has used. `<run-dir>` is one run directory, which the `ped_run.sh` table
+names in its last column, so a shell glob covers the set:
+
+**(on the lab computer)**
+
+```bash
+python3 "$MM/hexmap_robust.py" "$OUT"/MuxA/pedestal_run/run_* -l ldfull --clip 5
+python3 "$MM/cm_analysis.py" "$OUT/MuxA/pedestal_run/run_*"
+```
+
+🔑 **Neither takes a board type, and neither should be given one.**
+`hexmap_robust.py` reads the geometry and channel map from characters 5 and 6 of
+the serial, so it is already right for every type, and forcing `-t` is how you
+get a partial plotted on the full geometry, per 2.1. That makes these two lines
+the only ones in sections 3 to 11 that do not change with the board.
 
 Read the printed `module:` and mapping lines every time. Mapping version matters:
 the repository ships dated maps and even an explicit `_BAD.csv`, and the wrong
