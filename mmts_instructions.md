@@ -584,55 +584,133 @@ of the checks in 0.9. Both end at 0.9.
 
 ### Route A: flash the prepared image
 
-The image is `kria-ua-v2.img`, kept on FNAL EOS:
+The image is a gzipped snapshot of a working bench Kria's SD card, published on
+CERNBox as a public link. **No CERN account is needed**, so this works from any
+Module Assembly Center, and the same link works from Linux and from macOS.
 
-```
-root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img
-```
+| | |
+|---|---|
+| file | `kria11-ucsb-20260908.img.gz` |
+| download | 5,075,604,095 bytes (5.1 GB) |
+| written to the card | 10,675,552,256 bytes (10.7 GB) |
+| sha256 of the download | `1a5dc548f1ae69b034ec28a0727c0fee321f3b253c7ca1453c3017f016f107ac` |
+| link | `https://cernbox.cern.ch/s/vCNbETZNHUdHyCS/download` |
 
-**Fetch it.** You need the XRootD client and a way to authenticate to FNAL EOS,
-either a valid grid proxy or a Fermilab Kerberos ticket. This is a multi-gigabyte
-download, so put it somewhere with room:
+Your card must be **at least 11 GB**. Any 16 or 32 GB card is fine.
 
-**(on the lab computer)**
+#### A1. Fetch and check it
+
+`curl` ships with both AlmaLinux and macOS, so one command covers both. Put it
+somewhere with room:
+
+**(on the lab computer, Linux or macOS)**
 
 ```bash
-sudo dnf install -y xrootd-client
 cd "$MMTS_ROOT"
-xrdcp root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img .
-ls -l kria-ua-v2.img
+curl -L -o kria11-ucsb-20260908.img.gz \
+  'https://cernbox.cern.ch/s/vCNbETZNHUdHyCS/download'
+ls -l kria11-ucsb-20260908.img.gz
 ```
 
-If `xrdcp` fails on authentication, `voms-proxy-init -voms cms` with a grid
-certificate, or `kinit <user>@FNAL.GOV` with a Fermilab account, are the two
-routes in; if you have neither, ask the image's owner for a copy.
+⚠️ **Check the checksum before you write a card, not after.** A truncated
+download still writes without complaint and the Kria then fails to boot, or
+boots into a corrupted root filesystem, which is a much more expensive thing to
+debug than a five minute re-download. The two platforms spell the command
+differently:
 
-**Write it to the SD card.** Identify the card first, and check it twice: `dd`
-writes to whatever you name with no confirmation, and naming your system disk
-destroys the lab computer.
+**(on the lab computer, Linux)**
 
-**(on the lab computer)**
+```bash
+sha256sum kria11-ucsb-20260908.img.gz
+```
+
+**(on the lab computer, macOS)**
+
+```bash
+shasum -a 256 kria11-ucsb-20260908.img.gz
+```
+
+It must print the sha256 from the table above. Anything else means download it
+again; do not continue.
+
+#### A2. Identify the card, and check it twice
+
+🛑 **`dd` writes to whatever device you name, with no confirmation and no undo.
+Naming your system disk destroys the lab computer.** Read the size in the
+listing below and confirm it matches the card you just inserted. This is the one
+step in this document with no recovery path.
+
+**(on the lab computer, Linux)**
 
 ```bash
 lsblk -d -o NAME,SIZE,MODEL,TRAN
 ```
 
-The card is the removable device whose size matches your card, usually `sdb` or
-`mmcblk0`, and it must be at least as large as the image file from the `ls`
-above. With that name in place of `sdX`, and every partition of it unmounted:
+The card is the removable device whose size matches it, usually `sdb` in a USB
+reader or `mmcblk0` in a built-in one.
 
-**(on the lab computer)**
+**(on the lab computer, macOS)**
+
+```bash
+diskutil list external physical
+```
+
+The card is a `/dev/diskN` whose size matches. On macOS **use `/dev/rdiskN`,
+the raw node, when you write**: it bypasses the buffer cache and is several
+times faster. There is no equivalent on Linux, where `/dev/sdX` is already the
+right node.
+
+#### A3. Write it to the card
+
+Both forms below **stream the decompression straight into `dd`**, so the 10.7 GB
+uncompressed image is never written to disk and you need no extra free space.
+Substitute the device name you just confirmed.
+
+**(on the lab computer, Linux)**
 
 ```bash
 sudo umount /dev/sdX* 2>/dev/null
-sudo dd if="$MMTS_ROOT/kria-ua-v2.img" of=/dev/sdX bs=4M status=progress conv=fsync
+gunzip -c kria11-ucsb-20260908.img.gz \
+  | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
 sync
 ```
 
-Expect it to take several minutes. Then move the card to the Kria, power it on,
-and find it on the network. The image gets its address by DHCP, so read it from
-your DHCP server, from the Kria's own console, or by watching for a new host on
-the bench subnet; that address is `KRIA_IP` in 0.5.
+**(on the lab computer, macOS)**
+
+```bash
+diskutil unmountDisk /dev/diskN
+gunzip -c kria11-ucsb-20260908.img.gz | sudo dd of=/dev/rdiskN bs=4m
+sync
+diskutil eject /dev/diskN
+```
+
+⚠️ **The two platforms differ in four places, and three of them fail quietly.**
+
+| | Linux | macOS |
+|---|---|---|
+| list the disks | `lsblk` | `diskutil list` |
+| unmount | `umount /dev/sdX*`, one call per partition | `diskutil unmountDisk /dev/diskN`, whole device |
+| device to write | `/dev/sdX` or `/dev/mmcblk0` | `/dev/rdiskN`, the raw node |
+| block size | `bs=4M`, uppercase | `bs=4m`, lowercase |
+| progress | `status=progress` | **Ctrl+T**, there is no `status=progress` |
+
+macOS `dd` accepts only `none` and `noxfer` for `status=`, so asking it for
+`progress` is an error rather than a quiet no-op. Press Ctrl+T during the run
+instead and it prints one progress line per keypress. Expect five to fifteen
+minutes depending on the card.
+
+#### A4. Boot it
+
+Move the card to the Kria, power it on, and find it on the network. The image
+gets its address by DHCP, so read it from your DHCP server, from the Kria's own
+console, or by watching for a new host on the bench subnet; that address is
+`KRIA_IP` in 0.5.
+
+🔑 **The card will show unallocated space at the end, and that is correct.** The
+image stops at the end of the root partition rather than carrying the tail of
+the card it was made from, which is what keeps the download at 5 GB instead of
+16. The root filesystem is 9.6 GB, which is enough for everything in this
+document. Grow it with `growpart` and `resize2fs` only if you actually run out.
 
 **What the image does and does not settle.** It is a snapshot, so it carries a
 built `hexactrl-sw` under `/opt`, a firmware RPM, the `TOP_A/B/C` connection
@@ -645,6 +723,41 @@ does **not** know about your client, so three things are still yours to do:
 * 0.9, every check, before the first bring-up. A snapshot goes stale: if the
   firmware release in 0.8c has moved on, or `connections.xml` fails its `grep`,
   apply that one step from Route B rather than rebuilding the whole Kria.
+
+#### A5. Regenerating the image, for whoever maintains it
+
+Only the maintainer needs this. **Power the Kria down and take the card out
+first**: imaging a live root filesystem gives an inconsistent snapshot that may
+still boot, which is the worst of both outcomes.
+
+Read the card's partition table and image **only up to the end of the last
+partition**, so the unused tail of the card is not in the download:
+
+**(on the maintainer's machine, macOS)**
+
+```bash
+diskutil list external physical                  # find diskN
+diskutil info diskNs2 | grep -iE "partition offset|disk size"
+diskutil unmountDisk /dev/diskN
+sudo dd if=/dev/rdiskN of=kria-<site>-<date>.img bs=1m count=10181
+```
+
+`count` is the end of the last partition in MiB: take its offset in 512-byte
+sectors plus its length in sectors, and divide by 2048. For the card this image
+came from, partition 2 started at sector 2099200 and ran 18751488 sectors, so
+the end was sector 20850688 and `count=10181`.
+
+Then compress, checksum, and upload the `.gz` to CERNBox as a public link:
+
+```bash
+gzip -k -6 kria-<site>-<date>.img
+shasum -a 256 kria-<site>-<date>.img.gz
+```
+
+⛔ **Publish `.img.gz`, not `.img.tar.gz`.** With a single file `tar` adds only a
+header, and it costs the reader the `gunzip -c ... | dd` pipe of step A3, forcing
+them to extract 10.7 GB to disk first. Update the table at the top of Route A
+with the new name, both sizes, and the new sha256.
 
 ### Route B: set it up yourself
 
@@ -2997,6 +3110,7 @@ itself. Newest first.
 
 | date | change |
 |---|---|
+| 2026-09-08 | Route A rewritten around a **gzipped image on a CERNBox public link**, replacing the uncompressed `kria-ua-v2.img` on FNAL EOS. The download needs **no CERN account** and no XRootD client, so `xrdcp`, grid proxies and `kinit` are gone from the step; `curl` covers Linux and macOS with one command. The image is truncated at the end of the root partition rather than carrying the tail of the card it came from, which took it from 31.7 GB to 10.7 GB written and 5.1 GB downloaded, and is why a freshly flashed card correctly shows unallocated space. Step A3 streams `gunzip -c ... \| dd` so the reader never needs 10.7 GB of free space for an intermediate file, which is also why the file is published as `.img.gz` and not `.img.tar.gz`. **Linux and macOS are now given side by side** at every step, with a table of the four places they differ: `lsblk` against `diskutil list`, per-partition `umount` against whole-device `diskutil unmountDisk`, `/dev/sdX` against the raw `/dev/rdiskN`, and `bs=4M` against `bs=4m`. macOS `dd` accepts only `none` and `noxfer` for `status=`, so `status=progress` is an error there and Ctrl+T is the progress key. A sha256 check is now mandatory before writing, since a truncated download flashes silently and presents as a Kria that will not boot. New A5 records how to regenerate and republish the image, including taking the card out of a powered-down Kria first, because imaging a live root filesystem yields an inconsistent snapshot that may still boot |
 | 2026-09-04 | 0.8 split into two routes. **Route A** flashes the prepared image `kria-ua-v2.img` from FNAL EOS (`root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img`) onto the SD card with `xrdcp` and `dd`, and says what a snapshot does not settle: 0.3, 0.7 and every 0.9 check are still per client. **Route B** is the former step-by-step 0.8a to 0.8g, unchanged, also used one step at a time to repair a Route A Kria that fails a check |
 | 2026-09-04 | **A Kria serves one puller.** `daq-server` pushes over a ZeroMQ PUSH socket, which round-robins across every connected `daq-client`, so a second one anywhere on the network takes half the messages: the client reads a data archive where the `START_RUN_DELAY_SCAN` header should be and stays out of step for the whole run. It presents as an empty run directory and `no summary.json` behind a clean bring-up and a `daq-server` that ran to `STOP`, and is visible only in `daq-client.log` as `Error : serialization::archive ... not in dataTypeMap`. Found after half a day of chasing it as a firewall, a Boost mismatch and a build mismatch, all of which were ruled out; the second puller was a Docker container left up on another machine, which `pgrep` does not find. 0.8f gains the check, the port table gains 8888 and corrects 6001 to what it is, a localhost control socket. Also corrected there: a port test must use `exec 3<>/dev/tcp/...` and not `cat <`, which always times out against a listening server and reports a healthy port as blocked |
 | 2026-09-04 | The stock image keeps **no persistent journal**, so a Kria that hangs and needs the power button leaves nothing behind: `journalctl -b -1` answers `no persistent journal was found`, and `/var/log/journal` is not adopted even when created with the right ownership. 12.4 now says to start `dmesg -w >> ~/kernel.log` before chasing a hang, since the home directory does survive. Also recorded there: the Kria boots with a wrong date, `2025-12-04` on this bench, so its logs cannot be correlated with the client's until the clock is set |
