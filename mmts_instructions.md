@@ -591,57 +591,6 @@ takes its address by DHCP: read it from your DHCP server, the Kria's console,
 or by watching for a new host on the bench subnet. That address is `KRIA_IP`
 in 0.5.
 
-🔑 **The card shows unallocated space at the end, and that is correct.** The
-image stops at the end of the root partition, which is what keeps the download
-at 5 GB. The 9.6 GB root is enough for everything here; grow it with
-`growpart` and `resize2fs` only if you run out.
-
-**What the image does not settle.** It is a snapshot: a built `hexactrl-sw`
-under `/opt`, a firmware RPM, the `TOP_A/B/C` connection map, the udev rules
-and the open ports as of the day it was made. Three things are still yours:
-
-* 0.3, the ssh key and the passwordless `sudo` rule, which are per client;
-* B8, the bench scripts and the i2c-server, **only if the image has aged**. A
-  fresh image carries them, verified byte for byte on 2026-09-08; re-run B8
-  once the client's clone has moved on;
-* 0.9, every check, before the first bring-up. If the firmware release in B3
-  has moved on, or `connections.xml` fails its `grep`, apply that one step from
-  Route B rather than rebuilding the Kria.
-
-#### A5. Regenerating the image, for whoever maintains it
-
-**Power the Kria down and take the card out first.** Imaging a live root gives
-an inconsistent snapshot that may still boot.
-
-Image **only up to the end of the last partition**, so the unused tail of the
-card is not in the download:
-
-**(on the maintainer's machine, macOS)**
-
-```bash
-diskutil list external physical                  # find diskN
-diskutil info diskNs2 | grep -iE "partition offset|disk size"
-diskutil unmountDisk /dev/diskN
-sudo dd if=/dev/rdiskN of=kria-<site>-<date>.img bs=1m count=10181
-```
-
-`count` is the end of the last partition in MiB: its offset in 512-byte
-sectors plus its length, divided by 2048. For this image, partition 2 started
-at sector 2099200 and ran 18751488 sectors, ending at 20850688, so
-`count=10181`.
-
-Then compress, checksum, and upload the `.gz` to CERNBox as a public link:
-
-```bash
-gzip -k -6 kria-<site>-<date>.img
-shasum -a 256 kria-<site>-<date>.img.gz
-```
-
-⛔ **Publish `.img.gz`, not `.img.tar.gz`.** `tar` adds nothing for one file
-and costs the reader the `gunzip -c ... | dd` pipe of A3, forcing a 10.7 GB
-extraction first. Update the table at the top of Route A with the new name,
-sizes and sha256.
-
 ## 0.9 Check the installation
 
 All typed on the lab computer. The first block checks the Kria over `ssh`, the
