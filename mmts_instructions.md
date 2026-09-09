@@ -170,7 +170,7 @@ failures come later without either naming a submodule:
   client build of 0.6a dies with `The source directory ... /hexactrl-script/analysis
   does not contain a CMakeLists.txt file` followed by
   `make: *** No targets specified and no makefile found`;
-* the `zmq_i2c` tar of 0.7 copies an empty directory to the Kria.
+* the `zmq_i2c` tar of 0.8h copies an empty directory to the Kria.
 
 On a clone that already exists, `git submodule update --init --recursive` from
 `hexactrl-sw` does the same job.
@@ -218,7 +218,7 @@ $MMTS_ROOT/
 │   │   ├── analysis/             submodule: the pedestal and scan analyses
 │   │   ├── configs/              the run configs, one per board type and slot
 │   │   ├── multimodule/          THE BENCH SCRIPTS: this is $MM
-│   │   │   └── kria/             the subset copied to the Kria in 0.7
+│   │   │   └── kria/             the subset copied to the Kria in 0.8h
 │   │   ├── delay_scan.py
 │   │   └── pedestal_run.py
 │   └── zmq_i2c/                  submodule: the i2c-server, copied to the Kria
@@ -540,39 +540,9 @@ and which log to `tail -f` in a second terminal when you want the detail.
 
 ## 0.7 Copy the code to the Kria
 
-The Kria gets the contents of `$MM/kria/` and the i2c-server. No git on the Kria.
-
-Three transfers, in the order below. The bring-up, mux and power helpers go to
-`~/multimodule`; the three wrappers you type by hand go to the home directory
-itself, for the reason given after the block; and the i2c-server goes under
-`~/multimodule/hexactrl-sw`, from where it is run **and not** from the RPM copy
-under `/opt`.
-
-**(on the lab computer)**
-
-```bash
-cd "$MM/kria"
-ssh kria 'mkdir -p ~/multimodule/hexactrl-sw'
-tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py \
-  | ssh kria 'tar xf - -C ~/multimodule'
-tar cf - up_verified.sh start_i2c.sh set_pwr_en.py | ssh kria 'tar xf - -C ~'
-cd "$MMTS_ROOT/hexactrl-sw"
-tar czf - --exclude=__pycache__ zmq_i2c | ssh kria 'tar xzf - -C ~/multimodule/hexactrl-sw'
-ssh kria 'chmod +x ~/multimodule/*.sh ~/*.sh ~/*.py'
-```
-
-The three home directory scripts live as files on the Kria on purpose: a
-`pkill -f` pattern typed into an ssh one-liner matches that one-liner's own
-command line and kills your session. What they do:
-
-| file | what |
-|---|---|
-| `up_verified.sh SLOT [--external-power] [--board NAME] [--module N]` | kills any i2c-server left from the previous slot, runs `mmts_bringup.sh` up to 8 times and the i2c-server up to 3, announces each try, and reports `READY` only when the ROC count matches `EXPECT_ROCS`, nothing says `FAILED`, the board identified, and ports 5555 and 6000 both listen |
-| `start_i2c.sh SLOT` | restart the i2c-server on a slot, detached, and print its identify line |
-| `set_pwr_en.py SLOT on\|off ...` | drive one slot's payload rail without a bring-up |
-
-Re-run the `tar` commands whenever you change a script on the client. The
-client's `$MM/kria/` is the source of truth; do not edit the copies on the Kria.
+Moved to **0.8h**, the last step of Route B. Route A's image already carries the
+Kria-side scripts and the i2c-server, so this is only needed when you build a
+Kria by hand, or when a previously flashed image has fallen behind the client.
 
 ## 0.8 One-time Kria setup
 
@@ -718,8 +688,10 @@ map, the udev rules and the open ports as they were on the day it was made. It
 does **not** know about your client, so three things are still yours to do:
 
 * 0.3, the ssh key and the passwordless `sudo` rule, which are per client;
-* 0.7, the bench scripts and the i2c-server, which change far more often than
-  the image and must be the same version as the client's clone;
+* 0.8h, the bench scripts and the i2c-server, **only if the image has aged**.
+  A freshly published image already carries them, verified byte for byte on
+  2026-09-08. They change far more often than the image does, so re-run 0.8h
+  once the client's clone has moved on;
 * 0.9, every check, before the first bring-up. A snapshot goes stale: if the
   firmware release in 0.8c has moved on, or `connections.xml` fails its `grep`,
   apply that one step from Route B rather than rebuilding the whole Kria.
@@ -1179,6 +1151,42 @@ sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=ui
 Confirm the `daq` user is in the `i2c` and `gpio` groups, and log out and back in
 after any `usermod`.
 
+### h. Copy the code to the Kria
+
+The Kria gets the contents of `$MM/kria/` and the i2c-server. No git on the Kria.
+
+Three transfers, in the order below. The bring-up, mux and power helpers go to
+`~/multimodule`; the three wrappers you type by hand go to the home directory
+itself, for the reason given after the block; and the i2c-server goes under
+`~/multimodule/hexactrl-sw`, from where it is run **and not** from the RPM copy
+under `/opt`.
+
+**(on the lab computer)**
+
+```bash
+cd "$MM/kria"
+ssh kria 'mkdir -p ~/multimodule/hexactrl-sw'
+tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py \
+  | ssh kria 'tar xf - -C ~/multimodule'
+tar cf - up_verified.sh start_i2c.sh set_pwr_en.py | ssh kria 'tar xf - -C ~'
+cd "$MMTS_ROOT/hexactrl-sw"
+tar czf - --exclude=__pycache__ zmq_i2c | ssh kria 'tar xzf - -C ~/multimodule/hexactrl-sw'
+ssh kria 'chmod +x ~/multimodule/*.sh ~/*.sh ~/*.py'
+```
+
+The three home directory scripts live as files on the Kria on purpose: a
+`pkill -f` pattern typed into an ssh one-liner matches that one-liner's own
+command line and kills your session. What they do:
+
+| file | what |
+|---|---|
+| `up_verified.sh SLOT [--external-power] [--board NAME] [--module N]` | kills any i2c-server left from the previous slot, runs `mmts_bringup.sh` up to 8 times and the i2c-server up to 3, announces each try, and reports `READY` only when the ROC count matches `EXPECT_ROCS`, nothing says `FAILED`, the board identified, and ports 5555 and 6000 both listen |
+| `start_i2c.sh SLOT` | restart the i2c-server on a slot, detached, and print its identify line |
+| `set_pwr_en.py SLOT on\|off ...` | drive one slot's payload rail without a bring-up |
+
+Re-run the `tar` commands whenever you change a script on the client. The
+client's `$MM/kria/` is the source of truth; do not edit the copies on the Kria.
+
 ## 0.9 Check the installation
 
 All of it is typed on the lab computer. The first four lines check the Kria over
@@ -1510,7 +1518,7 @@ power button, wait for `ssh kria` to answer again, and **restart at the bring-up
 block of this section, 1.3. Nothing else has to be redone.**
 Everything a reboot could cost is on disk and survives it: the udev rules of
 0.8g, `connections.xml` and the per-slot tables of 0.8d, the firewall of 0.8f,
-the sudoers rule of 0.3, the firmware RPM, and the Kria-side scripts of 0.7. The
+the sudoers rule of 0.3, the firmware RPM, and the Kria-side scripts of 0.8h. The
 cold-start lines of 1.2 are not needed either, because `mmts_bringup.sh` defaults
 to `--recover`, whose `[rec]` step does `kconn_pwr off`, `fw-loader load` and
 `kconn_pwr on` before it touches I2C. Only a firmware install sends you back into
@@ -3110,6 +3118,7 @@ itself. Newest first.
 
 | date | change |
 |---|---|
+| 2026-09-08 | **0.7 moved to 0.8h**, the last step of Route B. The Kria-side scripts and `zmq_i2c` are inside the Route A image, so flashing it does not need a separate copy step: verified on 2026-09-08 by hashing all seven scripts and every `zmq_i2c` source on a freshly booted image against the client, all identical. It stays a Route B step because a hand-built Kria has none of them, and Route A still points at it for the case that matters, an image that has aged past the client's clone. Section numbers 0.8 and 0.9 were left alone on purpose: renumbering would touch more than fifty cross-references and would falsify the dated rows in this table that cite 0.8c and 0.8f. A signpost stays at 0.7 |
 | 2026-09-08 | Route A rewritten around a **gzipped image on a CERNBox public link**, replacing the uncompressed `kria-ua-v2.img` on FNAL EOS. The download needs **no CERN account** and no XRootD client, so `xrdcp`, grid proxies and `kinit` are gone from the step; `curl` covers Linux and macOS with one command. The image is truncated at the end of the root partition rather than carrying the tail of the card it came from, which took it from 31.7 GB to 10.7 GB written and 5.1 GB downloaded, and is why a freshly flashed card correctly shows unallocated space. Step A3 streams `gunzip -c ... \| dd` so the reader never needs 10.7 GB of free space for an intermediate file, which is also why the file is published as `.img.gz` and not `.img.tar.gz`. **Linux and macOS are now given side by side** at every step, with a table of the four places they differ: `lsblk` against `diskutil list`, per-partition `umount` against whole-device `diskutil unmountDisk`, `/dev/sdX` against the raw `/dev/rdiskN`, and `bs=4M` against `bs=4m`. macOS `dd` accepts only `none` and `noxfer` for `status=`, so `status=progress` is an error there and Ctrl+T is the progress key. A sha256 check is now mandatory before writing, since a truncated download flashes silently and presents as a Kria that will not boot. New A5 records how to regenerate and republish the image, including taking the card out of a powered-down Kria first, because imaging a live root filesystem yields an inconsistent snapshot that may still boot |
 | 2026-09-04 | 0.8 split into two routes. **Route A** flashes the prepared image `kria-ua-v2.img` from FNAL EOS (`root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img`) onto the SD card with `xrdcp` and `dd`, and says what a snapshot does not settle: 0.3, 0.7 and every 0.9 check are still per client. **Route B** is the former step-by-step 0.8a to 0.8g, unchanged, also used one step at a time to repair a Route A Kria that fails a check |
 | 2026-09-04 | **A Kria serves one puller.** `daq-server` pushes over a ZeroMQ PUSH socket, which round-robins across every connected `daq-client`, so a second one anywhere on the network takes half the messages: the client reads a data archive where the `START_RUN_DELAY_SCAN` header should be and stays out of step for the whole run. It presents as an empty run directory and `no summary.json` behind a clean bring-up and a `daq-server` that ran to `STOP`, and is visible only in `daq-client.log` as `Error : serialization::archive ... not in dataTypeMap`. Found after half a day of chasing it as a firewall, a Boost mismatch and a build mismatch, all of which were ruled out; the second puller was a Docker container left up on another machine, which `pgrep` does not find. 0.8f gains the check, the port table gains 8888 and corrects 6001 to what it is, a localhost control socket. Also corrected there: a port test must use `exec 3<>/dev/tcp/...` and not `cat <`, which always times out against a listening server and reports a healthy port as blocked |
