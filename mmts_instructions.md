@@ -30,7 +30,6 @@ only a few steps must be typed on the Kria itself.
 - [Route B: set up a Kria by hand](#route-b-set-up-a-kria-by-hand)
 - [11. Reference](#11-reference)
 - [12. Common mistakes](#12-common-mistakes)
-- [13. Changes](#13-changes)
 
 Read 0 once per new client or Kria. Then 1 for power-up and bring-up, 2 for the
 routine measurement, and your board type's section, 3 to 10. Section 11 is the
@@ -893,7 +892,7 @@ identification`, and 5555 and 6000 both listen.
 **Read its per-try lines first**, since the two halves have different causes:
 `bringup try 3: 0/3 ROCs ...` is the bring-up and the rest of this subsection
 applies; `i2c try 1: 4 errors, 5555=0 ...` is the i2c-server, the stale
-identify trap of 12.2 or the dead-reads case of 8.4. Then read `~/bu_A.log`
+identify trap of 12.2 or the dead-reads row of 12.3. Then read `~/bu_A.log`
 and `~/zmq_srvA.log`. Both are truncated on each launch.
 
 🔑 **Re-run the bring-up block once, and decide on the retry counts rather
@@ -1200,7 +1199,7 @@ ssh kria 'tail -f ~/bu_A.log'
 The meter tells the same story: 0 A at `Turning off payload power`, about
 1.2 A once `Turning on payload power` has passed and `EN_Mx` is written, and
 1.9 to 2.0 A while the chips are configured. A bring-up that stays near 0 A
-past `Turning on payload power` ends in `0/3 ROCs`, per 3.4.
+past `Turning on payload power` ends in `0/3 ROCs`, per 12.3.
 
 The same values, as each script spells them. Only `run_slot.sh` and
 `up_verified.sh` are on the routine path:
@@ -1552,29 +1551,6 @@ PED_BOARD=LD-Full "$MM/ped_run.sh" C 5 ldfull 10000
 ```
 
 Keep `L1A_offset_or_BX: 13` in the slot C config, per 11.6.
-
-## 3.4 When it does not go to plan
-
-All seen on LD Fulls on 2026-09-02 and 03, and recovered without a config
-change.
-
-- **`0/3 ROCs` on all eight tries, supply in CV at 0.05 to 0.1 A** past
-  `Turning on payload power`. The module was never powered. Interrupt
-  `up_verified.sh`. Check, in order: the supply is on at 1.72 V; the data cable
-  from the power distribution board to the mux board is plugged in, since
-  without it `EN_Mx` reaches nothing; then sweep `--module 1/2/3` per 1.3 and
-  keep the value that makes the meter jump to ~1.2 A. A `0x27` that ACKs
-  proves the data path only.
-- **`0/3` once, then `READY bringup=2`.** The lottery. Nothing to do.
-- **The gate reads `no summary.json` or `STALE`, and the Kria's log says
-  `Device ID , "TOP_A", does not exist in connection map`.** The stock
-  `connections.xml`, B4, which a firmware install also puts back. `Permission
-  denied` there is the uio rule of B7. The bring-up was clean in both cases.
-- **0 of 12 trigger, DAQ 6/6.** The trigger claim is on another slot, per
-  11.6, or `in_inv_cmd_rx` was changed to 0.
-- **Slot B produces a zero-byte run behind a clean gate.** `EdgeSel_T1` at 0
-  on slot B. Diff the applied config in the run directory against the shipped
-  one.
 
 ---
 
@@ -1945,28 +1921,9 @@ ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROC
 PED_EXTPOWER=1 PED_BOARD=HD-Top "$MM/ped_run.sh" C 5 hdtop 10000
 ```
 
-## 8.4 When it does not go to plan
+## 8.4 Expected on a healthy HD Top
 
-All seen on 2026-09-03 and recovered without a config change.
-
-- **Gate FAIL on a READY bring-up.** Slot A's first gate read DAQ 4/5 with
-  `link4=0` and trigger 3/4 with `link5=0`. The same bring-up run again gave
-  5/5 and 4/4. Re-run the bring-up; do not make a config that drops the link.
-- **`0/3` or `2/3` ROCs with the missing chip wandering** between `0x18` and
-  `0x58`. The lottery. Run the bring-ups back to back: slot A came up 0 for 5
-  with a fresh power cycle before each, then 4 of 10 back to back; slot B was
-  `0/3` and then `3/3` on the immediate re-run.
-- **Bring-up `3/3` but the i2c-server dies** with `could not identify ROC type
-  from readBack [0, 253, 104]` or `OSError: [Errno 5]` on a read. The client
-  hangs at initialize, `ped_run.sh` prints `RUN-FAILED (rc=124)`, and the run
-  directory is empty. Writes on that slot still work; reads have died. Not the
-  puller. Once the bus has been in use for half an hour or more, no number of
-  bring-ups recovers it: ten attempts gave seven `3/3` enables and zero
-  servers. Power-cycle the Kria, run the bring-ups back to back, and take the
-  runs immediately with no idle gap. Or use another slot: slot C came up first
-  try ten minutes before slot B failed this way.
-
-**Expected on a healthy HD Top, per run of 10 000 events:**
+Per run of 10 000 events:
 
 | | |
 |---|---|
@@ -2713,12 +2670,14 @@ corruption 1.0, robust σ **0.741 ADC**, a full gate on the first try, and
 | Bring-up prints `board X needs all N of [...]; ['0x58'] never answered` | One chip is silent while its neighbours on the same I2C sub-bus answer. The bus is fine; that chip's contact, reset or local rail is not. Reseat; if the same address is missing in every slot, the board is the fault |
 | `retry 5/5` at the `[pwr] power management board 0x27` line, first bring-up after a power cycle | The power board is not in the loop, so `0x27` cannot ACK. The module is fed directly: use `--external-power`. One `--recover --external-power` bring-up clears the wedge without a power cycle |
 | Supply reads 0.4 to 0.5 A on a channel with nothing brought up | Normal: that slot's rail is on and its ROCs are idle. Three configured LD chips draw about 1.9 A, three HD chips about 2.2 A |
-| Bring-up repeats `0/N ROCs` and the supply sits in **CV at 0.05 to 0.1 A**, well under the 0.4 A quiescent | The power path is open, not the bus. Sweep `--module 1/2/3` first, since `EN_Mx` is cabling; if all three read the same, check the power-management-to-mux cable, then the module's flex and seating. A `0x27` that ACKs proves the data path only |
+| Bring-up repeats `0/N ROCs` and the supply sits in **CV at 0.05 to 0.1 A**, well under the 0.4 A quiescent | The module was never powered. Interrupt `up_verified.sh` rather than let it spend the tries. Check the supply is on at 1.72 V and the data cable from the power distribution board to the mux board is plugged in, since without it `EN_Mx` reaches nothing. Then sweep `--module 1/2/3`, since `EN_Mx` is cabling, and keep the value that makes the meter jump to ~1.2 A; if all three read the same, check the module's flex and seating. A `0x27` that ACKs proves the data path only |
 | `daq-server.log` says `Device ID , "TOP_A", does not exist in connection map` then `impossible to process configure when state is Error` | The stock `connections.xml`. Section B4, and again after every firmware install. The bring-up looks clean and the scan runs; only the gate's `no summary.json` gives it away |
 | The gate prints `no summary.json -- the scan did not produce output` or `STALE: newest summary is ...` | `daq-server` rejected the scan, or nothing answered. `delay_scan.sh` prints the tails of its own log and of `~/daq-server.log` right under it; act on that line: the connection map row above, the uio rule of B7, or a timeout with empty logs, which is `KRIA_IP` or the firewall. Section 2.5 |
 | `bringup try N of 8: running ...` and then a silent minute | Normal. A try is 60 to 90 s and there can be eight. `ssh kria 'tail -f ~/bu_<slot>.log'` to see inside it. Section 2.4 |
-| Bring-up enables 2 of N, with a different chip missing each time | The lottery, not a dead ROC. Run it again, back to back |
-| Bring-up `3/3` but the i2c-server dies on `could not identify ROC type from readBack [0, 253, 104]`, or the client hangs at initialize with an empty run directory and `RUN-FAILED (rc=124)` | Reads on that slot's I2C path have died while writes still work. Not the puller, so do not recreate it. Power-cycle the Kria, run the bring-ups back to back, take the runs at once. Section 8.4 |
+| Bring-up enables 2 of N with a different chip missing each time, or `0/N` once and then `READY bringup=2` | The lottery, not a dead ROC. Run it again, back to back: a slot that came up 0 for 5 with a fresh power cycle before each try came up 4 of 10 back to back, and another was `0/3` then `3/3` on the immediate re-run |
+| Gate FAIL on a `READY` bring-up, one DAQ or trigger link reading 0 | A link dropped at init, which happens about once a session. Re-run the bring-up; the identical sequence then passes. Do not make a config that drops the link |
+| A zero-byte run behind a clean gate | `EdgeSel_T1` at the wrong edge for the slot. Diff the applied `initial_full_config.yaml` in the run directory against the shipped config, whose per-slot values are in the type's table, and check `header positions` in `daq-server.log`: every link at 23 is right |
+| Bring-up `3/3` but the i2c-server dies on `could not identify ROC type from readBack [0, 253, 104]` or `OSError: [Errno 5]` on a read, or the client hangs at initialize with an empty run directory and `RUN-FAILED (rc=124)` | Reads on that slot's I2C path have died while writes still work. Not the puller, so do not recreate it. Once the bus has been in use for half an hour or more no number of bring-ups recovers it: ten attempts gave seven `3/3` enables and zero servers. Power-cycle the Kria, run the bring-ups back to back, and take the runs at once with no idle gap. Or use another slot, which came up first try ten minutes before this one failed |
 | `mmts_bringup.sh` on a bench-fed module dies at `[roc]` with a chip that `stopped responding mid-config`, right after a clean run on another slot | An i2c-server from the previous slot was still holding the bus. `up_verified.sh` kills it first; a hand-typed `mmts_bringup.sh` needs `pkill -f '[z]mq_server'` in front of it, per 1.3 |
 
 ## 12.4 When only the power button will do
@@ -2734,7 +2693,7 @@ corruption 1.0, robust σ **0.741 ADC**, a full gate on the first try, and
   known-good slot before spending another bring-up on the suspect one: `no
   ROCs` on a sick bus says nothing about the module. What does not come back
   this way is a slot whose reads have died while writes work, the `[0, 253,
-  104]` case of 8.4.
+  104]` row of 12.3.
 - **It gets worse every run and `0x71` or `0x73` stops ACKing entirely.** The
   clock synthesizer. `kconn_pwr` cannot reach it. Halt and mains cycle.
 
@@ -2781,33 +2740,3 @@ client side.
   data, not just the plots.
 
 ---
-
-# 13. Changes
-
-Dated provenance for the numbers and rules above, kept out of the procedure
-itself. Newest first.
-
-| date | change |
-|---|---|
-| 2026-09-08 | **Prose trimmed by 28 %**, 16,484 to 11,829 words outside code and tables, with every command block, table line and heading kept byte for byte and verified mechanically against the previous version. Anecdotes and restated warnings went; the facts, numbers and cross-references stayed. This table was not touched |
-| 2026-09-08 | **Route B moved out of 0.8 to its own top-level section**, placed after the board sections and before the Reference back matter, since a bench that flashes the Route A image never reads it. Its steps are renamed **B1 to B8** from the old 0.8a to 0.8h, mirroring Route A's A1 to A5, and every reference was updated with them, earlier rows of this table included, so a row that once read 0.8c now reads B3. Section 0.8 keeps Route A and now says where Route B went, and 11, 12 and 13 were deliberately not renumbered because twelve live cross-references point at 11.x and this table cites 12.1, 12.3 and 12.4. Also confirmed this day: the CERNBox image downloads intact from off-site, 5,075,604,095 bytes and sha256 1a5dc548 in 227 s from uaf-2, so a short or checksum-mismatched download is the reader's network and the fix is to retry, not to doubt the file |
-| 2026-09-08 | **0.7 moved to B8**, the last step of Route B. The Kria-side scripts and `zmq_i2c` are inside the Route A image, so flashing it does not need a separate copy step: verified on 2026-09-08 by hashing all seven scripts and every `zmq_i2c` source on a freshly booted image against the client, all identical. It stays a Route B step because a hand-built Kria has none of them, and Route A still points at it for the case that matters, an image that has aged past the client's clone. Section numbers 0.8 and 0.9 were left alone on purpose: renumbering would touch more than fifty cross-references and would falsify the dated rows in this table that cite B3 and B6. A signpost stays at 0.7 |
-| 2026-09-08 | Route A rewritten around a **gzipped image on a CERNBox public link**, replacing the uncompressed `kria-ua-v2.img` on FNAL EOS. The download needs **no CERN account** and no XRootD client, so `xrdcp`, grid proxies and `kinit` are gone from the step; `curl` covers Linux and macOS with one command. The image is truncated at the end of the root partition rather than carrying the tail of the card it came from, which took it from 31.7 GB to 10.7 GB written and 5.1 GB downloaded, and is why a freshly flashed card correctly shows unallocated space. Step A3 streams `gunzip -c ... \| dd` so the reader never needs 10.7 GB of free space for an intermediate file, which is also why the file is published as `.img.gz` and not `.img.tar.gz`. **Linux and macOS are now given side by side** at every step, with a table of the four places they differ: `lsblk` against `diskutil list`, per-partition `umount` against whole-device `diskutil unmountDisk`, `/dev/sdX` against the raw `/dev/rdiskN`, and `bs=4M` against `bs=4m`. macOS `dd` accepts only `none` and `noxfer` for `status=`, so `status=progress` is an error there and Ctrl+T is the progress key. A sha256 check is now mandatory before writing, since a truncated download flashes silently and presents as a Kria that will not boot. New A5 records how to regenerate and republish the image, including taking the card out of a powered-down Kria first, because imaging a live root filesystem yields an inconsistent snapshot that may still boot |
-| 2026-09-04 | 0.8 split into two routes. **Route A** flashes the prepared image `kria-ua-v2.img` from FNAL EOS (`root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img`) onto the SD card with `xrdcp` and `dd`, and says what a snapshot does not settle: 0.3, 0.7 and every 0.9 check are still per client. **Route B** is the former step-by-step B1 to B7, unchanged, also used one step at a time to repair a Route A Kria that fails a check |
-| 2026-09-04 | **A Kria serves one puller.** `daq-server` pushes over a ZeroMQ PUSH socket, which round-robins across every connected `daq-client`, so a second one anywhere on the network takes half the messages: the client reads a data archive where the `START_RUN_DELAY_SCAN` header should be and stays out of step for the whole run. It presents as an empty run directory and `no summary.json` behind a clean bring-up and a `daq-server` that ran to `STOP`, and is visible only in `daq-client.log` as `Error : serialization::archive ... not in dataTypeMap`. Found after half a day of chasing it as a firewall, a Boost mismatch and a build mismatch, all of which were ruled out; the second puller was a Docker container left up on another machine, which `pgrep` does not find. B6 gains the check, the port table gains 8888 and corrects 6001 to what it is, a localhost control socket. Also corrected there: a port test must use `exec 3<>/dev/tcp/...` and not `cat <`, which always times out against a listening server and reports a healthy port as blocked |
-| 2026-09-04 | The stock image keeps **no persistent journal**, so a Kria that hangs and needs the power button leaves nothing behind: `journalctl -b -1` answers `no persistent journal was found`, and `/var/log/journal` is not adopted even when created with the right ownership. 12.4 now says to start `dmesg -w >> ~/kernel.log` before chasing a hang, since the home directory does survive. Also recorded there: the Kria boots with a wrong date, `2025-12-04` on this bench, so its logs cannot be correlated with the client's until the clock is set |
-| 2026-09-04 | Restructured so the routine path comes before the reference material. Section 2 is now "Running a board": which type, register, `run_slot.sh`, then its stages one at a time in 2.4 to 2.7, the old 3.1 to 3.4. The per-type sections moved up one, to 3 to 10. What an operator does not need on the routine path went to a new section 11, Reference: the ROC revision and `in_inv_cmd_rx` (old 2.1), ROC addresses (old 2.2), measured link sets and the probe (old 2.4), trophies (old 2.5), offline unpack (old 3.5), slot quirks and the yardstick (old 3.6 and 3.7). The two parameter tables of old 2.3 and 2.7 became one, in 2.1, and the `run_slot.sh` walkthrough moved from the LD Full section into 2.3. Same day, from the second client install: 0.5 and B6 print PASS or FAIL instead of `Connection refused`, B6 checks 6001 from the Kria side, `start_i2c.sh` is its own block in 1.3 with the wedge escalation under it, 1.2 is marked as not needed before a wrapper bring-up, 1.4 documents the identify line naming a wrong board type on a partial enable, and 2.4 says not to re-bring-up a verified slot |
-| 2026-09-03 | Scripts changed to match, in one `hexactrl-script` MR. `site.sh` is gone: `lib.sh` reads the environment, requires `MMTS_ROOT` and `KRIA_IP` and stops naming a missing one, and defaults the rest, so no placeholder address or stale firmware name can hang a scan later. `partial_slot.sh` is `run_slot.sh`, since it runs full boards too, and it streams every stage instead of holding the output until the end. `up_verified.sh` kills the previous slot's i2c-server before the first try and announces each try, so the hand-driven blocks lost their `pkill` line again. `delay_scan.sh` keeps the scan's log, times out at 180 s, and `gate.py` refuses a summary older than the scan and prints both logs' tails when there is nothing to report. `register_boards.py` creates the registry. `module_of.py` and `hexmap_robust.py` lost their site-named results default |
-| 2026-09-03 | Corrected against two full sessions: the HD Top campaign on the reference bench and the first LD Full attempt from these instructions on a new client, which reached the gate and no further. Every hand-driven bring-up now kills the previous slot's i2c-server first, which `run_slot.sh` always did and `up_verified.sh` never does. Sections 3.1 to 3.3 and 4 say what each step prints, how long its silence lasts, which log to `tail -f`, and what the meter reads at each point. The gate's missing age check is documented. `ped_run.sh` is described as what it is, N runs on the slot as it stands, rather than as a bring-up plus gate. The `in_inv_cmd_rx` revision rule is restricted to the boards it holds for, since the LD Full keeps 1. 0.9 checks `connections.xml`, whose stock `TOP`-only form is what stopped the new client at the gate. The HD Top section carries its measured gates, per-slot trigger sets, edge settings and the three failures seen that day; its configs' claim of a power distribution board was wrong |
-| 2026-09-03 | Restructured around hexaboard type instead of slot. The old sections 3, 4 and 5 were Slot A, Slot B and Slot C, which meant a board type's parameters were scattered across three places and the commands for one module were interleaved with two others. Now section 3 is the procedure every type shares, sections 4 to 11 are one per type with a subsection per slot, and 12 and 13 are the old 6 and 7. Section 2's per-type subsections collapsed into a single pointer table, and the slot-level quirks that used to be repeated per slot, the trigger claim, slot C's sub-bus 7, its trigger set and its `L1A_offset_or_BX: 13`, are stated once in 3.6 |
-| 2026-09-03 | The output root is now `Results/` rather than a site-named subdirectory of it. `RESULTS_DIR` in `site.sh` is the one place that sets it |
-| 2026-09-03 | `site.sh` is sourced by the scripts but not by your shell, so the hand-typed commands were expanding an empty `$MMTS_FW` and `$KRIA_IP`. The firmware design is now spelled out in every command instead of going through the variable, and section 0.5 and the preamble to sections 3 to 11 source `site.sh` for the rest |
-| 2026-09-03 | The MMTS scripts branch was merged into `hexactrl-script:ROCv3-alper-dev` as `ffb42a2`, and `hexactrl-sw` MR !56 bumped the submodule pointer to it, so the scripts and configs are upstream. Section 0.4 loses the `tvami` fork remote and the branch checkout: `git clone --recurse-submodules` is now the whole step, and the submodules are correctly detached at their pinned commits |
-| 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The B2 occurrences are server-side and stay |
-| 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and B3. The clone step initialized only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of B3 had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
-| 2026-09-03 | Bench Kria upgraded from `2026_07_20_23_20_01.45587078` to `2026_09_01_16_56_41.49751f37`. The superseded build predates the DAQ RX equalization, so any CRC or dead-DAQ-link result recorded on this bench before this date is an unequalized measurement |
-| 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. Configs reduced to exactly one per geometry per slot, `<family>_mux<SLOT>_ped.yaml`, with the family named for the geometry: `initLD-Full-3b`, `initLD-Five-3b`, `initLD-Left-3b`, `initLD-Bottom-3b`, `initHD-Full-trophyV3`, `initHD-Top-trophyV3`, `initHD-Bottom-trophyV3`, `initHD-Semi-trophyV3`. The bring-up script is now `enableROCs.py`, and it exits 1 when a `--board` address set comes up incomplete instead of reporting a partial enable as success |
-| 2026-09-01 | DAQ RX equalization merged into `feature/multiplexer_board_v2` as `49751f37` and released, so the design has no `-rxeq` suffix any more. Measured against the unequalized build: CRC pass 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 |
-| 2026-08-31 | HD Full characterized on a supply with headroom: 4.43 A at 1.72 V for six chips, 12/12 DAQ links, CRC 1.000 on all twelve halves over 25 runs. At the current limit the rail sagged to 1.35 V and all 24 e-links died, which is where the clipping section of 1.0 comes from. `in_inv_cmd_rx` measured both ways on a v3D board: 0 gives 8/12 trigger, 1 gives 0/12. `--module N` added after a wrong `EN_Mx` bit cost a reseat and a full power-down |
-| 2026-08-30 | `hexactrl-sw` MR !55 and `zmq_i2c` MR !24 merged: the `fifo_latency` mask fix, rebuilding `HwInterface` when `uhal_device` changes, skipping a trigger elink whose chip has no DAQ elink, and the offset finder skipping unreachable links rather than refusing the slot |
-| 2026-08-28 | Slot C settled on `L1A_offset_or_BX: 13` with `method: 'automatic'`, which beat manual 36 of 36 against 18 of 36 |
