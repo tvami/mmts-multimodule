@@ -29,6 +29,7 @@ only a handful of steps have to be typed on the Kria itself.
 - [8. HD Top (HT)](#8-hd-top-ht)
 - [9. HD Bottom (HB)](#9-hd-bottom-hb)
 - [10. HD Semi (HL, HR)](#10-hd-semi-hl-hr)
+- [Route B: set up a Kria by hand](#route-b-set-up-a-kria-by-hand)
 - [11. Reference](#11-reference)
 - [12. Common mistakes](#12-common-mistakes)
 - [13. Changes](#13-changes)
@@ -170,7 +171,7 @@ failures come later without either naming a submodule:
   client build of 0.6a dies with `The source directory ... /hexactrl-script/analysis
   does not contain a CMakeLists.txt file` followed by
   `make: *** No targets specified and no makefile found`;
-* the `zmq_i2c` tar of 0.8h copies an empty directory to the Kria.
+* the `zmq_i2c` tar of B8 copies an empty directory to the Kria.
 
 On a clone that already exists, `git submodule update --init --recursive` from
 `hexactrl-sw` does the same job.
@@ -218,7 +219,7 @@ $MMTS_ROOT/
 │   │   ├── analysis/             submodule: the pedestal and scan analyses
 │   │   ├── configs/              the run configs, one per board type and slot
 │   │   ├── multimodule/          THE BENCH SCRIPTS: this is $MM
-│   │   │   └── kria/             the subset copied to the Kria in 0.8h
+│   │   │   └── kria/             the subset copied to the Kria in B8
 │   │   ├── delay_scan.py
 │   │   └── pedestal_run.py
 │   └── zmq_i2c/                  submodule: the i2c-server, copied to the Kria
@@ -293,7 +294,7 @@ silence, `rc=124`, which is a wrong `KRIA_IP` or a firewall.
 | `KRIA_IP`, `KRIA_USER` | **your hexacontroller**, user `daq` by default |
 | `HEXACTRL` | the install prefix from 0.6a |
 | `MMTS_VENV` | the virtualenv from 0.6b, or empty for system-wide |
-| `MMTS_FW` | the firmware design, see 0.8e |
+| `MMTS_FW` | the firmware design, see B5 |
 | `RESULTS_DIR` | the output root |
 | `GUI_HEXMAP` | the `gui-hexmap` clone from 0.4 |
 
@@ -338,7 +339,7 @@ The client build needs **Boost, ROOT, yaml-cpp and cppzmq**: `unpack` and the
 pedestal analysis read and write ROOT files, the client links against boost, and
 every source in `sources/client` and `sources/common` includes
 `yaml-cpp/yaml.h` or `zmq.hpp`. uHAL is not needed here, it belongs to the server
-build of 0.8b.
+build of B2.
 
 A stock client has no toolchain, so the build starts by installing one. This is a
 large download, ROOT alone runs to about a gigabyte:
@@ -411,11 +412,11 @@ re-running cmake in place keeps the wrong one.
 
 Build it on the machine that will run it: this is the x86_64 AlmaLinux client,
 and binaries from any other architecture or OS are useless here. The Kria gets
-its own aarch64 build in 0.8b.
+its own aarch64 build in B2.
 
 ⛔ Installing the public `ROCv3` RPM instead is not a substitute. It lands under
 `/opt/hexactrl/ROCv3/`, so every path in this document changes, and it predates
-the MR !55 fixes listed in 0.8b.
+the MR !55 fixes listed in B2.
 
 Confirm what landed. The `ls` must show `daq-client`, `hitproducer` and `unpack`:
 
@@ -435,7 +436,7 @@ the shell that launched `pedestal_run.py`, the run produces no `.root` and
 
 ⚠️ **There is no `etc/env.sh` on the client, and you must not go looking for
 one.** `CMakeLists.txt` installs it inside `if( NOT BUILD_CLIENT )`, so it is a
-server-side file, and its contents are the cactus and uHAL paths of 0.8b, which
+server-side file, and its contents are the cactus and uHAL paths of B2, which
 the client neither has nor needs. Sourcing it here gives
 `No such file or directory`. The client build installs executables into `bin` and
 nothing else: no `lib`, no `etc`.
@@ -540,17 +541,23 @@ and which log to `tail -f` in a second terminal when you want the detail.
 
 ## 0.7 Copy the code to the Kria
 
-Moved to **0.8h**, the last step of Route B. Route A's image already carries the
+Moved to **B8**, the last step of Route B, which is now at the end of this
+document. Route A's image already carries the
 Kria-side scripts and the i2c-server, so this is only needed when you build a
 Kria by hand, or when a previously flashed image has fallen behind the client.
 
 ## 0.8 One-time Kria setup
 
-Two ways to get a Kria to the state this document expects. **Route A** writes a
-prepared image, a snapshot of a working bench Kria, onto the SD card, and is the
-one to take unless you have a reason not to. **Route B** is the same result built
-by hand, step by step, and is also what you consult when a Route A Kria fails one
-of the checks in 0.9. Both end at 0.9.
+Two ways to get a Kria to the state this document expects. **Route A**, below,
+writes a prepared image, a snapshot of a working bench Kria, onto the SD card,
+and is the one to take unless you have a reason not to.
+
+**Route B** builds the same result by hand, one piece at a time. It is at the end
+of this document, after the board sections, because most benches never need it:
+take it on a Kria that cannot be flashed, or one step at a time to repair a
+Route A Kria that fails a check in 0.9. Its steps are B1 to B8.
+
+Both routes end at 0.9, and you should run those checks either way.
 
 ### Route A: flash the prepared image
 
@@ -688,12 +695,12 @@ map, the udev rules and the open ports as they were on the day it was made. It
 does **not** know about your client, so three things are still yours to do:
 
 * 0.3, the ssh key and the passwordless `sudo` rule, which are per client;
-* 0.8h, the bench scripts and the i2c-server, **only if the image has aged**.
+* B8, the bench scripts and the i2c-server, **only if the image has aged**.
   A freshly published image already carries them, verified byte for byte on
-  2026-09-08. They change far more often than the image does, so re-run 0.8h
+  2026-09-08. They change far more often than the image does, so re-run B8
   once the client's clone has moved on;
 * 0.9, every check, before the first bring-up. A snapshot goes stale: if the
-  firmware release in 0.8c has moved on, or `connections.xml` fails its `grep`,
+  firmware release in B3 has moved on, or `connections.xml` fails its `grep`,
   apply that one step from Route B rather than rebuilding the whole Kria.
 
 #### A5. Regenerating the image, for whoever maintains it
@@ -731,462 +738,6 @@ header, and it costs the reader the `gunzip -c ... | dd` pipe of step A3, forcin
 them to extract 10.7 GB to disk first. Update the table at the top of Route A
 with the new name, both sizes, and the new sha256.
 
-### Route B: set it up yourself
-
-Steps a to g below build, one piece at a time, what the image contains. Take them
-in order on a Kria that has only the stock hexacontroller image, or take a single
-one on a Route A Kria that failed the matching check in 0.9.
-
-### a. Base image
-
-Flash the standard HGCAL hexacontroller image for your Kria. It provides the
-`daq` user, `fw-loader`, `kconn_pwr`, and the I2C device nodes. Confirm before
-going further, and check the image against your own hexacontroller documentation
-if either command is missing:
-
-**(on the lab computer)**
-
-```bash
-ssh kria 'command -v fw-loader kconn_pwr; id daq'
-```
-
-### b. hexactrl-sw under `/opt`
-
-The Kria needs the **server** side of the same branch, built for aarch64. It is a
-different architecture, so the client build of 0.6a is useless here; build it on
-the Kria itself, which has `gcc`, `cmake`, `boost-devel` and uHAL under
-`/opt/cactus` already.
-
-Copy the source over and build it there. The **`-DBUILD_CLIENT` flag is omitted
-on purpose**: OFF is the default and gives `daq-server` and `zmq_i2c`, which is
-what the Kria runs. `BRANCH_NAME` must still be passed, since the copied tree has
-no `.git` for cmake to read it from, and without it everything installs into
-`/opt/hexactrl/` itself.
-
-**(on the lab computer)**
-
-```bash
-cd "$MMTS_ROOT"
-tar czf - --exclude=.git --exclude=build hexactrl-sw | ssh kria 'tar xzf - -C ~'
-```
-
-**(on the Kria)**
-
-```bash
-cd ~/hexactrl-sw && mkdir -p build && cd build
-cmake -DBRANCH_NAME=ROCv3-alper-dev \
-      -DCMAKE_INSTALL_PREFIX=/opt/hexactrl/ROCv3-alper-dev ../
-make -j"$(nproc)" && sudo make install
-ls /opt/hexactrl/ROCv3-alper-dev/{bin/daq-server,lib/libhexactrl.so,etc/env.sh}
-```
-
-The Kria is a four-core aarch64 board, so expect this to take considerably longer
-than the client build. `sudo make install` writes under `/opt`, which is outside
-the passwordless rule of 0.3, so run it from a login shell.
-
-🔑 **Build the same commit on the Kria and on the client.** The branch carries
-fixes this procedure depends on: the `fifo_latency` mask fix, rebuilding
-`HwInterface` when `uhal_device` changes, skipping a trigger elink whose chip has
-no DAQ elink, and the offset finder skipping unreachable links instead of
-refusing the slot.
-
-Any Kria shell that runs `daq-server` or the link diagnostics needs the
-environment first. Bring-up and `zmq_server` do not.
-
-**(on the Kria)**
-
-```bash
-source /opt/hexactrl/ROCv3-alper-dev/etc/env.sh
-```
-
-### c. Firmware
-
-The design is `multimodule-hd-tester-trophy-v3`, installed from the CERN
-repository as an RPM under `/opt/cms-hgcal-firmware/hgc-test-systems/`. The Kria
-needs internet access and a repository file for it.
-
-⚠️ **The firmware is not in the repo the image ships with.** A stock Kria has
-`/etc/yum.repos.d/CERN-REPO-hgcwebsw.repo`, repo id `hgcal-daq-sw`, whose
-`baseurl` ends in `hgcal-daq-sw/almalinux/9/aarch64/`. That is the `hexactrl-sw`
-software repo and it carries no firmware, so `dnf` answers `No match for
-argument` for every firmware release even though the RPM has been published for
-days. The firmware repo is `hgc-online-sw/repository/`, and you add it yourself.
-Write the file once:
-
-**(on the Kria)**
-
-```bash
-sudo tee /etc/yum.repos.d/hgc-online-sw.repo <<'EOF'
-[hgc-online-sw]
-name=HGCAL online software and firmware
-baseurl=https://hgc-online-sw.web.cern.ch/hgc-online-sw/repository/
-enabled=1
-gpgcheck=0
-EOF
-```
-
-Then install or update the firmware, **always by its full `name-version-release`**:
-
-**(on the Kria)**
-
-```bash
-sudo dnf update multimodule-hd-tester-trophy-v3-feature_multiplexer_board_v2-2026_09_01_16_56_41.49751f37
-rpm -q multimodule-hd-tester-trophy-v3
-```
-
-`update` is right when an older build is already installed, which is the usual
-case; `install` does the same job on a Kria that has none. Take the newest
-`feature_multiplexer_board_v2` release rather than this exact one once newer ones
-appear; `sudo dnf list --available multimodule-hd-tester-trophy-v3` shows what is
-on offer.
-
-⚠️ **Never type the package name bare, and never run an unqualified `dnf
-update`.** The package version string is the *branch* name, so every branch that
-ever built publishes the same package name, and rpm's version compare picks the
-alphabetically largest one, `test_merge_everything`, a 2025 build with no
-equalization. `dnf install multimodule-hd-tester-trophy-v3` gets you that, and so
-does a routine `dnf update` with this repository enabled.
-
-🔑 **The release string must be `2026_09_01_16_56_41.49751f37` or later**, the
-build that carries the DAQ RX equalization of 0.8e. Earlier ones do not, and the
-difference decides whether four of the six DAQ e-links work at all.
-
-⚠️ `sudo dnf` is not in the passwordless rule of 0.3, which covers `fw-loader`
-and `kconn_pwr` only. Run it from a login shell on the Kria, not through a
-one-shot `ssh` that has no terminal to prompt on.
-
-⚠️ **The RPM overwrites `uHAL_xml/connections.xml`**, which is the file you edit
-by hand in 0.8d. Re-apply that edit after every firmware install or upgrade,
-otherwise the next bring-up addresses `TOP` only and every slot fails. The
-per-slot `fw_block_addresses_{A,B,C}.xml` are not RPM files and survive.
-
-Then load it:
-
-**(on the lab computer)**
-
-```bash
-ssh kria 'sudo fw-loader list'
-ssh kria "sudo fw-loader load multimodule-hd-tester-trophy-v3"
-```
-
-`fw-loader load` takes a name under the base directory or an absolute path, and
-the directory basename must match its own dtbo. A freshly booted Kria has no
-bitstream at all, and bring-up then dies at `[pwr]` with
-`[Errno 2] ... '/dev/i2c-2'`.
-
-### d. `connections.xml` needs `TOP_A`, `TOP_B`, `TOP_C`
-
-**This is required and none of it is shipped.** A fresh install carries one
-address table, `fw_block_addresses.xml`, whose three trigger blocks are named per
-slot, and a `connections.xml` defining `TOP` alone. `daq-server` addresses one
-slot at a time through the generic names `bram_trg` and `link_capture_trg`, so
-each slot needs its own table with its own blocks renamed to those, and its own
-connection entry. Without them nothing can address a slot.
-
-Make the three tables from the shipped one. This keeps each slot's addresses and
-module files and only renames the ids:
-
-**(on the Kria)**
-
-```bash
-cd /opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
-for S in A B C; do
-  OTHERS=$(echo ABC | tr -d "$S")
-  sed -E "/id=\"(bram_trg|link_capture_trg)_[${OTHERS}]\"/d" fw_block_addresses.xml \
-    | sed -E "s/id=\"(bram_trg|link_capture_trg)_${S}\"/id=\"\1\"/" \
-    | sudo tee fw_block_addresses_${S}.xml > /dev/null
-done
-grep -c 'id="bram_trg"' fw_block_addresses_[ABC].xml
-```
-
-That `grep` must report 1 for each of the three files. Each generated table also
-loses four lines against the shipped one, the two trigger blocks of each of the
-other two slots.
-
-**If the `grep` already reports 1 for all three, the tables are made and you can
-skip to the `connections.xml` step below.** The loop is safe to re-run in any
-case: it rebuilds each file from the shipped table and overwrites, so running it
-twice gives the same result as running it once.
-
-Now `connections.xml`, which needs one entry per slot alongside the stock `TOP`.
-This rewrites the whole file rather than asking you to edit XML by hand, and
-keeps a `.orig` of the shipped version the first time it runs:
-
-**(on the Kria)**
-
-```bash
-cd /opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
-X=/opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
-[ -f connections.xml.orig ] || sudo cp connections.xml connections.xml.orig
-{
-  echo '<?xml version="1.0" encoding="UTF-8"?>'
-  echo
-  echo '<connections>'
-  echo "   <connection id=\"TOP\" uri=\"uioaxi-1.0://$X/fw_block_addresses.xml\" address_table=\"file://$X/fw_block_addresses.xml\"/>"
-  for S in A B C; do
-    echo "   <connection id=\"TOP_$S\" uri=\"uioaxi-1.0://$X/fw_block_addresses_$S.xml\" address_table=\"file://$X/fw_block_addresses_$S.xml\"/>"
-  done
-  echo '</connections>'
-} | sudo tee connections.xml > /dev/null
-grep -c 'id="TOP_[ABC]"' connections.xml
-```
-
-That `grep` must print 3. If it already printed 3 before you ran the block, the
-file is already correct and the block only rewrites it identically.
-
-⚠️ `connections.xml` belongs to the firmware RPM, so **a firmware install or
-upgrade puts the stock `TOP`-only file back**. Re-run the block above after every
-install, per 0.8c. The `fw_block_addresses_{A,B,C}` files are yours and survive,
-so the table loop does not need repeating.
-
-### e. The equalized bitstream
-
-🔑 **Check your firmware release before trusting a pedestal.** An unequalized
-build leaves the DAQ inputs with `IBUF_LOW_PWR` on, and four of the six DAQ
-e-links then fail 100 % of CRCs while looking healthy on entry counts: halves
-c0h0, c0h1, c1h0 and c2h1 read exactly 0.000. Equalized against unequalized, CRC
-pass goes 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, and the eye
-8 taps to 64.
-
-The equalization sets `IBUF_LOW_PWR FALSE` and `EQUALIZATION EQ_LEVEL4` on the
-DAQ inputs, in `designs/multimodule-hd-tester-trophy-v3/xdc/daq_rx_eq.xdc`.
-Levels are uncalibrated, and `EQ_LEVEL4` is the one that gives 100 % CRC pass on
-every link; `EQ_LEVEL2` recovers them but leaves 1 to 4 % error on two, and
-`IBUF_LOW_PWR` alone changes nothing. These are I/O properties only, so no logic,
-address map, software or routed timing changes with them.
-
-Install the RPM of 0.8c and set `MMTS_FW=multimodule-hd-tester-trophy-v3`. Read
-the commit out of the RPM's release string to confirm what you have:
-`2026_09_01_16_56_41.49751f37` or later carries the equalization. A copied build
-directory carries no such stamp, which is a reason to prefer the RPM.
-
-⚠️ **`MMTS_FW` is not sticky.** `enableROCs.py` re-points `active` on
-every run, so a bring-up without it silently reverts the bench to stock. Check
-after every bring-up:
-
-**(on the lab computer)**
-
-```bash
-ssh kria 'readlink /opt/cms-hgcal-firmware/hgc-test-systems/active; dmesg | grep "fpga0: writing" | tail -1'
-```
-
-### f. Open the three ports
-
-The client drives the bench over ZeroMQ, so a listening socket on the Kria is not
-enough: the packets have to arrive. A stock AlmaLinux firewall on either machine
-blocks them, and the symptom is not a connection error but a **hang**, which
-reads as a broken bring-up rather than a network problem.
-
-Three ports, and they do not all belong to the Kria:
-
-| port | listens on | carries |
-|---|---|---|
-| 5555 | the Kria | the i2c-server, ROC configuration |
-| 6000 | the Kria | `daq-server`, run control |
-| **8888** | **the Kria** | **the event stream**, which the puller connects out to and pulls |
-| 6001 | the lab computer | control of the puller, from `delay_scan.py` on the same machine |
-
-⚠️ **6001 is a local control socket, not the data path.** `delay_scan.py:62`
-opens it as `daqController("localhost", pullerPort)`, so it never crosses the
-network on a normal bench. The events travel the other way: `daq-server` binds
-**8888** on the Kria and `daq-client` connects out to it, with
-`delay_scan.py:71` pointing the puller at the Kria's address at initialize.
-Opening 6001 on the client is harmless and worth doing, but it is 8888 on the
-Kria that the event stream actually needs.
-
-**(on the Kria)**
-
-```bash
-sudo firewall-cmd --permanent --add-port=5555/tcp --add-port=6000/tcp
-sudo firewall-cmd --reload
-sudo firewall-cmd --list-ports
-```
-
-**(on the lab computer)**
-
-```bash
-sudo firewall-cmd --permanent --add-port=6001/tcp
-sudo firewall-cmd --reload
-sudo firewall-cmd --list-ports
-```
-
-🛑 **That last line must print `6001/tcp`, and an empty answer is the failure to
-look for.** A stock AlmaLinux client runs firewalld with no ports open at all, so
-`--list-ports` prints a blank line and everything in section 0 still passes: the
-client only ever dials *out* to the Kria until the first run. The cost lands much
-later and does not look like a firewall. The bring-up is clean, the scan
-initializes, configures and reaches `status after start cmd : running`, and then
-nothing arrives for 180 s, because `daq-server` is pushing the event stream at a
-port that is dropping it. The gate then says `no summary.json`. Seen on a new
-client on 2026-09-04, three minutes per attempt.
-
-Prove reachability from the client rather than trusting `ss` on the Kria, since
-`ss` only tells you something is bound locally:
-
-**(on the lab computer)**
-
-```bash
-for p in 5555 6000; do
-  timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/$p" 2>/dev/null; rc=$?
-  case $rc in
-    0|1) echo "port $p PASS: reachable" ;;
-    124) echo "port $p FAIL: blocked (timed out)" ;;
-    *)   echo "port $p unexpected rc=$rc" ;;
-  esac
-done
-```
-
-`PASS` here means the packet arrived and got an answer, either from a listening
-server or as a refusal. **A refusal is a pass**, and until a bring-up has run
-that is the only answer either port can give, since nothing is listening yet.
-Only the timeout is a fault, and it is silent, which is why the `case` prints a
-verdict rather than leaving you to read `Connection refused` and guess.
-
-🔑 **Then test 8888, the port the data actually uses.** It only listens while
-`daq-server` is up, so run this after a bring-up. Use the `exec` form, **not**
-`cat`:
-
-**(on the lab computer)**
-
-```bash
-timeout 5 bash -c "exec 3<>/dev/tcp/$KRIA_IP/8888"; echo "8888 rc=$?"
-```
-
-`rc=0` is a pass, `rc=1` a refusal, `rc=124` a block.
-
-⛔ **Do not test a port that has a live server on it with `cat < /dev/tcp/...`.**
-`cat` connects and then waits for data, so against anything that listens and
-stays quiet it always burns the full timeout and reports `rc=124`, which reads as
-blocked when the port is perfectly fine. That form is safe for 5555 and 6000
-above only because nothing is listening there when you run them and a refusal
-comes back at once. Use `exec 3<>` whenever a server is up. This mistake cost
-half a session.
-
-If your site uses `iptables` or `nft` rather than `firewalld`, open the same
-ports with those instead.
-
-### One puller at a time
-
-🛑 **A Kria serves exactly one `daq-client`, and a second one anywhere on the
-network silently takes half your data.** `daq-server` pushes over a ZeroMQ PUSH
-socket, which **round-robins** across every connected puller. With two, the
-`START_RUN_DELAY_SCAN` string that opens a run goes to one of them and the data
-archives to the other, so your client reads an archive where it expected the
-run header and stays one message out of step for the whole run.
-
-The symptom names nothing: the bring-up is clean, the gate says
-`no summary.json`, the run directory holds only `initial_full_config.yaml`, and
-`~/daq-server.log` on the Kria ends in a perfectly healthy `STOP`. The only
-place it is visible is the puller's own log, `$MMTS_ROOT/daq-client.log`, which
-shows the archive being read as a run header:
-
-**(expected output of a failure, not a command)**
-
-```
-Error : serialization::archive ... not in dataTypeMap
-```
-
-Check who is connected before believing any empty run. It costs one line, needs
-no bring-up, and only shows peers while a run is in flight, so run it during the
-gate:
-
-**(on the lab computer, during a scan)**
-
-```bash
-ssh kria 'ss -tn | grep 8888'
-```
-
-There must be exactly **one** peer, and it must be your client's address. Any
-other address is a machine running a stray `daq-client`, and it has to be
-stopped there:
-
-**(on the other machine)**
-
-```bash
-pkill -f '[d]aq-client'
-```
-
-⚠️ **Look for containers too, not just processes.** On a machine where the
-client stack runs in Docker, `pgrep -af daq-client` finds nothing while the
-container holds the socket. `lsof -nP -iTCP | grep 8888` names the real owner,
-and `docker ps` then finds the container to stop. A container left up for hours
-after someone's earlier session is the likeliest source, and this exact case cost
-a morning on 2026-09-04.
-
-The mirror of this rule: if you take a bench over from another machine, stop that
-machine's puller first, and expect the same in reverse when you hand it back.
-
-**(on the lab computer, the full picture in one line)**
-
-```bash
-pgrep -af '[d]aq-client'; ssh kria 'pgrep -af "[d]aq-server|[z]mq_server"; ss -tn | grep 8888'
-```
-
-One `daq-client` here, one `daq-server` and one `zmq_server` on the Kria, and one
-peer on 8888. Two `daq-server` processes, or an old `zmq_server` from another
-slot, cause their own trouble, per 12.1.
-
-### g. Device permissions
-
-Two udev rules. Both were needed on a stock image, and both fail in ways that
-waste a session.
-
-The **gpiochip** rule comes first: the Zynq PS chips are `root:root` 0600, which
-makes `gpiofind` abort. The **uio** rule is second: `/dev/uio*` at `root:root`
-0600 stops `daq-server` opening the firmware's UIO devices, so it logs
-`Permission denied`, goes to state `Error`, and rejects every configure, leaving
-scans with a header-only `.root` and no plots.
-
-**(on the Kria)**
-
-```bash
-echo 'SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"' \
-  | sudo tee /etc/udev/rules.d/99-gpiochip-all.rules
-sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=gpio
-echo 'SUBSYSTEM=="uio", KERNEL=="uio*", GROUP="daq", MODE="0660"' \
-  | sudo tee /etc/udev/rules.d/99-uio-daq.rules
-sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=uio
-```
-
-Confirm the `daq` user is in the `i2c` and `gpio` groups, and log out and back in
-after any `usermod`.
-
-### h. Copy the code to the Kria
-
-The Kria gets the contents of `$MM/kria/` and the i2c-server. No git on the Kria.
-
-Three transfers, in the order below. The bring-up, mux and power helpers go to
-`~/multimodule`; the three wrappers you type by hand go to the home directory
-itself, for the reason given after the block; and the i2c-server goes under
-`~/multimodule/hexactrl-sw`, from where it is run **and not** from the RPM copy
-under `/opt`.
-
-**(on the lab computer)**
-
-```bash
-cd "$MM/kria"
-ssh kria 'mkdir -p ~/multimodule/hexactrl-sw'
-tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py \
-  | ssh kria 'tar xf - -C ~/multimodule'
-tar cf - up_verified.sh start_i2c.sh set_pwr_en.py | ssh kria 'tar xf - -C ~'
-cd "$MMTS_ROOT/hexactrl-sw"
-tar czf - --exclude=__pycache__ zmq_i2c | ssh kria 'tar xzf - -C ~/multimodule/hexactrl-sw'
-ssh kria 'chmod +x ~/multimodule/*.sh ~/*.sh ~/*.py'
-```
-
-The three home directory scripts live as files on the Kria on purpose: a
-`pkill -f` pattern typed into an ssh one-liner matches that one-liner's own
-command line and kills your session. What they do:
-
-| file | what |
-|---|---|
-| `up_verified.sh SLOT [--external-power] [--board NAME] [--module N]` | kills any i2c-server left from the previous slot, runs `mmts_bringup.sh` up to 8 times and the i2c-server up to 3, announces each try, and reports `READY` only when the ROC count matches `EXPECT_ROCS`, nothing says `FAILED`, the board identified, and ports 5555 and 6000 both listen |
-| `start_i2c.sh SLOT` | restart the i2c-server on a slot, detached, and print its identify line |
-| `set_pwr_en.py SLOT on\|off ...` | drive one slot's payload rail without a bring-up |
-
-Re-run the `tar` commands whenever you change a script on the client. The
-client's `$MM/kria/` is the source of truth; do not edit the copies on the Kria.
-
 ## 0.9 Check the installation
 
 All of it is typed on the lab computer. The first four lines check the Kria over
@@ -1201,7 +752,7 @@ ssh kria 'grep -c "id=\"TOP_[ABC]\"" /opt/cms-hgcal-firmware/hgc-test-systems/ac
 ssh kria 'cd ~/multimodule && python3 findslot.py'
 ```
 
-The `grep` must print `3`. Anything else means 0.8d is not done, or a firmware
+The `grep` must print `3`. Anything else means B4 is not done, or a firmware
 install has put the stock file back, and the failure it causes comes much later
 and looks like something else: the bring-up is clean, the scan runs, and the gate
 says `no summary.json` because `daq-server` logged `Device ID , "TOP_A", does
@@ -1517,12 +1068,12 @@ degrades it. Only then, halt the Kria with `sudo shutdown -h now`, press the
 power button, wait for `ssh kria` to answer again, and **restart at the bring-up
 block of this section, 1.3. Nothing else has to be redone.**
 Everything a reboot could cost is on disk and survives it: the udev rules of
-0.8g, `connections.xml` and the per-slot tables of 0.8d, the firewall of 0.8f,
-the sudoers rule of 0.3, the firmware RPM, and the Kria-side scripts of 0.8h. The
+B7, `connections.xml` and the per-slot tables of B4, the firewall of B6,
+the sudoers rule of 0.3, the firmware RPM, and the Kria-side scripts of B8. The
 cold-start lines of 1.2 are not needed either, because `mmts_bringup.sh` defaults
 to `--recover`, whose `[rec]` step does `kconn_pwr off`, `fw-loader load` and
 `kconn_pwr on` before it touches I2C. Only a firmware install sends you back into
-section 0, and only to 0.8d.
+section 0, and only to B4.
 
 Run the bring-ups **back to back** rather than one per boot: a slot that failed
 on five separate fresh boots came up 4 of 10 in a row, with the error count
@@ -2050,11 +1601,11 @@ no summary.json -- the scan did not produce output
 ```
 
 `Device ID , "TOP_<SLOT>", does not exist in connection map` is the stock
-`connections.xml`: 0.8d was skipped, or a firmware install put the stock file
-back. `Permission denied` on a uio device is 0.8g. Either way the server is in
+`connections.xml`: B4 was skipped, or a firmware install put the stock file
+back. `Permission denied` on a uio device is B7. Either way the server is in
 state `Error` and rejects every configure until it restarts, which the next
 bring-up does for you. A scan that times out after 180 s with nothing in either
-log is a `KRIA_IP` or firewall problem, per 0.5 and 0.8f.
+log is a `KRIA_IP` or firewall problem, per 0.5 and B6.
 
 🛑 A full-marks delay scan is **not** a health gate on its own. Idle is the
 easiest pattern to sample, and a slot can score worse on eye width while
@@ -2261,9 +1812,9 @@ bench looks like.
 - **`0/3` once, then `READY bringup=2`.** The ordinary lottery. Nothing to do.
 - **The gate reads `no summary.json` or `STALE`, and under it the Kria's log
   says `Device ID , "TOP_A", does not exist in connection map`.** `daq-server`
-  rejected the scan because `connections.xml` is the stock one, section 0.8d,
+  rejected the scan because `connections.xml` is the stock one, section B4,
   which a firmware install also puts back. `Permission denied` there instead is
-  the uio rule of 0.8g. The bring-up was clean in both cases, which is what
+  the uio rule of B7. The bring-up was clean in both cases, which is what
   makes this one expensive if 0.9's `grep` was skipped.
 - **0 of 12 trigger, DAQ 6/6.** The trigger claim is on another slot, per 11.6,
   or `in_inv_cmd_rx` was changed to 0. The shipped config has 1.
@@ -2796,6 +2347,464 @@ PED_EXTPOWER=1 PED_BOARD=HD-Semi "$MM/ped_run.sh" C 5 hdsemi 10000
 
 ---
 
+# Route B: set up a Kria by hand
+
+Steps B1 to B8 below build, one piece at a time, what the image contains. Take them
+in order on a Kria that has only the stock hexacontroller image, or take a single
+one on a Route A Kria that failed the matching check in 0.9.
+
+## B1. Base image
+
+Flash the standard HGCAL hexacontroller image for your Kria. It provides the
+`daq` user, `fw-loader`, `kconn_pwr`, and the I2C device nodes. Confirm before
+going further, and check the image against your own hexacontroller documentation
+if either command is missing:
+
+**(on the lab computer)**
+
+```bash
+ssh kria 'command -v fw-loader kconn_pwr; id daq'
+```
+
+## B2. hexactrl-sw under `/opt`
+
+The Kria needs the **server** side of the same branch, built for aarch64. It is a
+different architecture, so the client build of 0.6a is useless here; build it on
+the Kria itself, which has `gcc`, `cmake`, `boost-devel` and uHAL under
+`/opt/cactus` already.
+
+Copy the source over and build it there. The **`-DBUILD_CLIENT` flag is omitted
+on purpose**: OFF is the default and gives `daq-server` and `zmq_i2c`, which is
+what the Kria runs. `BRANCH_NAME` must still be passed, since the copied tree has
+no `.git` for cmake to read it from, and without it everything installs into
+`/opt/hexactrl/` itself.
+
+**(on the lab computer)**
+
+```bash
+cd "$MMTS_ROOT"
+tar czf - --exclude=.git --exclude=build hexactrl-sw | ssh kria 'tar xzf - -C ~'
+```
+
+**(on the Kria)**
+
+```bash
+cd ~/hexactrl-sw && mkdir -p build && cd build
+cmake -DBRANCH_NAME=ROCv3-alper-dev \
+      -DCMAKE_INSTALL_PREFIX=/opt/hexactrl/ROCv3-alper-dev ../
+make -j"$(nproc)" && sudo make install
+ls /opt/hexactrl/ROCv3-alper-dev/{bin/daq-server,lib/libhexactrl.so,etc/env.sh}
+```
+
+The Kria is a four-core aarch64 board, so expect this to take considerably longer
+than the client build. `sudo make install` writes under `/opt`, which is outside
+the passwordless rule of 0.3, so run it from a login shell.
+
+🔑 **Build the same commit on the Kria and on the client.** The branch carries
+fixes this procedure depends on: the `fifo_latency` mask fix, rebuilding
+`HwInterface` when `uhal_device` changes, skipping a trigger elink whose chip has
+no DAQ elink, and the offset finder skipping unreachable links instead of
+refusing the slot.
+
+Any Kria shell that runs `daq-server` or the link diagnostics needs the
+environment first. Bring-up and `zmq_server` do not.
+
+**(on the Kria)**
+
+```bash
+source /opt/hexactrl/ROCv3-alper-dev/etc/env.sh
+```
+
+## B3. Firmware
+
+The design is `multimodule-hd-tester-trophy-v3`, installed from the CERN
+repository as an RPM under `/opt/cms-hgcal-firmware/hgc-test-systems/`. The Kria
+needs internet access and a repository file for it.
+
+⚠️ **The firmware is not in the repo the image ships with.** A stock Kria has
+`/etc/yum.repos.d/CERN-REPO-hgcwebsw.repo`, repo id `hgcal-daq-sw`, whose
+`baseurl` ends in `hgcal-daq-sw/almalinux/9/aarch64/`. That is the `hexactrl-sw`
+software repo and it carries no firmware, so `dnf` answers `No match for
+argument` for every firmware release even though the RPM has been published for
+days. The firmware repo is `hgc-online-sw/repository/`, and you add it yourself.
+Write the file once:
+
+**(on the Kria)**
+
+```bash
+sudo tee /etc/yum.repos.d/hgc-online-sw.repo <<'EOF'
+[hgc-online-sw]
+name=HGCAL online software and firmware
+baseurl=https://hgc-online-sw.web.cern.ch/hgc-online-sw/repository/
+enabled=1
+gpgcheck=0
+EOF
+```
+
+Then install or update the firmware, **always by its full `name-version-release`**:
+
+**(on the Kria)**
+
+```bash
+sudo dnf update multimodule-hd-tester-trophy-v3-feature_multiplexer_board_v2-2026_09_01_16_56_41.49751f37
+rpm -q multimodule-hd-tester-trophy-v3
+```
+
+`update` is right when an older build is already installed, which is the usual
+case; `install` does the same job on a Kria that has none. Take the newest
+`feature_multiplexer_board_v2` release rather than this exact one once newer ones
+appear; `sudo dnf list --available multimodule-hd-tester-trophy-v3` shows what is
+on offer.
+
+⚠️ **Never type the package name bare, and never run an unqualified `dnf
+update`.** The package version string is the *branch* name, so every branch that
+ever built publishes the same package name, and rpm's version compare picks the
+alphabetically largest one, `test_merge_everything`, a 2025 build with no
+equalization. `dnf install multimodule-hd-tester-trophy-v3` gets you that, and so
+does a routine `dnf update` with this repository enabled.
+
+🔑 **The release string must be `2026_09_01_16_56_41.49751f37` or later**, the
+build that carries the DAQ RX equalization of B5. Earlier ones do not, and the
+difference decides whether four of the six DAQ e-links work at all.
+
+⚠️ `sudo dnf` is not in the passwordless rule of 0.3, which covers `fw-loader`
+and `kconn_pwr` only. Run it from a login shell on the Kria, not through a
+one-shot `ssh` that has no terminal to prompt on.
+
+⚠️ **The RPM overwrites `uHAL_xml/connections.xml`**, which is the file you edit
+by hand in B4. Re-apply that edit after every firmware install or upgrade,
+otherwise the next bring-up addresses `TOP` only and every slot fails. The
+per-slot `fw_block_addresses_{A,B,C}.xml` are not RPM files and survive.
+
+Then load it:
+
+**(on the lab computer)**
+
+```bash
+ssh kria 'sudo fw-loader list'
+ssh kria "sudo fw-loader load multimodule-hd-tester-trophy-v3"
+```
+
+`fw-loader load` takes a name under the base directory or an absolute path, and
+the directory basename must match its own dtbo. A freshly booted Kria has no
+bitstream at all, and bring-up then dies at `[pwr]` with
+`[Errno 2] ... '/dev/i2c-2'`.
+
+## B4. `connections.xml` needs `TOP_A`, `TOP_B`, `TOP_C`
+
+**This is required and none of it is shipped.** A fresh install carries one
+address table, `fw_block_addresses.xml`, whose three trigger blocks are named per
+slot, and a `connections.xml` defining `TOP` alone. `daq-server` addresses one
+slot at a time through the generic names `bram_trg` and `link_capture_trg`, so
+each slot needs its own table with its own blocks renamed to those, and its own
+connection entry. Without them nothing can address a slot.
+
+Make the three tables from the shipped one. This keeps each slot's addresses and
+module files and only renames the ids:
+
+**(on the Kria)**
+
+```bash
+cd /opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
+for S in A B C; do
+  OTHERS=$(echo ABC | tr -d "$S")
+  sed -E "/id=\"(bram_trg|link_capture_trg)_[${OTHERS}]\"/d" fw_block_addresses.xml \
+    | sed -E "s/id=\"(bram_trg|link_capture_trg)_${S}\"/id=\"\1\"/" \
+    | sudo tee fw_block_addresses_${S}.xml > /dev/null
+done
+grep -c 'id="bram_trg"' fw_block_addresses_[ABC].xml
+```
+
+That `grep` must report 1 for each of the three files. Each generated table also
+loses four lines against the shipped one, the two trigger blocks of each of the
+other two slots.
+
+**If the `grep` already reports 1 for all three, the tables are made and you can
+skip to the `connections.xml` step below.** The loop is safe to re-run in any
+case: it rebuilds each file from the shipped table and overwrites, so running it
+twice gives the same result as running it once.
+
+Now `connections.xml`, which needs one entry per slot alongside the stock `TOP`.
+This rewrites the whole file rather than asking you to edit XML by hand, and
+keeps a `.orig` of the shipped version the first time it runs:
+
+**(on the Kria)**
+
+```bash
+cd /opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
+X=/opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml
+[ -f connections.xml.orig ] || sudo cp connections.xml connections.xml.orig
+{
+  echo '<?xml version="1.0" encoding="UTF-8"?>'
+  echo
+  echo '<connections>'
+  echo "   <connection id=\"TOP\" uri=\"uioaxi-1.0://$X/fw_block_addresses.xml\" address_table=\"file://$X/fw_block_addresses.xml\"/>"
+  for S in A B C; do
+    echo "   <connection id=\"TOP_$S\" uri=\"uioaxi-1.0://$X/fw_block_addresses_$S.xml\" address_table=\"file://$X/fw_block_addresses_$S.xml\"/>"
+  done
+  echo '</connections>'
+} | sudo tee connections.xml > /dev/null
+grep -c 'id="TOP_[ABC]"' connections.xml
+```
+
+That `grep` must print 3. If it already printed 3 before you ran the block, the
+file is already correct and the block only rewrites it identically.
+
+⚠️ `connections.xml` belongs to the firmware RPM, so **a firmware install or
+upgrade puts the stock `TOP`-only file back**. Re-run the block above after every
+install, per B3. The `fw_block_addresses_{A,B,C}` files are yours and survive,
+so the table loop does not need repeating.
+
+## B5. The equalized bitstream
+
+🔑 **Check your firmware release before trusting a pedestal.** An unequalized
+build leaves the DAQ inputs with `IBUF_LOW_PWR` on, and four of the six DAQ
+e-links then fail 100 % of CRCs while looking healthy on entry counts: halves
+c0h0, c0h1, c1h0 and c2h1 read exactly 0.000. Equalized against unequalized, CRC
+pass goes 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, and the eye
+8 taps to 64.
+
+The equalization sets `IBUF_LOW_PWR FALSE` and `EQUALIZATION EQ_LEVEL4` on the
+DAQ inputs, in `designs/multimodule-hd-tester-trophy-v3/xdc/daq_rx_eq.xdc`.
+Levels are uncalibrated, and `EQ_LEVEL4` is the one that gives 100 % CRC pass on
+every link; `EQ_LEVEL2` recovers them but leaves 1 to 4 % error on two, and
+`IBUF_LOW_PWR` alone changes nothing. These are I/O properties only, so no logic,
+address map, software or routed timing changes with them.
+
+Install the RPM of B3 and set `MMTS_FW=multimodule-hd-tester-trophy-v3`. Read
+the commit out of the RPM's release string to confirm what you have:
+`2026_09_01_16_56_41.49751f37` or later carries the equalization. A copied build
+directory carries no such stamp, which is a reason to prefer the RPM.
+
+⚠️ **`MMTS_FW` is not sticky.** `enableROCs.py` re-points `active` on
+every run, so a bring-up without it silently reverts the bench to stock. Check
+after every bring-up:
+
+**(on the lab computer)**
+
+```bash
+ssh kria 'readlink /opt/cms-hgcal-firmware/hgc-test-systems/active; dmesg | grep "fpga0: writing" | tail -1'
+```
+
+## B6. Open the three ports
+
+The client drives the bench over ZeroMQ, so a listening socket on the Kria is not
+enough: the packets have to arrive. A stock AlmaLinux firewall on either machine
+blocks them, and the symptom is not a connection error but a **hang**, which
+reads as a broken bring-up rather than a network problem.
+
+Three ports, and they do not all belong to the Kria:
+
+| port | listens on | carries |
+|---|---|---|
+| 5555 | the Kria | the i2c-server, ROC configuration |
+| 6000 | the Kria | `daq-server`, run control |
+| **8888** | **the Kria** | **the event stream**, which the puller connects out to and pulls |
+| 6001 | the lab computer | control of the puller, from `delay_scan.py` on the same machine |
+
+⚠️ **6001 is a local control socket, not the data path.** `delay_scan.py:62`
+opens it as `daqController("localhost", pullerPort)`, so it never crosses the
+network on a normal bench. The events travel the other way: `daq-server` binds
+**8888** on the Kria and `daq-client` connects out to it, with
+`delay_scan.py:71` pointing the puller at the Kria's address at initialize.
+Opening 6001 on the client is harmless and worth doing, but it is 8888 on the
+Kria that the event stream actually needs.
+
+**(on the Kria)**
+
+```bash
+sudo firewall-cmd --permanent --add-port=5555/tcp --add-port=6000/tcp
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-ports
+```
+
+**(on the lab computer)**
+
+```bash
+sudo firewall-cmd --permanent --add-port=6001/tcp
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-ports
+```
+
+🛑 **That last line must print `6001/tcp`, and an empty answer is the failure to
+look for.** A stock AlmaLinux client runs firewalld with no ports open at all, so
+`--list-ports` prints a blank line and everything in section 0 still passes: the
+client only ever dials *out* to the Kria until the first run. The cost lands much
+later and does not look like a firewall. The bring-up is clean, the scan
+initializes, configures and reaches `status after start cmd : running`, and then
+nothing arrives for 180 s, because `daq-server` is pushing the event stream at a
+port that is dropping it. The gate then says `no summary.json`. Seen on a new
+client on 2026-09-04, three minutes per attempt.
+
+Prove reachability from the client rather than trusting `ss` on the Kria, since
+`ss` only tells you something is bound locally:
+
+**(on the lab computer)**
+
+```bash
+for p in 5555 6000; do
+  timeout 5 bash -c "cat < /dev/tcp/$KRIA_IP/$p" 2>/dev/null; rc=$?
+  case $rc in
+    0|1) echo "port $p PASS: reachable" ;;
+    124) echo "port $p FAIL: blocked (timed out)" ;;
+    *)   echo "port $p unexpected rc=$rc" ;;
+  esac
+done
+```
+
+`PASS` here means the packet arrived and got an answer, either from a listening
+server or as a refusal. **A refusal is a pass**, and until a bring-up has run
+that is the only answer either port can give, since nothing is listening yet.
+Only the timeout is a fault, and it is silent, which is why the `case` prints a
+verdict rather than leaving you to read `Connection refused` and guess.
+
+🔑 **Then test 8888, the port the data actually uses.** It only listens while
+`daq-server` is up, so run this after a bring-up. Use the `exec` form, **not**
+`cat`:
+
+**(on the lab computer)**
+
+```bash
+timeout 5 bash -c "exec 3<>/dev/tcp/$KRIA_IP/8888"; echo "8888 rc=$?"
+```
+
+`rc=0` is a pass, `rc=1` a refusal, `rc=124` a block.
+
+⛔ **Do not test a port that has a live server on it with `cat < /dev/tcp/...`.**
+`cat` connects and then waits for data, so against anything that listens and
+stays quiet it always burns the full timeout and reports `rc=124`, which reads as
+blocked when the port is perfectly fine. That form is safe for 5555 and 6000
+above only because nothing is listening there when you run them and a refusal
+comes back at once. Use `exec 3<>` whenever a server is up. This mistake cost
+half a session.
+
+If your site uses `iptables` or `nft` rather than `firewalld`, open the same
+ports with those instead.
+
+### One puller at a time
+
+🛑 **A Kria serves exactly one `daq-client`, and a second one anywhere on the
+network silently takes half your data.** `daq-server` pushes over a ZeroMQ PUSH
+socket, which **round-robins** across every connected puller. With two, the
+`START_RUN_DELAY_SCAN` string that opens a run goes to one of them and the data
+archives to the other, so your client reads an archive where it expected the
+run header and stays one message out of step for the whole run.
+
+The symptom names nothing: the bring-up is clean, the gate says
+`no summary.json`, the run directory holds only `initial_full_config.yaml`, and
+`~/daq-server.log` on the Kria ends in a perfectly healthy `STOP`. The only
+place it is visible is the puller's own log, `$MMTS_ROOT/daq-client.log`, which
+shows the archive being read as a run header:
+
+**(expected output of a failure, not a command)**
+
+```
+Error : serialization::archive ... not in dataTypeMap
+```
+
+Check who is connected before believing any empty run. It costs one line, needs
+no bring-up, and only shows peers while a run is in flight, so run it during the
+gate:
+
+**(on the lab computer, during a scan)**
+
+```bash
+ssh kria 'ss -tn | grep 8888'
+```
+
+There must be exactly **one** peer, and it must be your client's address. Any
+other address is a machine running a stray `daq-client`, and it has to be
+stopped there:
+
+**(on the other machine)**
+
+```bash
+pkill -f '[d]aq-client'
+```
+
+⚠️ **Look for containers too, not just processes.** On a machine where the
+client stack runs in Docker, `pgrep -af daq-client` finds nothing while the
+container holds the socket. `lsof -nP -iTCP | grep 8888` names the real owner,
+and `docker ps` then finds the container to stop. A container left up for hours
+after someone's earlier session is the likeliest source, and this exact case cost
+a morning on 2026-09-04.
+
+The mirror of this rule: if you take a bench over from another machine, stop that
+machine's puller first, and expect the same in reverse when you hand it back.
+
+**(on the lab computer, the full picture in one line)**
+
+```bash
+pgrep -af '[d]aq-client'; ssh kria 'pgrep -af "[d]aq-server|[z]mq_server"; ss -tn | grep 8888'
+```
+
+One `daq-client` here, one `daq-server` and one `zmq_server` on the Kria, and one
+peer on 8888. Two `daq-server` processes, or an old `zmq_server` from another
+slot, cause their own trouble, per 12.1.
+
+## B7. Device permissions
+
+Two udev rules. Both were needed on a stock image, and both fail in ways that
+waste a session.
+
+The **gpiochip** rule comes first: the Zynq PS chips are `root:root` 0600, which
+makes `gpiofind` abort. The **uio** rule is second: `/dev/uio*` at `root:root`
+0600 stops `daq-server` opening the firmware's UIO devices, so it logs
+`Permission denied`, goes to state `Error`, and rejects every configure, leaving
+scans with a header-only `.root` and no plots.
+
+**(on the Kria)**
+
+```bash
+echo 'SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"' \
+  | sudo tee /etc/udev/rules.d/99-gpiochip-all.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=gpio
+echo 'SUBSYSTEM=="uio", KERNEL=="uio*", GROUP="daq", MODE="0660"' \
+  | sudo tee /etc/udev/rules.d/99-uio-daq.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=uio
+```
+
+Confirm the `daq` user is in the `i2c` and `gpio` groups, and log out and back in
+after any `usermod`.
+
+## B8. Copy the code to the Kria
+
+The Kria gets the contents of `$MM/kria/` and the i2c-server. No git on the Kria.
+
+Three transfers, in the order below. The bring-up, mux and power helpers go to
+`~/multimodule`; the three wrappers you type by hand go to the home directory
+itself, for the reason given after the block; and the i2c-server goes under
+`~/multimodule/hexactrl-sw`, from where it is run **and not** from the RPM copy
+under `/opt`.
+
+**(on the lab computer)**
+
+```bash
+cd "$MM/kria"
+ssh kria 'mkdir -p ~/multimodule/hexactrl-sw'
+tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py \
+  | ssh kria 'tar xf - -C ~/multimodule'
+tar cf - up_verified.sh start_i2c.sh set_pwr_en.py | ssh kria 'tar xf - -C ~'
+cd "$MMTS_ROOT/hexactrl-sw"
+tar czf - --exclude=__pycache__ zmq_i2c | ssh kria 'tar xzf - -C ~/multimodule/hexactrl-sw'
+ssh kria 'chmod +x ~/multimodule/*.sh ~/*.sh ~/*.py'
+```
+
+The three home directory scripts live as files on the Kria on purpose: a
+`pkill -f` pattern typed into an ssh one-liner matches that one-liner's own
+command line and kills your session. What they do:
+
+| file | what |
+|---|---|
+| `up_verified.sh SLOT [--external-power] [--board NAME] [--module N]` | kills any i2c-server left from the previous slot, runs `mmts_bringup.sh` up to 8 times and the i2c-server up to 3, announces each try, and reports `READY` only when the ROC count matches `EXPECT_ROCS`, nothing says `FAILED`, the board identified, and ports 5555 and 6000 both listen |
+| `start_i2c.sh SLOT` | restart the i2c-server on a slot, detached, and print its identify line |
+| `set_pwr_en.py SLOT on\|off ...` | drive one slot's payload rail without a bring-up |
+
+Re-run the `tar` commands whenever you change a script on the client. The
+client's `$MM/kria/` is the source of truth; do not edit the copies on the Kria.
+
+---
+
 # 11. Reference
 
 The material behind the numbers in sections 2 to 10. Nothing here is on the
@@ -2997,7 +3006,7 @@ Each of these reads as a result and is not one.
 | `KeyError: 'dac_hyst_toa'` | ROC type mis-detected and fell back to Siv3. Redo bring-up plus i2c-server |
 | Client hangs at `ROC(s) CONFIGURED` | `daq-server` is dead or stuck in a previous unfinished run. Restart it |
 | A scan sits at `Initializing i2c sockets` and never proceeds | Nothing is listening on 5555. `mmts_bringup.sh` does not start the i2c-server; run `~/start_i2c.sh SLOT`. Section 1.3 |
-| Same hang, but `ss` on the Kria shows 5555 **and** 6000 listening and the identify line is good | The client cannot reach them. `echo "KRIA_IP=$KRIA_IP"` first: `192.0.2.7` is the unedited placeholder of 0.5 and routes nowhere. If the address is right, it is the firewall, per 0.8f |
+| Same hang, but `ss` on the Kria shows 5555 **and** 6000 listening and the identify line is good | The client cannot reach them. `echo "KRIA_IP=$KRIA_IP"` first: `192.0.2.7` is the unedited placeholder of 0.5 and routes nowhere. If the address is right, it is the firewall, per B6 |
 | `status after start cmd : configured`, repeating | **Interrupt at once.** An e-link is unaligned and `start()` retries forever; the backlog can crash the puller and `daq-server`. Read `~/daq-server.log` for which link, then re-run bring-up |
 | `status after start cmd : created`, repeating | You dropped `-I` |
 | 6 DAQ links dead, 12 trigger fine | Multiplex hold lost. `gpiofind Multiplex_A` and `ps aux \| grep "[g]pioset"`; the chip numbers must match |
@@ -3014,20 +3023,20 @@ Each of these reads as a result and is not one.
 | cmake reports `Found PythonInterp: .../miniforge3/bin/python3` | A conda environment is active. `conda deactivate`, delete the build directory, configure again. Section 0.6a |
 | `make` fails on `yaml-cpp/yaml.h` or `zmq.hpp: No such file or directory` | `yaml-cpp-devel` and `cppzmq-devel` are missing. cmake never checks for them, so this only shows up in `make`. Section 0.6a |
 | `$MM/puller.sh: No such file or directory`, and no `multimodule/` at all | The submodules were never fetched, or the clone predates the merge of the scripts upstream. `git pull --ff-only` then `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
-| `dnf` answers `No matching Packages to list` for the firmware, and `dnf repolist` shows `HCGAL-DAQ-SW` alone | The `hgc-online-sw` repo file was never written. Section 0.8c |
+| `dnf` answers `No matching Packages to list` for the firmware, and `dnf repolist` shows `HCGAL-DAQ-SW` alone | The `hgc-online-sw` repo file was never written. Section B3 |
 | `ZMQError: Address already in use` on 5555 | `ssh kria 'pkill -f "[z]mq_ser""ver.py"'` |
 | `daq-client` cannot bind 6001 | An old one is still alive. `pkill -f '[d]aq-client'` |
-| The gate says `no summary.json`, the run directory holds only `initial_full_config.yaml`, and `~/daq-server.log` ends in a healthy `STOP` | A second puller somewhere on the network is taking half the stream. `ssh kria 'ss -tn \| grep 8888'` during a scan must show exactly one peer, your client. Section 0.8f, "One puller at a time" |
+| The gate says `no summary.json`, the run directory holds only `initial_full_config.yaml`, and `~/daq-server.log` ends in a healthy `STOP` | A second puller somewhere on the network is taking half the stream. `ssh kria 'ss -tn \| grep 8888'` during a scan must show exactly one peer, your client. Section B6, "One puller at a time" |
 | `Error : serialization::archive ... not in dataTypeMap` in `$MMTS_ROOT/daq-client.log`, followed by pages of misparsed `link_capture_daq.link0` | The same thing: the run header went to the other puller, so this one read a data archive as the header. Not a version mismatch, and not worth rebuilding anything over |
-| A port test gives `rc=124` on a port that `ss` shows listening | The test, not the port. `cat < /dev/tcp/...` waits for data and always times out against a quiet server. Use `timeout 5 bash -c "exec 3<>/dev/tcp/HOST/PORT"`. Section 0.8f |
-| The scan reaches `status after start cmd : running` and then nothing for minutes, and the gate says `no summary.json` | The event stream is not getting back to the client. `sudo firewall-cmd --list-ports` **on the lab computer**: an empty answer means 6001 was never opened, section 0.8f. Everything else passes without it, since the client only dials out until the first run |
+| A port test gives `rc=124` on a port that `ss` shows listening | The test, not the port. `cat < /dev/tcp/...` waits for data and always times out against a quiet server. Use `timeout 5 bash -c "exec 3<>/dev/tcp/HOST/PORT"`. Section B6 |
+| The scan reaches `status after start cmd : running` and then nothing for minutes, and the gate says `no summary.json` | The event stream is not getting back to the client. `sudo firewall-cmd --list-ports` **on the lab computer**: an empty answer means 6001 was never opened, section B6. Everything else passes without it, since the client only dials out until the first run |
 | Orphaned holders after a killed server | `pkill -f 'gpioset -m signal -b'` |
 | `daq-client` exits with `std::length_error` or signal 6 | It was sent the run twice by a START refusal spin. Full reset: restart `daq-server`, re-run bring-up, restart the puller |
 | `elink link_capture_daq.linkN is not aligned` | A DAQ link failed to init, which happens about once a session. Re-run bring-up. `--realign` does not fix it, because the delay block is fine and the word aligner needs the `linkReset` that a full configure issues |
-| `gpiofind: Permission denied` | The gpiochip udev rule is missing. Section 0.8g |
-| `daq-server` logs `Permission denied` then `impossible to process configure when state is Error` | The uio udev rule is missing. Section 0.8g. Every configure is rejected until `daq-server` restarts |
+| `gpiofind: Permission denied` | The gpiochip udev rule is missing. Section B7 |
+| `daq-server` logs `Permission denied` then `impossible to process configure when state is Error` | The uio udev rule is missing. Section B7. Every configure is rejected until `daq-server` restarts |
 | `fw-loader load: error: the following arguments are required: firmware` | A `$MMTS_FW` from an older copy of these instructions expanded to nothing. Name the design outright: `multimodule-hd-tester-trophy-v3`. Section 0.5 |
-| `sed: -e expression #1, char 49: extra characters after command`, and the echoed line shows `done` where you typed `!d` | Bash history expansion, not sed. Use the loop as written in 0.8d, which contains no `!` |
+| `sed: -e expression #1, char 49: extra characters after command`, and the echoed line shows `done` where you typed `!d` | Bash history expansion, not sed. Use the loop as written in B4, which contains no `!` |
 | Bring-up dies at `[pwr]` with `[Errno 2] ... '/dev/i2c-2'` | Freshly booted Kria with no bitstream. `fw-loader load` first |
 | Repeated `[Errno 13] Permission denied: '/dev/i2c-2'` after many reloads | The overlay reload is re-creating the node slower than udev sets the group, which takes roughly 40 reloads in a day to reach. Reboot the Kria |
 | `ROC addresses [...] do not match a known board` | Read the printed address list. It is usually a bad bring-up rather than a wrong board type |
@@ -3035,8 +3044,8 @@ Each of these reads as a result and is not one.
 | `retry 5/5` at the `[pwr] power management board 0x27` line, first bring-up after a power cycle | The power board is not in the loop, so `0x27` cannot ACK. The module is fed directly: use `--external-power`. One `--recover --external-power` bring-up clears the wedge without a power cycle |
 | Supply reads 0.4 to 0.5 A on a channel with nothing brought up | Normal: that slot's rail is on and its ROCs are idle. Three configured LD chips draw about 1.9 A, three HD chips about 2.2 A |
 | Bring-up repeats `0/N ROCs` and the supply sits in **CV at 0.05 to 0.1 A**, well under the 0.4 A quiescent | The power path is open, not the bus. Sweep `--module 1/2/3` first, since `EN_Mx` is cabling; if all three read the same, check the power-management-to-mux cable, then the module's flex and seating. A `0x27` that ACKs proves the data path only |
-| `daq-server.log` says `Device ID , "TOP_A", does not exist in connection map` then `impossible to process configure when state is Error` | The stock `connections.xml`. Section 0.8d, and again after every firmware install. The bring-up looks clean and the scan runs; only the gate's `no summary.json` gives it away |
-| The gate prints `no summary.json -- the scan did not produce output` or `STALE: newest summary is ...` | `daq-server` rejected the scan, or nothing answered. `delay_scan.sh` prints the tails of its own log and of `~/daq-server.log` right under it; act on that line: the connection map row above, the uio rule of 0.8g, or a timeout with empty logs, which is `KRIA_IP` or the firewall. Section 2.5 |
+| `daq-server.log` says `Device ID , "TOP_A", does not exist in connection map` then `impossible to process configure when state is Error` | The stock `connections.xml`. Section B4, and again after every firmware install. The bring-up looks clean and the scan runs; only the gate's `no summary.json` gives it away |
+| The gate prints `no summary.json -- the scan did not produce output` or `STALE: newest summary is ...` | `daq-server` rejected the scan, or nothing answered. `delay_scan.sh` prints the tails of its own log and of `~/daq-server.log` right under it; act on that line: the connection map row above, the uio rule of B7, or a timeout with empty logs, which is `KRIA_IP` or the firewall. Section 2.5 |
 | `bringup try N of 8: running ...` and then a silent minute | Normal. A try is 60 to 90 s and there can be eight. `ssh kria 'tail -f ~/bu_<slot>.log'` to see inside it. Section 2.4 |
 | Bring-up enables 2 of N, with a different chip missing each time | The lottery, not a dead ROC. Run it again, back to back |
 | Bring-up `3/3` but the i2c-server dies on `could not identify ROC type from readBack [0, 253, 104]`, or the client hangs at initialize with an empty run directory and `RUN-FAILED (rc=124)` | Reads on that slot's I2C path have died while writes still work. Not the puller, so do not recreate it. Power-cycle the Kria, run the bring-ups back to back, take the runs at once. Section 8.4 |
@@ -3118,20 +3127,21 @@ itself. Newest first.
 
 | date | change |
 |---|---|
-| 2026-09-08 | **0.7 moved to 0.8h**, the last step of Route B. The Kria-side scripts and `zmq_i2c` are inside the Route A image, so flashing it does not need a separate copy step: verified on 2026-09-08 by hashing all seven scripts and every `zmq_i2c` source on a freshly booted image against the client, all identical. It stays a Route B step because a hand-built Kria has none of them, and Route A still points at it for the case that matters, an image that has aged past the client's clone. Section numbers 0.8 and 0.9 were left alone on purpose: renumbering would touch more than fifty cross-references and would falsify the dated rows in this table that cite 0.8c and 0.8f. A signpost stays at 0.7 |
+| 2026-09-08 | **Route B moved out of 0.8 to its own top-level section**, placed after the board sections and before the Reference back matter, since a bench that flashes the Route A image never reads it. Its steps are renamed **B1 to B8** from the old 0.8a to 0.8h, mirroring Route A's A1 to A5, and every reference was updated with them, earlier rows of this table included, so a row that once read 0.8c now reads B3. Section 0.8 keeps Route A and now says where Route B went, and 11, 12 and 13 were deliberately not renumbered because twelve live cross-references point at 11.x and this table cites 12.1, 12.3 and 12.4. Also confirmed this day: the CERNBox image downloads intact from off-site, 5,075,604,095 bytes and sha256 1a5dc548 in 227 s from uaf-2, so a short or checksum-mismatched download is the reader's network and the fix is to retry, not to doubt the file |
+| 2026-09-08 | **0.7 moved to B8**, the last step of Route B. The Kria-side scripts and `zmq_i2c` are inside the Route A image, so flashing it does not need a separate copy step: verified on 2026-09-08 by hashing all seven scripts and every `zmq_i2c` source on a freshly booted image against the client, all identical. It stays a Route B step because a hand-built Kria has none of them, and Route A still points at it for the case that matters, an image that has aged past the client's clone. Section numbers 0.8 and 0.9 were left alone on purpose: renumbering would touch more than fifty cross-references and would falsify the dated rows in this table that cite B3 and B6. A signpost stays at 0.7 |
 | 2026-09-08 | Route A rewritten around a **gzipped image on a CERNBox public link**, replacing the uncompressed `kria-ua-v2.img` on FNAL EOS. The download needs **no CERN account** and no XRootD client, so `xrdcp`, grid proxies and `kinit` are gone from the step; `curl` covers Linux and macOS with one command. The image is truncated at the end of the root partition rather than carrying the tail of the card it came from, which took it from 31.7 GB to 10.7 GB written and 5.1 GB downloaded, and is why a freshly flashed card correctly shows unallocated space. Step A3 streams `gunzip -c ... \| dd` so the reader never needs 10.7 GB of free space for an intermediate file, which is also why the file is published as `.img.gz` and not `.img.tar.gz`. **Linux and macOS are now given side by side** at every step, with a table of the four places they differ: `lsblk` against `diskutil list`, per-partition `umount` against whole-device `diskutil unmountDisk`, `/dev/sdX` against the raw `/dev/rdiskN`, and `bs=4M` against `bs=4m`. macOS `dd` accepts only `none` and `noxfer` for `status=`, so `status=progress` is an error there and Ctrl+T is the progress key. A sha256 check is now mandatory before writing, since a truncated download flashes silently and presents as a Kria that will not boot. New A5 records how to regenerate and republish the image, including taking the card out of a powered-down Kria first, because imaging a live root filesystem yields an inconsistent snapshot that may still boot |
-| 2026-09-04 | 0.8 split into two routes. **Route A** flashes the prepared image `kria-ua-v2.img` from FNAL EOS (`root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img`) onto the SD card with `xrdcp` and `dd`, and says what a snapshot does not settle: 0.3, 0.7 and every 0.9 check are still per client. **Route B** is the former step-by-step 0.8a to 0.8g, unchanged, also used one step at a time to repair a Route A Kria that fails a check |
-| 2026-09-04 | **A Kria serves one puller.** `daq-server` pushes over a ZeroMQ PUSH socket, which round-robins across every connected `daq-client`, so a second one anywhere on the network takes half the messages: the client reads a data archive where the `START_RUN_DELAY_SCAN` header should be and stays out of step for the whole run. It presents as an empty run directory and `no summary.json` behind a clean bring-up and a `daq-server` that ran to `STOP`, and is visible only in `daq-client.log` as `Error : serialization::archive ... not in dataTypeMap`. Found after half a day of chasing it as a firewall, a Boost mismatch and a build mismatch, all of which were ruled out; the second puller was a Docker container left up on another machine, which `pgrep` does not find. 0.8f gains the check, the port table gains 8888 and corrects 6001 to what it is, a localhost control socket. Also corrected there: a port test must use `exec 3<>/dev/tcp/...` and not `cat <`, which always times out against a listening server and reports a healthy port as blocked |
+| 2026-09-04 | 0.8 split into two routes. **Route A** flashes the prepared image `kria-ua-v2.img` from FNAL EOS (`root://cmseos.fnal.gov//eos/uscms/store/user/nanguyen/kria-ua-v2.img`) onto the SD card with `xrdcp` and `dd`, and says what a snapshot does not settle: 0.3, 0.7 and every 0.9 check are still per client. **Route B** is the former step-by-step B1 to B7, unchanged, also used one step at a time to repair a Route A Kria that fails a check |
+| 2026-09-04 | **A Kria serves one puller.** `daq-server` pushes over a ZeroMQ PUSH socket, which round-robins across every connected `daq-client`, so a second one anywhere on the network takes half the messages: the client reads a data archive where the `START_RUN_DELAY_SCAN` header should be and stays out of step for the whole run. It presents as an empty run directory and `no summary.json` behind a clean bring-up and a `daq-server` that ran to `STOP`, and is visible only in `daq-client.log` as `Error : serialization::archive ... not in dataTypeMap`. Found after half a day of chasing it as a firewall, a Boost mismatch and a build mismatch, all of which were ruled out; the second puller was a Docker container left up on another machine, which `pgrep` does not find. B6 gains the check, the port table gains 8888 and corrects 6001 to what it is, a localhost control socket. Also corrected there: a port test must use `exec 3<>/dev/tcp/...` and not `cat <`, which always times out against a listening server and reports a healthy port as blocked |
 | 2026-09-04 | The stock image keeps **no persistent journal**, so a Kria that hangs and needs the power button leaves nothing behind: `journalctl -b -1` answers `no persistent journal was found`, and `/var/log/journal` is not adopted even when created with the right ownership. 12.4 now says to start `dmesg -w >> ~/kernel.log` before chasing a hang, since the home directory does survive. Also recorded there: the Kria boots with a wrong date, `2025-12-04` on this bench, so its logs cannot be correlated with the client's until the clock is set |
-| 2026-09-04 | Restructured so the routine path comes before the reference material. Section 2 is now "Running a board": which type, register, `run_slot.sh`, then its stages one at a time in 2.4 to 2.7, the old 3.1 to 3.4. The per-type sections moved up one, to 3 to 10. What an operator does not need on the routine path went to a new section 11, Reference: the ROC revision and `in_inv_cmd_rx` (old 2.1), ROC addresses (old 2.2), measured link sets and the probe (old 2.4), trophies (old 2.5), offline unpack (old 3.5), slot quirks and the yardstick (old 3.6 and 3.7). The two parameter tables of old 2.3 and 2.7 became one, in 2.1, and the `run_slot.sh` walkthrough moved from the LD Full section into 2.3. Same day, from the second client install: 0.5 and 0.8f print PASS or FAIL instead of `Connection refused`, 0.8f checks 6001 from the Kria side, `start_i2c.sh` is its own block in 1.3 with the wedge escalation under it, 1.2 is marked as not needed before a wrapper bring-up, 1.4 documents the identify line naming a wrong board type on a partial enable, and 2.4 says not to re-bring-up a verified slot |
+| 2026-09-04 | Restructured so the routine path comes before the reference material. Section 2 is now "Running a board": which type, register, `run_slot.sh`, then its stages one at a time in 2.4 to 2.7, the old 3.1 to 3.4. The per-type sections moved up one, to 3 to 10. What an operator does not need on the routine path went to a new section 11, Reference: the ROC revision and `in_inv_cmd_rx` (old 2.1), ROC addresses (old 2.2), measured link sets and the probe (old 2.4), trophies (old 2.5), offline unpack (old 3.5), slot quirks and the yardstick (old 3.6 and 3.7). The two parameter tables of old 2.3 and 2.7 became one, in 2.1, and the `run_slot.sh` walkthrough moved from the LD Full section into 2.3. Same day, from the second client install: 0.5 and B6 print PASS or FAIL instead of `Connection refused`, B6 checks 6001 from the Kria side, `start_i2c.sh` is its own block in 1.3 with the wedge escalation under it, 1.2 is marked as not needed before a wrapper bring-up, 1.4 documents the identify line naming a wrong board type on a partial enable, and 2.4 says not to re-bring-up a verified slot |
 | 2026-09-03 | Scripts changed to match, in one `hexactrl-script` MR. `site.sh` is gone: `lib.sh` reads the environment, requires `MMTS_ROOT` and `KRIA_IP` and stops naming a missing one, and defaults the rest, so no placeholder address or stale firmware name can hang a scan later. `partial_slot.sh` is `run_slot.sh`, since it runs full boards too, and it streams every stage instead of holding the output until the end. `up_verified.sh` kills the previous slot's i2c-server before the first try and announces each try, so the hand-driven blocks lost their `pkill` line again. `delay_scan.sh` keeps the scan's log, times out at 180 s, and `gate.py` refuses a summary older than the scan and prints both logs' tails when there is nothing to report. `register_boards.py` creates the registry. `module_of.py` and `hexmap_robust.py` lost their site-named results default |
 | 2026-09-03 | Corrected against two full sessions: the HD Top campaign on the reference bench and the first LD Full attempt from these instructions on a new client, which reached the gate and no further. Every hand-driven bring-up now kills the previous slot's i2c-server first, which `run_slot.sh` always did and `up_verified.sh` never does. Sections 3.1 to 3.3 and 4 say what each step prints, how long its silence lasts, which log to `tail -f`, and what the meter reads at each point. The gate's missing age check is documented. `ped_run.sh` is described as what it is, N runs on the slot as it stands, rather than as a bring-up plus gate. The `in_inv_cmd_rx` revision rule is restricted to the boards it holds for, since the LD Full keeps 1. 0.9 checks `connections.xml`, whose stock `TOP`-only form is what stopped the new client at the gate. The HD Top section carries its measured gates, per-slot trigger sets, edge settings and the three failures seen that day; its configs' claim of a power distribution board was wrong |
 | 2026-09-03 | Restructured around hexaboard type instead of slot. The old sections 3, 4 and 5 were Slot A, Slot B and Slot C, which meant a board type's parameters were scattered across three places and the commands for one module were interleaved with two others. Now section 3 is the procedure every type shares, sections 4 to 11 are one per type with a subsection per slot, and 12 and 13 are the old 6 and 7. Section 2's per-type subsections collapsed into a single pointer table, and the slot-level quirks that used to be repeated per slot, the trigger claim, slot C's sub-bus 7, its trigger set and its `L1A_offset_or_BX: 13`, are stated once in 3.6 |
 | 2026-09-03 | The output root is now `Results/` rather than a site-named subdirectory of it. `RESULTS_DIR` in `site.sh` is the one place that sets it |
 | 2026-09-03 | `site.sh` is sourced by the scripts but not by your shell, so the hand-typed commands were expanding an empty `$MMTS_FW` and `$KRIA_IP`. The firmware design is now spelled out in every command instead of going through the variable, and section 0.5 and the preamble to sections 3 to 11 source `site.sh` for the rest |
 | 2026-09-03 | The MMTS scripts branch was merged into `hexactrl-script:ROCv3-alper-dev` as `ffb42a2`, and `hexactrl-sw` MR !56 bumped the submodule pointer to it, so the scripts and configs are upstream. Section 0.4 loses the `tvami` fork remote and the branch checkout: `git clone --recurse-submodules` is now the whole step, and the submodules are correctly detached at their pinned commits |
-| 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The 0.8b occurrences are server-side and stay |
-| 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and 0.8c. The clone step initialized only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of 0.8c had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
+| 2026-09-03 | The client-side `source .../etc/env.sh` line was wrong throughout and is now `export PATH=.../bin:$PATH`. `CMakeLists.txt` installs `env.sh` inside `if( NOT BUILD_CLIENT )`, so it exists only on the Kria, and it holds cactus and uHAL paths the client has no use for. The B2 occurrences are server-side and stay |
+| 2026-09-03 | First install from these instructions on a fresh AlmaLinux client, completed end to end, found four gaps now fixed in 0.4, 0.6a and B3. The clone step initialized only `hexactrl-script` and left the nested `analysis` and the sibling `zmq_i2c` empty, stopping the build at `add_subdirectory(analysis)`; the first repair for that was itself wrong, since a top-level recursive update resets `hexactrl-script` off the fork branch, so the nested update is now run from inside the submodule. cmake takes its interpreter from `PATH`, so an active conda base built against Python 3.12. `yaml-cpp-devel` and `cppzmq-devel` were missing from the package list, and since cmake never checks for them the failure came minutes later in `make`. And the firmware repo file of B3 had never been written on the bench Kria, so `dnf` answered `No matching Packages to list` for every firmware release |
 | 2026-09-03 | Bench Kria upgraded from `2026_07_20_23_20_01.45587078` to `2026_09_01_16_56_41.49751f37`. The superseded build predates the DAQ RX equalization, so any CRC or dead-DAQ-link result recorded on this bench before this date is an unequalized measurement |
 | 2026-09-03 | Bench scripts moved into `hexactrl-script/multimodule/`, so there is no separate bench repository to clone and every site value lives in `site.sh`. `hexactrl-sw` is built from source on both the client and the Kria; the CI-artifact route is gone. Configs reduced to exactly one per geometry per slot, `<family>_mux<SLOT>_ped.yaml`, with the family named for the geometry: `initLD-Full-3b`, `initLD-Five-3b`, `initLD-Left-3b`, `initLD-Bottom-3b`, `initHD-Full-trophyV3`, `initHD-Top-trophyV3`, `initHD-Bottom-trophyV3`, `initHD-Semi-trophyV3`. The bring-up script is now `enableROCs.py`, and it exits 1 when a `--board` address set comes up incomplete instead of reporting a partial enable as success |
 | 2026-09-01 | DAQ RX equalization merged into `feature/multiplexer_board_v2` as `49751f37` and released, so the design has no `-rxeq` suffix any more. Measured against the unequalized build: CRC pass 0.000 to 1.000 on all three slots, `badBX` 0.10 to 0.000, eye 8 taps to 64 |
