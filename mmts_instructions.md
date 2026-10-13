@@ -2357,33 +2357,36 @@ any `usermod`.
 
 The Kria gets `$MM/kria/` and the i2c-server. No git on the Kria.
 
-Three transfers. The bring-up, mux and power helpers go to `~/multimodule`;
-the three wrappers you type by hand go to the home directory; and the
-i2c-server goes under `~/multimodule/hexactrl-sw`, from where it is run **and
-not** from the copy under `/opt`.
+Two transfers. Everything from `$MM/kria/` goes to `~/multimodule`, the
+wrappers included; the i2c-server goes under `~/multimodule/hexactrl-sw`,
+from where it is run **and not** from the copy under `/opt`. Since 2026-10-13
+the wrappers live in `~/multimodule` too, with symlinks in `~` so the older
+`~/up_verified.sh` form still works.
 
 **(on the lab computer)**
 
 ```bash
 cd "$MM/kria"
 ssh kria 'mkdir -p ~/multimodule/hexactrl-sw'
-tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py \
+tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py sgl_ladder.py \
+  up_verified.sh start_i2c.sh start_daq.sh set_pwr_en.py \
   | ssh kria 'tar xf - -C ~/multimodule'
-tar cf - up_verified.sh start_i2c.sh set_pwr_en.py | ssh kria 'tar xf - -C ~'
+ssh kria 'cd ~ && for f in up_verified.sh start_i2c.sh start_daq.sh set_pwr_en.py; do ln -sfn multimodule/$f $f; done'
 cd "$MMTS_ROOT/hexactrl-sw"
 tar czf - --exclude=__pycache__ zmq_i2c | ssh kria 'tar xzf - -C ~/multimodule/hexactrl-sw'
-ssh kria 'chmod +x ~/multimodule/*.sh ~/*.sh ~/*.py'
+ssh kria 'chmod +x ~/multimodule/*.sh ~/multimodule/*.py'
 ```
 
-The three home directory scripts are files on the Kria on purpose: a
-`pkill -f` pattern typed into an ssh one-liner matches that one-liner and
-kills your session.
+The wrappers are files on the Kria on purpose: a `pkill -f` pattern typed
+into an ssh one-liner matches that one-liner and kills your session.
 
 | file | what |
 |---|---|
-| `up_verified.sh SLOT [--external-power] [--board NAME] [--module N]` | kills any i2c-server left from the previous slot, runs `mmts_bringup.sh` up to 8 times and the i2c-server up to 3, announces each try, and reports `READY` only when the ROC count matches `EXPECT_ROCS`, nothing says `FAILED`, the board identified, and ports 5555 and 6000 both listen |
-| `start_i2c.sh SLOT` | restart the i2c-server on a slot, detached, and print its identify line |
+| `up_verified.sh SLOT [--external-power] [--board NAME] [--module N]` | kills any i2c-server left from the previous slot, runs `mmts_bringup.sh` up to `BRINGUP_TRIES` times (default 8) and the i2c-server up to 3, announces each try, and reports `READY` only when the ROC count matches `EXPECT_ROCS`, nothing says `FAILED`, the board identified, and ports 5555 and 6000 both listen. `KEEP_PAYLOAD=1` reloads the bitstream per try instead of cycling payload power |
+| `start_i2c.sh SLOT` | restart the i2c-server on a slot, detached, and print its identify line; no firmware reload in front of it |
+| `start_daq.sh` | (re)start `daq-server` after the i2c-server is up, releasing the trigger claim |
 | `set_pwr_en.py SLOT on\|off ...` | drive one slot's payload rail without a bring-up |
+| `sgl_ladder.py [N] [--label TEXT]` | per-slot I2C write statistics (fake-ACK check, switch writes, Sgl selects), the first test after a power button |
 
 Re-run the `tar` commands whenever a script changes on the client. `$MM/kria/`
 is the source of truth; do not edit the copies on the Kria.
