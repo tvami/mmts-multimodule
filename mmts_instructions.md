@@ -477,8 +477,9 @@ Both routes end at 0.9. Run those checks either way.
 
 ### Route A: flash the prepared image
 
-A gzipped snapshot of a working bench Kria's SD card, on a CERNBox public link.
-**No CERN account is needed**, and the same link works from Linux and macOS.
+A gzipped snapshot of a working bench Kria's SD card, on CERNBox. The link opens
+the CERNBox web app and **needs a CERN sign-in**; download it in the browser.
+The same file works from Linux and macOS.
 
 | | |
 |---|---|
@@ -486,7 +487,9 @@ A gzipped snapshot of a working bench Kria's SD card, on a CERNBox public link.
 | download | 7,370,545,571 bytes (7.4 GB) |
 | written to the card | 15,934,160,896 bytes (15.9 GB) |
 | sha256 of the download | `6849d162dc1a01814b01e3d08e693118b9e98725adeb0c1d76a7766914df254a` |
-| link | TODO: public link for `/eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz` (the previous image, `kria11-ucsb-20260908.img.gz`, 5.1 GB, sha256 `1a5dc548…`, stays at `https://cernbox.cern.ch/s/vCNbETZNHUdHyCS/download` as a fallback) |
+| link | `https://cernbox.cern.ch/files/spaces/eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz` |
+| EOS path | `/eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz` (lxplus, or `xrdcp` from `root://eosuser.cern.ch/`) |
+| fallback | the 09-08 image `kria11-ucsb-20260908.img.gz` (5.1 GB, sha256 `1a5dc548…`, writes 10.7 GB), public link `https://cernbox.cern.ch/s/vCNbETZNHUdHyCS/download`, no sign-in |
 
 The card must be **32 GB**. A nominal 16 GB card is a few MB short of the
 15.9 GB the image writes.
@@ -497,14 +500,15 @@ freshly flashed Kria shows a new host key.
 
 #### A1. Fetch and check it
 
-`curl` ships with both AlmaLinux and macOS:
+Open the link in a browser, sign in with your CERN account, download the file,
+and move it to `$MMTS_ROOT`. With a CERN Kerberos ticket (`kinit user@CERN.CH`)
+`xrdcp` works instead of the browser:
 
 **(on the lab computer, Linux or macOS)**
 
 ```bash
 cd "$MMTS_ROOT"
-curl -L -o kria-mmts-20261013.img.gz \
-  '<the public link from the table>'
+xrdcp root://eosuser.cern.ch//eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz .
 ls -l kria-mmts-20261013.img.gz
 ```
 
