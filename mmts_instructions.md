@@ -482,13 +482,18 @@ A gzipped snapshot of a working bench Kria's SD card, on a CERNBox public link.
 
 | | |
 |---|---|
-| file | `kria11-ucsb-20260908.img.gz` |
-| download | 5,075,604,095 bytes (5.1 GB) |
-| written to the card | 10,675,552,256 bytes (10.7 GB) |
-| sha256 of the download | `1a5dc548f1ae69b034ec28a0727c0fee321f3b253c7ca1453c3017f016f107ac` |
-| link | `https://cernbox.cern.ch/s/vCNbETZNHUdHyCS/download` |
+| file | `kria-mmts-20261013.img.gz` |
+| download | 7,370,545,571 bytes (7.4 GB) |
+| written to the card | 15,934,160,896 bytes (15.9 GB) |
+| sha256 of the download | `6849d162dc1a01814b01e3d08e693118b9e98725adeb0c1d76a7766914df254a` |
+| link | TODO: public link for `/eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz` (the previous image, `kria11-ucsb-20260908.img.gz`, 5.1 GB, sha256 `1a5dc548…`, stays at `https://cernbox.cern.ch/s/vCNbETZNHUdHyCS/download` as a fallback) |
 
-The card must be **at least 11 GB**. Any 16 or 32 GB card is fine.
+The card must be **32 GB**. A nominal 16 GB card is a few MB short of the
+15.9 GB the image writes.
+
+The 10-13 image adds the `~/multimodule` wrappers of B8, the hardened i2c-server,
+the firmware variants, chrony, and has no ssh host keys: the first ssh to a
+freshly flashed Kria shows a new host key.
 
 #### A1. Fetch and check it
 
@@ -498,9 +503,9 @@ The card must be **at least 11 GB**. Any 16 or 32 GB card is fine.
 
 ```bash
 cd "$MMTS_ROOT"
-curl -L -o kria11-ucsb-20260908.img.gz \
-  'https://cernbox.cern.ch/s/vCNbETZNHUdHyCS/download'
-ls -l kria11-ucsb-20260908.img.gz
+curl -L -o kria-mmts-20261013.img.gz \
+  '<the public link from the table>'
+ls -l kria-mmts-20261013.img.gz
 ```
 
 ⚠️ **Check the checksum before you write a card.** A truncated download writes
@@ -511,13 +516,13 @@ is to download again.
 **(on the lab computer, Linux)**
 
 ```bash
-sha256sum kria11-ucsb-20260908.img.gz
+sha256sum kria-mmts-20261013.img.gz
 ```
 
 **(on the lab computer, macOS)**
 
 ```bash
-shasum -a 256 kria11-ucsb-20260908.img.gz
+shasum -a 256 kria-mmts-20261013.img.gz
 ```
 
 It must print the sha256 in the table. Otherwise download again; do not
@@ -550,14 +555,14 @@ times faster. Linux has no equivalent; `/dev/sdX` is already the right node.
 
 #### A3. Write it to the card
 
-Both forms **stream the decompression straight into `dd`**, so the 10.7 GB
+Both forms **stream the decompression straight into `dd`**, so the 15.9 GB
 image never touches disk. Substitute the device you just confirmed.
 
 **(on the lab computer, Linux)**
 
 ```bash
 sudo umount /dev/sdX* 2>/dev/null
-gunzip -c kria11-ucsb-20260908.img.gz \
+gunzip -c kria-mmts-20261013.img.gz \
   | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
 sync
 ```
@@ -566,7 +571,7 @@ sync
 
 ```bash
 diskutil unmountDisk /dev/diskN
-gunzip -c kria11-ucsb-20260908.img.gz | sudo dd of=/dev/rdiskN bs=4m
+gunzip -c kria-mmts-20261013.img.gz | sudo dd of=/dev/rdiskN bs=4m
 sync
 diskutil eject /dev/diskN
 ```
