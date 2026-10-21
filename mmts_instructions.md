@@ -477,9 +477,9 @@ Both routes end at 0.9. Run those checks either way.
 
 ### Route A: flash the prepared image
 
-A gzipped snapshot of a working bench Kria's SD card, on CERNBox. The link opens
-the CERNBox web app and **needs a CERN sign-in**; download it in the browser.
-The same file works from Linux and macOS.
+A gzipped snapshot of a working bench Kria's SD card, on CERNBox. The public
+link needs no sign-in and no CERN account. The same file works from Linux and
+macOS.
 
 | | |
 |---|---|
@@ -487,8 +487,9 @@ The same file works from Linux and macOS.
 | download | 7,370,545,571 bytes (7.4 GB) |
 | written to the card | 15,934,160,896 bytes (15.9 GB) |
 | sha256 of the download | `6849d162dc1a01814b01e3d08e693118b9e98725adeb0c1d76a7766914df254a` |
-| link | `https://cernbox.cern.ch/files/spaces/eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz` |
-| EOS path | `/eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz` (lxplus, or `xrdcp` from `root://eosuser.cern.ch/`) |
+| public link, browser | `https://cernbox.cern.ch/s/gA7anszJiATLSSR` (the `forMACs` folder) |
+| public link, file only | `https://cernbox.cern.ch/remote.php/dav/public-files/gA7anszJiATLSSR/kria-mmts-20261013.img.gz` |
+| EOS path | `/eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz`, by `xrdcp` from `root://eosuser.cern.ch/` |
 | fallback | the 09-08 image `kria11-ucsb-20260908.img.gz` (5.1 GB, sha256 `1a5dc548…`, writes 10.7 GB), public link `https://cernbox.cern.ch/s/vCNbETZNHUdHyCS/download`, no sign-in |
 
 The card must be **32 GB**. A nominal 16 GB card is a few MB short of the
@@ -500,17 +501,36 @@ freshly flashed Kria shows a new host key.
 
 #### A1. Fetch and check it
 
-Open the link in a browser, sign in with your CERN account, download the file,
-and move it to `$MMTS_ROOT`. With a CERN Kerberos ticket (`kinit user@CERN.CH`)
-`xrdcp` works instead of the browser:
+Download it with `curl`, no sign-in needed:
 
 **(on the lab computer, Linux or macOS)**
 
 ```bash
 cd "$MMTS_ROOT"
-xrdcp root://eosuser.cern.ch//eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz .
+L=https://cernbox.cern.ch/remote.php/dav/public-files/gA7anszJiATLSSR
+curl -L -o kria-mmts-20261013.img.gz        $L/kria-mmts-20261013.img.gz
+curl -L -o kria-mmts-20261013.img.gz.sha256 $L/kria-mmts-20261013.img.gz.sha256
 ls -l kria-mmts-20261013.img.gz
 ```
+
+Or open `https://cernbox.cern.ch/s/gA7anszJiATLSSR` in a browser and click the
+file. Do not use `.../s/gA7anszJiATLSSR/download`: that gives a tar of the
+whole folder, both images included.
+
+**By xrootd**, from a machine with `xrdcp` and a CERN Kerberos ticket
+(`kinit user@CERN.CH`) or a CMS VOMS proxy:
+
+**(on the lab computer, or any machine with xrootd)**
+
+```bash
+xrdcp root://eosuser.cern.ch//eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz .
+xrdcp root://eosuser.cern.ch//eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz.sha256 .
+```
+
+⚠️ **xrootd needs read access to the folder, which the public link does not
+give.** Without it `xrdcp` fails with `[3010] Unable to open file ...
+Operation not permitted`. Ask for the folder to be shared with your CERN
+username, or use `curl` above.
 
 ⚠️ **Check the checksum before you write a card.** A truncated download writes
 without complaint and the Kria then fails to boot, or boots a corrupted root.
@@ -599,6 +619,22 @@ Move the card to the Kria, power it on, and find it on the network. The image
 takes its address by DHCP: read it from your DHCP server, the Kria's console,
 or by watching for a new host on the bench subnet. That address is `KRIA_IP`
 in 0.5.
+
+To watch for the new host, scan with the Kria off and again with it on. `ip -4
+addr` gives your own subnet; use it in place of `10.116.24.0/23`:
+
+**(on the lab computer)**
+
+```bash
+sudo nmap -sn 10.116.24.0/23 -oG - | awk '/Up/{print $2}' | sort > before.txt
+# power the Kria on, wait 2 minutes
+sudo nmap -sn 10.116.24.0/23 -oG - | awk '/Up/{print $2}' | sort > after.txt
+comm -13 before.txt after.txt
+```
+
+The new address is the Kria; the first `ssh` to it shows a new host key, since
+the image ships without one. More than one new address means ask your network
+admin for the lease, and for a fixed address.
 
 ## 0.9 Check the installation
 
@@ -2230,10 +2266,13 @@ Kria is what the event stream needs.
 **(on the Kria)**
 
 ```bash
-sudo firewall-cmd --permanent --add-port=5555/tcp --add-port=6000/tcp
+sudo firewall-cmd --permanent --add-port=5555/tcp --add-port=6000/tcp --add-port=8888/tcp
 sudo firewall-cmd --reload
 sudo firewall-cmd --list-ports
 ```
+
+The last line must print `5555/tcp 6000/tcp 8888/tcp`, as the Route A image
+already does.
 
 **(on the lab computer)**
 

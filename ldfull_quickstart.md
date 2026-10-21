@@ -35,8 +35,24 @@ gunzip -c kria-mmts-20261013.img.gz | sudo dd of=/dev/sdX bs=4M status=progress 
 sync
 ```
 
-Put the card in the Kria and power it on. It takes its address by DHCP; that
-address is `KRIA_IP` below. The user is `daq`.
+Put the card in the Kria. It takes its address by DHCP; that address is
+`KRIA_IP` below. The user is `daq`.
+
+To find the address, scan the network with the Kria off, then again with it
+on. `ip -4 addr` shows your own address and subnet; use that subnet in place
+of `10.116.24.0/23`.
+
+```bash
+sudo dnf install -y nmap
+sudo nmap -sn 10.116.24.0/23 -oG - | awk '/Up/{print $2}' | sort > before.txt
+# power the Kria on, wait 2 minutes
+sudo nmap -sn 10.116.24.0/23 -oG - | awk '/Up/{print $2}' | sort > after.txt
+comm -13 before.txt after.txt
+```
+
+The new address is the Kria. `ssh daq@<address>` should ask for the `daq`
+password. If more than one new address shows up, ask your network admin to
+look up the lease, and to give the Kria a fixed address while they are at it.
 
 ## 2. Set up the lab computer
 
