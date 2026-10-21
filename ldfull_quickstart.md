@@ -51,8 +51,7 @@ comm -13 before.txt after.txt
 ```
 
 The new address is the Kria. `ssh daq@<address>` should ask for the `daq`
-password. If more than one new address shows up, ask your network admin to
-look up the lease, and to give the Kria a fixed address while they are at it.
+password.
 
 ## 2. Set up the lab computer
 
