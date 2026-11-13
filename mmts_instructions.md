@@ -43,13 +43,13 @@ reference behind the numbers; 12 is where to go when something fails.
 
 | | client (AlmaLinux 9, x86_64) | Kria (hexacontroller, aarch64) |
 |---|---|---|
-| `hexactrl-script/multimodule/`, the bench scripts | ✅ | its `kria/` subset only |
-| `hexactrl-sw` client side: `daq-client`, `unpack` | ✅ | ✗ |
-| `delay_scan.py`, `pedestal_run.py`, analysis, hexmaps | ✅ | ✗ |
-| bring-up, ROC enable, mux and power I2C | ✗ | ✅ |
-| `zmq_server.py` (the i2c-server, port 5555) | ✗ | ✅ |
-| `daq-server` (port 6000) | ✗ | ✅ |
-| firmware bitstream and uHAL address tables | ✗ | ✅ |
+| `hexactrl-script/multimodule/`, the bench scripts | yes | its `kria/` subset only |
+| `hexactrl-sw` client side: `daq-client`, `unpack` | yes | no |
+| `delay_scan.py`, `pedestal_run.py`, analysis, hexmaps | yes | no |
+| bring-up, ROC enable, mux and power I2C | no | yes |
+| `zmq_server.py` (the i2c-server, port 5555) | no | yes |
+| `daq-server` (port 6000) | no | yes |
+| firmware bitstream and uHAL address tables | no | yes |
 
 The client drives everything over ssh and ZeroMQ. It needs GitLab only at
 install time; the Kria never needs internet at run time.
@@ -148,7 +148,7 @@ git clone -b ROCv3-alper-dev --recurse-submodules \
   ssh://git@gitlab.cern.ch:7999/hgcal-daq-sw/hexactrl-sw.git hexactrl-sw
 ```
 
-⚠️ **`--recurse-submodules` is not optional.** Three submodules on two levels:
+**`--recurse-submodules` is not optional.** Three submodules on two levels:
 `hexactrl-script` and `zmq_i2c` under `hexactrl-sw`, and `analysis` under
 `hexactrl-script`. A plain clone leaves all three empty, and the failures come
 later without naming a submodule: the 0.6a build dies at
@@ -207,7 +207,7 @@ $MMTS_ROOT/
 `hgc-test-systems`, the firmware, is needed only to rebuild a bitstream. Clone
 it then, not now.
 
-⛔ Do not clone `gitlab.cern.ch/hgcal-daq-sw/hexmap`. It is deprecated, its
+Do not clone `gitlab.cern.ch/hgcal-daq-sw/hexmap`. It is deprecated, its
 `master` has no LD-Full-V3 channel map, and plots come out with the right
 outline and wrong channel positions. `gui-hexmap` is the only correct source.
 
@@ -252,7 +252,7 @@ case $rc in
 esac
 ```
 
-🔑 **The `case` is there because the raw check reads backwards.** Nothing
+**The `case` is there because the raw check reads backwards.** Nothing
 listens on 5555 until a bring-up, so the healthy answer is `Connection refused`:
 the packet reached the Kria and got an RST. The failure is a five second
 silence, `rc=124`, which is a wrong `KRIA_IP` or a firewall.
@@ -276,12 +276,12 @@ block above. Override any of them for one run on the command line, e.g.
 
 Two fail in ways that do not look like a wrong variable:
 
-🛑 **A wrong `KRIA_IP` hangs rather than errors.** `delay_scan.py` waits forever
+**A wrong `KRIA_IP` hangs rather than errors.** `delay_scan.py` waits forever
 at `Initializing i2c sockets`, while **`ssh kria` keeps working** because it
 resolves through `~/.ssh/config`, not `KRIA_IP`. The scripts check that the
 variable is set, not that it is right; the `/dev/tcp` line above does.
 
-🔑 **`SCRIPTS` unset fails silently.** `cd ""` is a no-op, so `cd "$SCRIPTS"`
+**`SCRIPTS` unset fails silently.** `cd ""` is a no-op, so `cd "$SCRIPTS"`
 leaves you where you were and the error names a directory you never chose.
 Only the hand-typed commands of sections 2 to 10 use it.
 
@@ -313,7 +313,7 @@ ls /usr/include/yaml-cpp/yaml.h /usr/include/zmq.hpp
 `root` comes from EPEL on AlmaLinux 9. If your site provides ROOT through CVMFS
 or a module, source that instead; cmake finds it via `$ROOTSYS`.
 
-⚠️ **Three traps in that block.** There is **no `root-devel`**: the headers ship
+**Three traps in that block.** There is **no `root-devel`**: the headers ship
 in `root-core` and the `root` metapackage pulls what you need. **`crb` must be
 enabled first**, because `root-io` needs `liburing-devel` from CRB; without it
 the install dies with `nothing provides liburing-devel`. And **cmake never
@@ -331,14 +331,14 @@ cmake -DBUILD_CLIENT=ON -DBRANCH_NAME=ROCv3-alper-dev \
 make -j"$(nproc)" && sudo make install
 ```
 
-⚠️ **All three flags matter, and the failures are quiet.** `BUILD_CLIENT`
+**All three flags matter, and the failures are quiet.** `BUILD_CLIENT`
 defaults to OFF and builds the server side instead, with no `daq-client` and
 no `unpack`. The install path is `/opt/hexactrl/${BRANCH_NAME}`, read from
 `git` when not passed; from a snapshot with no `.git` it comes back empty and
 everything lands in `/opt/hexactrl/` itself. `make install` writes under
 `/opt` and needs `sudo`.
 
-🔑 **Deactivate conda before configuring.** cmake takes the first `python3` on
+**Deactivate conda before configuring.** cmake takes the first `python3` on
 `PATH`, so a `(base)` prompt builds against miniforge's 3.12, which cannot
 import `uproot3` (0.6b). Read the configure output:
 
@@ -354,7 +354,7 @@ the build directory**, and configure again: the interpreter is cached.
 Build on the x86_64 client that will run it. The Kria gets its own aarch64
 build in B2.
 
-⛔ The public `ROCv3` RPM is not a substitute. It lands under
+The public `ROCv3` RPM is not a substitute. It lands under
 `/opt/hexactrl/ROCv3/`, changing every path here, and predates the MR !55 fixes
 of B2.
 
@@ -369,11 +369,11 @@ ls /opt/hexactrl/ROCv3-alper-dev/bin
 Every shell that runs a client command needs that `bin` on `PATH`, which the
 0.5 block does with `export PATH=$HEXACTRL/bin:$PATH`.
 
-🔑 That `PATH` is the fix for the most common analysis failure: the notifier
+That `PATH` is the fix for the most common analysis failure: the notifier
 shells out to a bare `unpack`, and without it a run produces no `.root` and
 `pedestal_run0.log` says `unpack: command not found`.
 
-⚠️ **There is no `etc/env.sh` on the client.** `CMakeLists.txt` installs it
+**There is no `etc/env.sh` on the client.** `CMakeLists.txt` installs it
 only for the server build, and it holds cactus and uHAL paths the client does
 not need. The client build installs `bin` and nothing else. `multimodule/lib.sh`
 sources it only if it exists and prepends `$HEXACTRL/bin` regardless, so the
@@ -398,7 +398,7 @@ pip install --no-cache-dir \
 `hexmap_robust.py` read trees through uproot3. ROOT and pylandau are not needed
 here.
 
-🔑 **Build the venv with the system `python3`, conda deactivated.** `uproot3`
+**Build the venv with the system `python3`, conda deactivated.** `uproot3`
 does not work on Python 3.12 (`'FileFinder' object has no attribute
 'find_module'`), and a conda `base` shadows `/usr/bin/python3`, so `python3 -m
 venv` silently builds a 3.12 venv and defeats `--system-site-packages`. With
@@ -527,12 +527,12 @@ xrdcp root://eosuser.cern.ch//eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz
 xrdcp root://eosuser.cern.ch//eos/user/t/tvami/forMACs/kria-mmts-20261013.img.gz.sha256 .
 ```
 
-⚠️ **xrootd needs read access to the folder, which the public link does not
+**xrootd needs read access to the folder, which the public link does not
 give.** Without it `xrdcp` fails with `[3010] Unable to open file ...
 Operation not permitted`. Ask for the folder to be shared with your CERN
 username, or use `curl` above.
 
-⚠️ **Check the checksum before you write a card.** A truncated download writes
+**Check the checksum before you write a card.** A truncated download writes
 without complaint and the Kria then fails to boot, or boots a corrupted root.
 A short or mismatched download is your network dropping the transfer; the fix
 is to download again.
@@ -554,7 +554,7 @@ continue.
 
 #### A2. Identify the card, and check it twice
 
-🛑 **`dd` writes to whatever device you name, with no confirmation and no undo.
+**`dd` writes to whatever device you name, with no confirmation and no undo.
 Naming your system disk destroys the lab computer.** Confirm the size matches
 the card you just inserted.
 
@@ -600,7 +600,7 @@ sync
 diskutil eject /dev/diskN
 ```
 
-⚠️ **The two platforms differ in four places, and three fail quietly.**
+**The two platforms differ in four places, and three fail quietly.**
 
 | | Linux | macOS |
 |---|---|---|
@@ -665,14 +665,14 @@ python3 -c "import uproot, uproot3, numpy, zmq; print(uproot.__version__)"
 "$MM/puller.sh"
 ```
 
-⚠️ **Do not run the second block on the Kria.** It has no `daq-client`, venv,
+**Do not run the second block on the Kria.** It has no `daq-client`, venv,
 uproot or ROOT, and is not supposed to. `hostname; uname -m` settles which
 machine you are on: `x86_64` is the lab computer, `aarch64` the Kria.
 
 `findslot.py` probes all three slots for ROCs without a bring-up. It is
 harmless and the cheapest diagnostic on the bench.
 
-🔑 **`no ROCs` on all three slots is the expected result here.** Nothing has
+**`no ROCs` on all three slots is the expected result here.** Nothing has
 powered a module yet: `findslot.py` writes the mux board's `S*_PWR_EN` but
 does not run `kconn_pwr on` and never touches `EN_Mx` on the power board at
 `0x27`. It also probes only the LD-Full addresses `0x08 0x18 0x28` on sub-bus
@@ -683,7 +683,7 @@ through. Expect **0 A on the meter** until a bring-up.
 
 ### What to do when `findslot.py` fails instead
 
-🛑 **`mux GPIO write failed ([Errno 5] Input/output error)` or `bus wedged
+**`mux GPIO write failed ([Errno 5] Input/output error)` or `bus wedged
 during probe` is a fault, not `no ROCs`.** The write never completed, so the
 PL I2C master is what answered:
 
@@ -707,7 +707,7 @@ Reads wedge this master, so that check causes the fault it looks for.
 
 # 1. Powering up
 
-🔑 **Read your board's row in 2.1 first.** Every bring-up command takes three
+**Read your board's row in 2.1 first.** Every bring-up command takes three
 values from the board type: `--board`, `EXPECT_ROCS`, and whether the module
 has a power distribution board, which decides `--external-power`.
 `--external-power` on a board that has one skips the `0x27` `EN_Mx` write that
@@ -727,14 +727,14 @@ it on a board type you have not run before:
 
 The examples use an LD Full, three ROCs with a power distribution board.
 
-⚠️ **The two wrappers default the opposite way.** `enableROCs.py` and
+**The two wrappers default the opposite way.** `enableROCs.py` and
 `up_verified.sh` assume the power board is there and take `--external-power`
 to say it is not. `bench_up.sh` assumes it is not and takes `--power-board`.
 Both mistakes give the same dead module reading `no ROCs`.
 
 ## 1.0 Size the supply BEFORE you trust any measurement
 
-🔑 **A module at its supply's current limit produces data that looks like
+**A module at its supply's current limit produces data that looks like
 broken hardware.** On an HD Full at the limit the rail sags from 1.72 V to
 **1.35 V** and **all 24 e-links die**. With headroom the same module gives
 12/12 DAQ links and CRC 1.000.
@@ -751,14 +751,14 @@ The meter reads 0 A briefly during every bring-up, while `--recover` cycles
 payload power. Read it after `Turning on payload power`, and again while a
 run has the chips configured.
 
-⚠️ **Many bench supplies are ~3.2 A per channel and cannot run an HD Full on
+**Many bench supplies are ~3.2 A per channel and cannot run an HD Full on
 one channel.** On a SIGLENT SPD3303X-E that is a **hardware maximum**. Press
 **`Para`** to link CH1 and CH2 into one 0-6.4 A channel:
 
 * both leads on **CH1 only** (`Para Out`); CH2's terminals stay empty;
 * set the voltage on CH1 and leave the current at its per-channel maximum;
   asking for 6.4 A gives `current setting overrange`;
-* 🛑 **never wire `+CH1 / −CH2`**. That is the *series* pattern and in `Ser`
+* **never wire `+CH1 / −CH2`**. That is the *series* pattern and in `Ser`
   mode puts **double** the set voltage on the board.
 
 **How to tell you are clipping:** the mode reads **`CC`** and the **output
@@ -771,7 +771,7 @@ number of ROCs** (4 of 6, then 6 of 6), because ROCs enable sequentially and
 the last one fails as the rail sags; a module that works and then stops after
 ~30 minutes.
 
-🔑 Silencing chips **cannot rescue bring-up**: `Link.find_board_for_rocs`
+Silencing chips **cannot rescue bring-up**: `Link.find_board_for_rocs`
 requires an exact address-set match, so every ROC must enable before any
 config can quiet them. Size the supply for the spike.
 
@@ -783,12 +783,12 @@ config can quiet them. Size the supply for the spike.
 bring-up  →  i2c-server  →  daq-server  →  puller  →  DELAY SCAN  →  pedestal
 ```
 
-🔑 **Always take a delay scan before a pedestal.** The scan takes seconds and
+**Always take a delay scan before a pedestal.** The scan takes seconds and
 is harmless when it fails. A pedestal on an unaligned slot makes `daq-server`
 refuse START, and the client's retry loop hammers it thousands of times and
 can take the server and the puller down.
 
-🔑 **Exactly one slot carries trigger at a time: the first slot `daq-server`
+**Exactly one slot carries trigger at a time: the first slot `daq-server`
 scanned since it last started.** The other two read 0 of 12 on trigger with
 DAQ perfect. To move it, restart `daq-server` and scan that slot first. No
 mains cycle needed. `mmts_bringup.sh` restarts `daq-server` for you;
@@ -799,7 +799,7 @@ Both hold state from the dead run.
 
 ## 1.2 Powering the bench without a bring-up
 
-🔑 **Skip this if your next command is a bring-up.** `mmts_bringup.sh` and
+**Skip this if your next command is a bring-up.** `mmts_bringup.sh` and
 `up_verified.sh` default to `--recover`, which does these two things plus a
 `kconn_pwr off` first. This is for powering the bench when you are **not**
 about to run one: a `findslot.py` that failed with `[Errno 5]` at 0.9, or
@@ -812,7 +812,7 @@ ssh kria "sudo fw-loader load multimodule-hd-tester-trophy-v3"
 ssh kria 'sudo kconn_pwr on'
 ```
 
-⚠️ `enableROCs.py` has no `--no-recover` flag: plain is the default and does
+`enableROCs.py` has no `--no-recover` flag: plain is the default and does
 not cycle power; `--recover` opts in. After a mains cycle use the recover form
 or the two commands above, otherwise every probe returns `no ROCs` against an
 unpowered bus with all writes still ACKing. The wrappers are the other way
@@ -836,7 +836,7 @@ payload power on every attempt.
 | verifies the result | no | ROC count, no `FAILED`, board identified, 5555 and 6000 listening |
 | use it | commissioning, diagnosis, anything unexplained | a slot you have brought up before |
 
-🔑 **Start a new board, a new bench, or any investigation with
+**Start a new board, a new bench, or any investigation with
 `mmts_bringup.sh`.** It runs once and puts the real error in front of you,
 and its `--recover` default means it is a complete bring-up:
 
@@ -847,7 +847,7 @@ pkill -f '[z]mq_server'
 cd ~/multimodule && ./mmts_bringup.sh A --board LD-Full
 ```
 
-🛑 **Read the result before typing anything else.** Go on only when it ended
+**Read the result before typing anything else.** Go on only when it ended
 in its ROC list, `3 ROC(s) enabled [...]` for an LD Full, per 1.4. `bring-up
 failed` or a traceback means 12.3 and 12.4, not the next block.
 
@@ -857,7 +857,7 @@ failed` or a traceback means 12.3 and 12.4, not the next block.
 ~/start_i2c.sh A
 ```
 
-⚠️ **This block is not optional, and nothing reminds you of it.**
+**This block is not optional, and nothing reminds you of it.**
 `mmts_bringup.sh` restarts `daq-server` on 6000 but does **not** start the
 i2c-server on 5555. Skip it and the next scan sits at `Initializing i2c
 sockets`. `ss -ltn | grep -E '5555|6000'` must show both.
@@ -866,7 +866,7 @@ sockets`. `ss -ltn | grep -E '5555|6000'` must show both.
 board with HGCROC Siv3b`** is right; plain `Siv3` means redo the bring-up, per
 1.4.
 
-🔑 **Running it on a failed bring-up costs you the next attempt.** It binds
+**Running it on a failed bring-up costs you the next attempt.** It binds
 5555 regardless, so `--- listening ---` under a traceback reads as partial
 success, and the re-run is then a bring-up under a live server, which is 12.1.
 `pkill -f '[z]mq_server'` before re-running.
@@ -878,7 +878,7 @@ success, and the re-run is then a bring-up under a live server, which is 12.1.
 | `!! bring-up failed -- re-run once.` | `mmts_bringup.sh` | one attempt failed |
 | `FAILED to bring slot A up cleanly -- read ~/bu_A.log and ~/zmq_srvA.log` | `up_verified.sh` | **eight** bring-ups failed, each with up to three i2c-server starts, so roughly ten minutes and eight payload power cycles are already gone |
 
-🔑 **`up_verified.sh` failing after a hand-run `mmts_bringup.sh` that looked
+**`up_verified.sh` failing after a hand-run `mmts_bringup.sh` that looked
 fine is not a contradiction.** It counts a try as good only when the ROC count
 reaches `EXPECT_ROCS`, `FAILED` appears nowhere, the i2c-server logged `Board
 identification`, and 5555 and 6000 both listen.
@@ -889,7 +889,7 @@ applies; `i2c try 1: 4 errors, 5555=0 ...` is the i2c-server, the stale
 identify trap of 12.2 or the dead-reads row of 12.3. Then read `~/bu_A.log`
 and `~/zmq_srvA.log`. Both are truncated on each launch.
 
-🔑 **Re-run the bring-up block once, and decide on the retry counts rather
+**Re-run the bring-up block once, and decide on the retry counts rather
 than the ROC count.** A partial enable with a different chip missing each time
 is the lottery of 1.4 and wants another go. `[Errno 5]` on the `[mux]` writes
 to `0x71`, `0x73` and `0x77` does not: those never leave the mux board, so the
@@ -907,7 +907,7 @@ Run the bring-ups **back to back** rather than one per boot: a slot that
 failed on five separate fresh boots came up 4 of 10 in a row, with the error
 count falling each attempt. 12.4 is the long form.
 
-⚠️ **`up_verified.sh` retries what should not be retried.** Its eight attempts
+**`up_verified.sh` retries what should not be retried.** Its eight attempts
 are calibrated for the lottery, where each failure is a *partial* enable.
 Against a real fault, an unpowered module, a wrong `--module` bit, an open
 power path, they are eight identical failures that give the master eight more
@@ -926,11 +926,11 @@ ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROC
   ~/up_verified.sh A --board LD-Full"
 ```
 
-⚠️ `EXPECT_ROCS` defaults to 3. Set it to your board's count. With the default
+`EXPECT_ROCS` defaults to 3. Set it to your board's count. With the default
 a partial enable such as `4 ROC(s) enabled ... 1 FAILED ['0x28']` on a six-ROC
 board is reported as `READY`, and the pedestal then times out four times over.
 
-### 🔑 `--module N`: `EN_Mx` is cabling, not the slot index
+### `--module N`: `EN_Mx` is cabling, not the slot index
 
 With a power distribution board fitted, the bring-up drives `EN_Mx` to switch
 the module on. The default is the slot's index (`A`→1, `B`→2, `C`→3), which is
@@ -950,10 +950,10 @@ ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh
 ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 3"
 ```
 
-⛔ **Do not change `--board` while sweeping.** `--board HD-Full` on an LD Full
+**Do not change `--board` while sweeping.** `--board HD-Full` on an LD Full
 demands six addresses on a three-chip board and can never succeed.
 
-🔑 **Diagnostic rule.** `no ROCs` with the **mux-board GPIO writes succeeding**
+**Diagnostic rule.** `no ROCs` with the **mux-board GPIO writes succeeding**
 means master, switch and expander are fine. **Sweep `--module 1/2/3` and watch
 the meter before suspecting the module.** Any draw at all identifies the bit.
 If all three read the same near-zero current, the power path is the problem:
@@ -972,7 +972,7 @@ form; each type's section has its own line:
 "$MM/bench_up.sh" A --board LD-Full --expect 3 --power-board
 ```
 
-⚠️ **`bench_up.sh` spells the power board the other way round:** opt *in* with
+**`bench_up.sh` spells the power board the other way round:** opt *in* with
 `--power-board` here, opt *out* with `--external-power` in `up_verified.sh`.
 Leaving `--power-board` off an LD Full gives the same dead module.
 
@@ -991,7 +991,7 @@ A good i2c-server prints **`Identify a board with HGCROC Siv3b`**. Plain
 `Siv3` means redo bring-up plus i2c-server, otherwise the next configure dies
 with `KeyError: 'dac_hyst_toa'`.
 
-🛑 **Read the `[I2C] Board identification` line above it too, and stop if it
+**Read the `[I2C] Board identification` line above it too, and stop if it
 names a board type you do not have.** `Link.py` matches the exact address set,
 so a partial enable whose subset is *another* board's whole set identifies as
 that board, prints a clean `Siv3b` line, binds 5555, and applies the wrong
@@ -1022,7 +1022,7 @@ hand-driven `mmts_bringup.sh` does not, which is why 1.3 makes you read the
 ROC list first. The same address missing every time is 12.3's silent chip:
 reseat, and suspect the board if it is missing in every slot.
 
-⏳ **Give each step time.** Both look broken partway through.
+**Give each step time.** Both look broken partway through.
 
 | step | takes | what it looks like mid-flight, which is not failure |
 |---|---|---|
@@ -1036,7 +1036,7 @@ traceback. Both logs are truncated on each launch; check the mtime if in doubt.
 
 **Fewer ROCs than expected means run it again.** Two to four attempts is
 routine on a healthy bench, and a few `transient I2C error ... retry n/5`
-lines are normal. ⚠️ That applies to a *partial* enable with a different chip
+lines are normal. That applies to a *partial* enable with a different chip
 missing each time. Repeated `0/N`, the same every attempt, is not the lottery:
 switch to `mmts_bringup.sh` and read the error, per 1.3.
 
@@ -1082,7 +1082,7 @@ trigger set is per slot as well as per type, so never copy one across slots;
 11.3 has the measured sets and 11.2 the ROC addresses. On a type you have not
 run before, probe with `--board any` and read the printed address list first.
 
-🔑 **The power distribution board column costs the most when misread.** It
+**The power distribution board column costs the most when misread.** It
 decides the power flag on every command, and the scripts spell that flag three
 ways; the table at the end of 2.3 lists them. A module with the board fitted
 and the flag wrong is never powered, and reads `no ROCs`.
@@ -1230,11 +1230,11 @@ nothing; use `$RESULTS_DIR` directly.
 
 ## 2.4 Bring up the slot
 
-🔑 **Skip this if you already have a verified slot** from 1.3, with the full
+**Skip this if you already have a verified slot** from 1.3, with the full
 ROC list and an `[I2C] Board identification` line naming your board type. Go
 to 2.5, or the **last two lines** of your type's slot block.
 
-⚠️ **In that case do not use `run_slot.sh` either.** It always starts with its
+**In that case do not use `run_slot.sh` either.** It always starts with its
 own `up_verified.sh` and has no flag to skip it. On a bench that brings up
 first time that costs a minute; on the bus of 12.4, where you spent several
 attempts and a power cycle earning that state, it throws it away and re-rolls
@@ -1373,7 +1373,7 @@ denied` on a uio device is B7. Either way the server is in state `Error` until
 it restarts, which the next bring-up does. A scan that times out after 180 s
 with nothing in either log is `KRIA_IP` or the firewall, per 0.5 and B6.
 
-🛑 A full-marks delay scan is **not** a health gate on its own. Idle is the
+A full-marks delay scan is **not** a health gate on its own. Idle is the
 easiest pattern to sample. The real check is an actual START plus the offset
 finder's header positions.
 
@@ -1450,7 +1450,7 @@ python3 "$MM/hexmap_robust.py" "$OUT"/MuxA/pedestal_run/run_* -l ldfull --clip 5
 python3 "$MM/cm_analysis.py" "$OUT/MuxA/pedestal_run/run_*"
 ```
 
-🔑 **Neither takes a board type.** `hexmap_robust.py` reads geometry and
+**Neither takes a board type.** `hexmap_robust.py` reads geometry and
 channel map from characters 5 and 6 of the serial, and forcing `-t` is how you
 get a partial plotted on the full geometry. These two lines are the only ones
 in sections 2 to 10 that do not change with the board.
@@ -1486,16 +1486,16 @@ Measured 2026-09-02, three LD Fulls, 10 runs each through `run_slot.sh` with
 finder header positions 23 everywhere. Bring-up took one try on A, two on B
 and C.
 
-⚠️ **The power flag.** The `0x27` `EN_Mx` write powers the module and
+**The power flag.** The `0x27` `EN_Mx` write powers the module and
 `--external-power` skips it. With `bench_up.sh` the same choice is spelled
 `--power-board`, per 1.3.
 
-⚠️ **`in_inv_cmd_rx` stays 1 on an LD Full, whatever character 7 says.** 0 on
+**`in_inv_cmd_rx` stays 1 on an LD Full, whatever character 7 says.** 0 on
 the revision rule of 11.1 gave 0 of 12 trigger with healthy DAQ on all three
 slots. Read the applied value from the run's `initial_full_config.yaml`, and
 never edit a config while a scan is in flight.
 
-🔑 **`EdgeSel_T1` is per slot.** Slot B at edge 0 produced a zero-byte run.
+**`EdgeSel_T1` is per slot.** Slot B at edge 0 produced a zero-byte run.
 The shipped configs carry the right edge; check `header positions` in
 `daq-server.log` first, every link at 23 is right.
 
@@ -1563,10 +1563,10 @@ Keep `L1A_offset_or_BX: 13` in the slot C config, per 11.6.
 | `EdgeSel_T1` | per slot, in the shipped configs: A 1, B 1, C 0 |
 | entries per 10 000-event run | 1 956 240 |
 
-🔑 **A 2-of-3 enable with `0x58` missing is a known bad-board signature**, not
+**A 2-of-3 enable with `0x58` missing is a known bad-board signature**, not
 a bench problem. `enableROCs.py` exits 1 on an incomplete set; trust it.
 
-🔑 **A stall at 64 events behind a clean gate and a perfect finder line is a
+**A stall at 64 events behind a clean gate and a perfect finder line is a
 wrong `idcode`, not a link fault.** An `idcode` names the chip and half a link
 carries; `77` on `link9` claimed a fourth chip on a three-chip board and
 `daq-server` halted eleven events after that link stopped. The shipped
@@ -1700,12 +1700,12 @@ PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 ldleft 10000
 | `EdgeSel_T1` | per slot, in the shipped configs: A 1, B 1, C 0 |
 | entries per 10 000-event run | 1 173 744 |
 
-🔑 **An LD Bottom drives THREE trigger links, not six. That is the board type,
+**An LD Bottom drives THREE trigger links, not six. That is the board type,
 not a fault.** Measured 2026-09-02 on three LD Bottoms, ten runs each: gate
 PASS, CRC 1.000 on all three halves, finder at 23 everywhere. Slot C's `link2`
 gated `ngood 0` and was dropped from that slot's config.
 
-⚠️ A pedestal does not test the link count. `randomL1A` barely exercises the
+A pedestal does not test the link count. `randomL1A` barely exercises the
 trigger path. Use a TPG run for that.
 
 An **LD Top** has the same two ROCs and electrical setup, but its link map is
@@ -1766,14 +1766,14 @@ PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 ldbottom 10000
 | run configs | `configs/initHD-Full-trophyV3_mux{A,B,C}_ped.yaml` |
 | draw, all chips running | **4.43 A at 1.72 V** |
 
-⚠️ **Check the supply first, per 1.0.** Six chips draw more than one channel
+**Check the supply first, per 1.0.** Six chips draw more than one channel
 of a 3.2 A bench supply. At the limit the rail sags to 1.35 V and all 24
 e-links die.
 
-⚠️ **A partial enable is not success.** Require `EXPECT_ROCS=6` **and** no
+**A partial enable is not success.** Require `EXPECT_ROCS=6` **and** no
 `FAILED` in the log.
 
-🔑 **If some trigger links will not align, drop *those* links and keep the
+**If some trigger links will not align, drop *those* links and keep the
 rest.** Do **not** set `elinks_trg: []`: with no trigger links `daq-server`
 starts and hangs forever. Eight good trigger links are ample.
 
@@ -1845,7 +1845,7 @@ Measured 2026-09-03, three HD Tops, 3 and then 10 runs each through
 `run_slot.sh` with `SKIP_PROBE=1`: 39 of 39 runs at CRC 1.000 on all five
 halves, `badBX` 0.000. Two more sets by hand later that day gave the same.
 
-⚠️ **The power flag.** Without `--external-power` the bring-up writes `EN_Mx`
+**The power flag.** Without `--external-power` the bring-up writes `EN_Mx`
 on the `0x27` power board, which is not in the loop on a bench-fed module. The
 write fails with `retry 5/5` and a `write_byte` traceback, or the probe reads
 `0/3` on all eight attempts, while the supply sits at 0.4 to 0.5 A per
@@ -1859,12 +1859,12 @@ ssh kria "pkill -f '[z]mq_server'; sleep 2; cd ~/multimodule && \
   ./mmts_bringup.sh A --recover --external-power --board HD-Top"
 ```
 
-⚠️ **HD trophies swap four P/N pairs per module.** A dead set of trigger links
+**HD trophies swap four P/N pairs per module.** A dead set of trigger links
 wants `polarity: 0` per e-link in the yaml, not a different bitstream and not
 `in_inv_cmd_rx`. The shipped configs carry the measured sets, per slot; never
 copy a trigger map across slots. DAQ is the same five links everywhere.
 
-🔑 **`EdgeSel_T1` is per slot:** 1 on A and B, 0 on C, in the shipped configs.
+**`EdgeSel_T1` is per slot:** 1 on A and B, 0 on C, in the shipped configs.
 At the wrong edge one half rails at `adc_mean` ~709 with CRC 0.000 while the
 other four look perfect. Check `header positions` in `daq-server.log` first;
 every link at 23 is right.
@@ -2082,7 +2082,7 @@ Four cores, so expect it to take much longer than the client build. `sudo
 make install` is outside the passwordless rule of 0.3, so run it from a login
 shell.
 
-🔑 **Build the same commit on the Kria and the client.** The branch carries
+**Build the same commit on the Kria and the client.** The branch carries
 the `fifo_latency` mask fix, rebuilding `HwInterface` when `uhal_device`
 changes, skipping a trigger elink whose chip has no DAQ elink, and the offset
 finder skipping unreachable links instead of refusing the slot.
@@ -2102,7 +2102,7 @@ The design is `multimodule-hd-tester-trophy-v3`, an RPM under
 `/opt/cms-hgcal-firmware/hgc-test-systems/`. The Kria needs internet and a
 repository file.
 
-⚠️ **The firmware is not in the repo the image ships with.** The stock
+**The firmware is not in the repo the image ships with.** The stock
 `CERN-REPO-hgcwebsw.repo` (id `hgcal-daq-sw`) is the `hexactrl-sw` software
 repo and carries no firmware, so `dnf` answers `No match for argument` for
 every release. Add the firmware repo yourself:
@@ -2133,18 +2133,18 @@ Take the newest `feature_multiplexer_board_v2` release once newer ones
 appear; `sudo dnf list --available multimodule-hd-tester-trophy-v3` shows
 them.
 
-⚠️ **Never type the package name bare, and never run an unqualified `dnf
+**Never type the package name bare, and never run an unqualified `dnf
 update`.** The version string is the *branch* name, so every branch publishes
 the same package name and rpm's compare picks the alphabetically largest,
 `test_merge_everything`, a 2025 build with no equalization.
 
-🔑 **The release must be `2026_09_01_16_56_41.49751f37` or later**, the build
+**The release must be `2026_09_01_16_56_41.49751f37` or later**, the build
 carrying the DAQ RX equalization of B5. It decides whether four of the six
 DAQ e-links work at all.
 
-⚠️ `sudo dnf` is not in the passwordless rule. Run it from a login shell.
+`sudo dnf` is not in the passwordless rule. Run it from a login shell.
 
-⚠️ **The RPM overwrites `uHAL_xml/connections.xml`**, the file you edit in
+**The RPM overwrites `uHAL_xml/connections.xml`**, the file you edit in
 B4. Re-apply that edit after every firmware install, otherwise every slot
 fails. The per-slot `fw_block_addresses_{A,B,C}.xml` survive.
 
@@ -2212,13 +2212,13 @@ grep -c 'id="TOP_[ABC]"' connections.xml
 
 The `grep` must print 3.
 
-⚠️ `connections.xml` belongs to the RPM, so **a firmware install puts the
+`connections.xml` belongs to the RPM, so **a firmware install puts the
 stock file back**. Re-run this block after every install, per B3. The
 `fw_block_addresses_{A,B,C}` files survive.
 
 ## B5. The equalized bitstream
 
-🔑 **Check the firmware release before trusting a pedestal.** An unequalized
+**Check the firmware release before trusting a pedestal.** An unequalized
 build leaves `IBUF_LOW_PWR` on, and four of the six DAQ e-links then fail
 100 % of CRCs while looking healthy on entry counts: halves c0h0, c0h1, c1h0
 and c2h1 read exactly 0.000. Equalized against unequalized: CRC pass 0.000 to
@@ -2234,7 +2234,7 @@ Install the RPM of B3 and set `MMTS_FW=multimodule-hd-tester-trophy-v3`. The
 release string `2026_09_01_16_56_41.49751f37` or later carries it; a copied
 build directory carries no such stamp, which is a reason to prefer the RPM.
 
-⚠️ **`MMTS_FW` is not sticky.** `enableROCs.py` re-points `active` on every
+**`MMTS_FW` is not sticky.** `enableROCs.py` re-points `active` on every
 run, so a bring-up without it silently reverts to stock. Check after every
 bring-up:
 
@@ -2257,7 +2257,7 @@ AlmaLinux firewall on either machine blocks them, and the symptom is a
 | **8888** | **the Kria** | **the event stream**, which the puller connects out to and pulls |
 | 6001 | the lab computer | control of the puller, from `delay_scan.py` on the same machine |
 
-⚠️ **6001 is a local control socket, not the data path.** `delay_scan.py:62`
+**6001 is a local control socket, not the data path.** `delay_scan.py:62`
 opens it as `daqController("localhost", pullerPort)`. The events go the other
 way: `daq-server` binds **8888** on the Kria and `daq-client` connects out to
 it. Opening 6001 on the client is harmless and worth doing, but 8888 on the
@@ -2282,7 +2282,7 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-ports
 ```
 
-🛑 **That last line must print `6001/tcp`; an empty answer is the failure.** A
+**That last line must print `6001/tcp`; an empty answer is the failure.** A
 stock client runs firewalld with nothing open, and everything in section 0
 still passes because the client only dials *out* until the first run. Then
 the bring-up is clean, the scan reaches `status after start cmd : running`,
@@ -2306,7 +2306,7 @@ done
 **A refusal is a pass**: until a bring-up has run, nothing listens and a
 refusal is the only answer either port can give. Only the timeout is a fault.
 
-🔑 **Then test 8888**, which only listens while `daq-server` is up, so after
+**Then test 8888**, which only listens while `daq-server` is up, so after
 a bring-up. Use the `exec` form, **not** `cat`:
 
 **(on the lab computer)**
@@ -2317,7 +2317,7 @@ timeout 5 bash -c "exec 3<>/dev/tcp/$KRIA_IP/8888"; echo "8888 rc=$?"
 
 `rc=0` is a pass, `rc=1` a refusal, `rc=124` a block.
 
-⛔ **Do not test a port with a live server on it with `cat < /dev/tcp/...`.**
+**Do not test a port with a live server on it with `cat < /dev/tcp/...`.**
 `cat` waits for data, so against a quiet listener it burns the full timeout
 and reports `rc=124`. The `cat` form is safe for 5555 and 6000 above only
 because nothing is listening yet. Use `exec 3<>` whenever a server is up.
@@ -2326,7 +2326,7 @@ With `iptables` or `nft` rather than `firewalld`, open the same ports there.
 
 ### One puller at a time
 
-🛑 **A Kria serves exactly one `daq-client`, and a second one anywhere on the
+**A Kria serves exactly one `daq-client`, and a second one anywhere on the
 network silently takes half your data.** `daq-server` pushes over a ZeroMQ
 PUSH socket, which **round-robins** across every connected puller. The
 `START_RUN_DELAY_SCAN` header goes to one and the data to the other, so your
@@ -2360,7 +2360,7 @@ to be stopped on that machine:
 pkill -f '[d]aq-client'
 ```
 
-⚠️ **Look for containers too.** Where the client stack runs in Docker,
+**Look for containers too.** Where the client stack runs in Docker,
 `pgrep -af daq-client` finds nothing while the container holds the socket.
 `lsof -nP -iTCP | grep 8888` names the owner, and `docker ps` finds the
 container. A container left up after someone's earlier session is the
@@ -2450,7 +2450,7 @@ looks wrong, a board type is new, or the automatic analysis did not run.
 
 Character 7 of the serial is the ROC revision, `C` or `D`.
 
-🔑 **`Top.in_inv_cmd_rx` is carried by each type's shipped config, and the
+**`Top.in_inv_cmd_rx` is carried by each type's shipped config, and the
 shipped value is the measured one. Do not change it.** The wrong value leaves
 every trigger link at `ngood=0` with DAQ fine, and hexactrl-sw reports every
 revision as `Siv3b`, so nothing in software tells you which you have.
@@ -2473,7 +2473,7 @@ Measured both ways on a v3D HD Full, each with its own bring-up:
 | **0** | 12/12 | 8/12 |
 | 1 | 12/12 | **0/12** |
 
-⚠️ A ROC register reaches silicon only on the **first** initialize of an
+A ROC register reaches silicon only on the **first** initialize of an
 i2c-server's life, so testing a different value needs a **fresh bring-up**,
 not a rescan.
 
@@ -2700,7 +2700,7 @@ corruption 1.0, robust σ **0.741 ADC**, a full gate on the first try, and
 Plan the session around this: rest first, then spend the good bring-ups on the
 measurement you care about.
 
-🔑 **Start a kernel recorder before chasing one of these, because the stock
+**Start a kernel recorder before chasing one of these, because the stock
 image keeps no journal across a reboot.** `journalctl --list-boots` lists boot
 `0` alone and answers `no persistent journal was found`, and `/var/log` is not
 writable by journald on this image. The home directory survives:
@@ -2717,7 +2717,7 @@ reports `Done` immediately because `setsid` exits at once; trust `pgrep`. It
 does not survive a reboot, so restart it after every power cycle, and read it
 with `tail -50 ~/kernel.log`.
 
-⚠️ **The Kria boots with a wrong clock**, `2025-12-04` on this bench until
+**The Kria boots with a wrong clock**, `2025-12-04` on this bench until
 something sets it. That is a wrong date, not a time zone, so its logs cannot
 be lined up against the client's until the clock is set. For that correlation
 use a wall clock the client also sees, such as a timestamped `ping` on the
