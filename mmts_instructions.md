@@ -1512,18 +1512,28 @@ Confirm `daq` is in `i2c` and `gpio`; log out and in after any `usermod`.
 No git on the Kria. The i2c-server runs from `~/multimodule/hexactrl-sw`,
 **not** from `/opt`.
 
+**(on the Kria)**
+
+```bash
+mkdir -p ~/multimodule/hexactrl-sw
+```
+
 **(on the lab computer)**
 
 ```bash
 cd "$MM/kria"
-ssh kria 'mkdir -p ~/multimodule/hexactrl-sw'
 tar cf - enableROCs.py mmts_bringup.sh findslot.py set_daq_delays.py sgl_ladder.py \
   up_verified.sh start_i2c.sh start_daq.sh set_pwr_en.py \
   | ssh kria 'tar xf - -C ~/multimodule'
-ssh kria 'cd ~ && for f in up_verified.sh start_i2c.sh start_daq.sh set_pwr_en.py; do ln -sfn multimodule/$f $f; done'
 cd "$MMTS_ROOT/hexactrl-sw"
 tar czf - --exclude=__pycache__ zmq_i2c | ssh kria 'tar xzf - -C ~/multimodule/hexactrl-sw'
-ssh kria 'chmod +x ~/multimodule/*.sh ~/multimodule/*.py'
+```
+
+**(on the Kria)**
+
+```bash
+cd ~ && for f in up_verified.sh start_i2c.sh start_daq.sh set_pwr_en.py; do ln -sfn multimodule/$f $f; done
+chmod +x ~/multimodule/*.sh ~/multimodule/*.py
 ```
 
 | file | what |
