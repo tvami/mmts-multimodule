@@ -135,16 +135,15 @@ The last line must include `6001/tcp`.
 
 ## 3. Check
 
-The Kria settings. The image already has them:
+The Kria settings. The image already has them. **On the Kria**:
 
 ```bash
-ssh kria 'sudo -n true && echo "sudo OK"; id; sudo firewall-cmd --list-ports; ls /etc/udev/rules.d/99-*'
+sudo -n true && echo "sudo OK"; id; sudo firewall-cmd --list-ports; ls /etc/udev/rules.d/99-*
 ```
 
 You should see `sudo OK`, `daq` in groups `gpio` and `i2c`, the ports
 `5555/tcp 6000/tcp 8888/tcp`, and two rules files, `99-gpiochip-all.rules`
-and `99-uio-daq.rules`. If anything is missing, `ssh kria` and run this
-**on the Kria**:
+and `99-uio-daq.rules`. If anything is missing, run this **on the Kria**:
 
 ```bash
 echo "daq ALL=(root) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/hgc-bench
@@ -161,11 +160,16 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 Then log out of the Kria and back in, so the new groups apply.
 
-The bench:
+The bench, **on the Kria**:
 
 ```bash
-ssh kria "sudo fw-loader load multimodule-hd-tester-trophy-v3"
-ssh kria "cd ~/multimodule && python3 findslot.py"
+sudo fw-loader load multimodule-hd-tester-trophy-v3
+cd ~/multimodule && python3 findslot.py
+```
+
+and on the lab computer:
+
+```bash
 command -v daq-client unpack
 ```
 
@@ -215,6 +219,6 @@ per run, with the hexmap PNGs inside.
 | `GATE: FAIL` | run the same command again |
 | stuck at `Initializing i2c sockets` | `KRIA_IP` is wrong, or the Kria firewall blocks it (step 3) |
 | `no summary.json` after a scan that ran | port 6001 closed on the lab computer, or 8888 on the Kria (steps 2 and 3) |
-| `Errno 5` on every try, or retries reaching `5/5` | power-cycle the Kria: `ssh kria sudo shutdown -h now`, wait 20 s, press its power button, then run the slot again |
+| `Errno 5` on every try, or retries reaching `5/5` | power-cycle the Kria: `sudo shutdown -h now` on the Kria, wait 20 s, press its power button, then run the slot again |
 
 Do not run `i2cdetect` on the Kria. It can lock up the I2C bus.

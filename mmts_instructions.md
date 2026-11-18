@@ -524,13 +524,13 @@ for the lease and a fixed address.
 
 ## 0.9 Check the installation
 
-**(on the lab computer, checking the Kria)**
+**(on the Kria)**
 
 ```bash
-ssh kria "sudo fw-loader load multimodule-hd-tester-trophy-v3"
-ssh kria 'ls -l /dev/i2c-2 /dev/uio0; gpiofind Multiplex_A'
-ssh kria 'grep -c "id=\"TOP_[ABC]\"" /opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml/connections.xml'
-ssh kria 'cd ~/multimodule && python3 findslot.py'
+sudo fw-loader load multimodule-hd-tester-trophy-v3
+ls -l /dev/i2c-2 /dev/uio0; gpiofind Multiplex_A
+grep -c 'id="TOP_[ABC]"' /opt/cms-hgcal-firmware/hgc-test-systems/active/uHAL_xml/connections.xml
+cd ~/multimodule && python3 findslot.py
 ```
 
 The `grep` must print `3`; otherwise do B4 (a firmware install may have restored
@@ -632,11 +632,11 @@ Skip this before a bring-up (`mmts_bringup.sh` and `up_verified.sh` do it via
 `--recover`). Use it after a mains cycle when driving `enableROCs.py` by hand
 or after a `findslot.py` `[Errno 5]` at 0.9.
 
-**(on the lab computer)**
+**(on the Kria)**
 
 ```bash
-ssh kria "sudo fw-loader load multimodule-hd-tester-trophy-v3"
-ssh kria 'sudo kconn_pwr on'
+sudo fw-loader load multimodule-hd-tester-trophy-v3
+sudo kconn_pwr on
 ```
 
 Otherwise pass `--recover` to `enableROCs.py`; without power every probe
@@ -651,7 +651,7 @@ Use `mmts_bringup.sh` for a first bring-up or when anything is wrong;
 |---|---|---|
 | attempts | one | up to 8 bring-ups, then up to 3 i2c-server starts |
 | output | on your screen | to `~/bu_<slot>.log`; one line per try start and end |
-| to watch a try | on screen | `ssh kria 'tail -f ~/bu_<slot>.log'` in a second terminal |
+| to watch a try | on screen | `tail -f ~/bu_<slot>.log` in a second Kria terminal |
 | kills a stale i2c-server first | no, the block below does | yes |
 | starts the i2c-server on 5555 | no, run `start_i2c.sh` | yes |
 | restarts `daq-server` on 6000 | yes | yes, through `mmts_bringup.sh` |
@@ -703,11 +703,11 @@ lottery: interrupt it, read `~/bu_<slot>.log`, and switch to
 
 Routine form (LD Full; your type's section has the line per slot):
 
-**(on the lab computer)**
+**(on the Kria)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh A --board LD-Full"
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full
 ```
 
 Set `EXPECT_ROCS` to your board's count (default 3), or a partial enable is
@@ -719,13 +719,13 @@ With a power board, `--module` defaults to the slot (`A`→1, `B`→2, `C`→3).
 If the lead is on another output you get `no ROCs` at near-zero current.
 Then sweep, keeping your own `--board` and `EXPECT_ROCS`:
 
-**(on the lab computer, only after a bring-up gave `no ROCs` at near-zero
-current; run one line at a time and stop at the one that draws current)**
+**(on the Kria, only after a bring-up gave `no ROCs` at near-zero current;
+run one line at a time and stop at the one that draws current)**
 
 ```bash
-ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 1"
-ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 2"
-ssh kria "MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 3"
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 1
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 2
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full --module 3
 ```
 
 If none draws current, see the low-current row of 12.3. Other scripts take
@@ -914,10 +914,10 @@ run   entries   CRC pass c0h0.. (3 chips x 2 halves)   adc_mean ...   badBX   di
 
 To follow a bring-up try:
 
-**(on the lab computer, in a second terminal)**
+**(on the Kria, in a second terminal)**
 
 ```bash
-ssh kria 'tail -f ~/bu_A.log'
+tail -f ~/bu_A.log
 ```
 
 Meter: 0 A, then ~1.2 A after `Turning on payload power`, 1.9 to 2.0 A while
@@ -958,11 +958,11 @@ Skip this on a slot verified in 1.3 (full ROC list, `[I2C] Board
 identification` naming your type): go to 2.5. Do not use `run_slot.sh` there
 either; it redoes the bring-up (costly on the bus of 12.4).
 
-**(on the lab computer)**
+**(on the Kria)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=<N> \
-  ~/up_verified.sh <SLOT> --board <BOARD>"
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=<N> ~/up_verified.sh <SLOT> --board <BOARD>
 ```
 
 `up_verified.sh` kills any leftover i2c-server first (12.1). With a
@@ -986,10 +986,10 @@ Pass: `READY`, which means the ROC count matched `EXPECT_ROCS`, the board
 identified (check it names your type), and 5555 and 6000 listen. Each try is a
 silent minute; eight take ten minutes. To follow one:
 
-**(on the lab computer, in a second terminal)**
+**(on the Kria, in a second terminal)**
 
 ```bash
-ssh kria 'tail -f ~/bu_<SLOT>.log'
+tail -f ~/bu_<SLOT>.log
 ```
 
 On `FAILED to bring slot <SLOT> up cleanly`, read `~/bu_<SLOT>.log`. A
@@ -1186,33 +1186,48 @@ POWER= SKIP_PROBE=1 "$MM/run_slot.sh" A initLD-Full-3b LD-Full 3 ldfull 5
 
 ## 3.1 Slot A
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --board LD-Full
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh A --board LD-Full"
 "$MM/delay_scan.sh" A configs/initLD-Full-3b_muxA_ped.yaml
 PED_BOARD=LD-Full "$MM/ped_run.sh" A 5 ldfull 10000
 ```
 
 ## 3.2 Slot B
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh B --board LD-Full
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh B --board LD-Full"
 "$MM/delay_scan.sh" B configs/initLD-Full-3b_muxB_ped.yaml
 PED_BOARD=LD-Full "$MM/ped_run.sh" B 5 ldfull 10000
 ```
 
 ## 3.3 Slot C
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh C --board LD-Full
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh C --board LD-Full"
 "$MM/delay_scan.sh" C configs/initLD-Full-3b_muxC_ped.yaml
 PED_BOARD=LD-Full "$MM/ped_run.sh" C 5 ldfull 10000
 ```
@@ -1231,10 +1246,10 @@ check in 0.9.
 
 Flash the standard HGCAL hexacontroller image. Confirm:
 
-**(on the lab computer)**
+**(on the Kria)**
 
 ```bash
-ssh kria 'command -v fw-loader kconn_pwr; id daq'
+command -v fw-loader kconn_pwr; id daq
 ```
 
 ## B2. hexactrl-sw under `/opt`
@@ -1307,11 +1322,11 @@ picks `test_merge_everything`, a 2025 build with no equalization. Run
 The RPM overwrites `uHAL_xml/connections.xml`: redo B4 after every install,
 or every slot fails. Then load it:
 
-**(on the lab computer)**
+**(on the Kria)**
 
 ```bash
-ssh kria 'sudo fw-loader list'
-ssh kria "sudo fw-loader load multimodule-hd-tester-trophy-v3"
+sudo fw-loader list
+sudo fw-loader load multimodule-hd-tester-trophy-v3
 ```
 
 Without a loaded bitstream (fresh boot), bring-up dies at `[pwr]` with
@@ -1441,10 +1456,10 @@ Error : serialization::archive ... not in dataTypeMap
 
 During a scan, check the peers on 8888:
 
-**(on the lab computer, during a scan)**
+**(on the Kria, during a scan)**
 
 ```bash
-ssh kria 'ss -tn | grep 8888'
+ss -tn | grep 8888
 ```
 
 Expect one peer, your client. Stop any other on its machine:
@@ -1459,10 +1474,16 @@ If `pgrep -af daq-client` finds nothing there, look for a Docker container
 (`lsof -nP -iTCP | grep 8888`, `docker ps`). When taking over a bench, stop
 the previous machine's puller first.
 
-**(on the lab computer, the full picture in one line)**
+**(the full picture; on the lab computer)**
 
 ```bash
-pgrep -af '[d]aq-client'; ssh kria 'pgrep -af "[d]aq-server|[z]mq_server"; ss -tn | grep 8888'
+pgrep -af '[d]aq-client'
+```
+
+**(on the Kria)**
+
+```bash
+pgrep -af '[d]aq-server|[z]mq_server'; ss -tn | grep 8888
 ```
 
 Expect one `daq-client` here; one `daq-server`, one `zmq_server` and one 8888
@@ -1693,9 +1714,9 @@ half-ROCs below corruption 1.0, robust σ 0.741 ADC, a full gate first try,
 | `make` fails on `yaml-cpp/yaml.h` or `zmq.hpp: No such file or directory` | Install `yaml-cpp-devel` and `cppzmq-devel`. Section 0.6a |
 | `$MM/puller.sh: No such file or directory`, and no `multimodule/` at all | `git pull --ff-only` then `git submodule update --init --recursive` in `hexactrl-sw`. Section 0.4 |
 | `dnf` answers `No matching Packages to list` for the firmware, and `dnf repolist` shows `HCGAL-DAQ-SW` alone | Write the `hgc-online-sw` repo file. Section B3 |
-| `ZMQError: Address already in use` on 5555 | `ssh kria 'pkill -f "[z]mq_ser""ver.py"'` |
+| `ZMQError: Address already in use` on 5555 | on the Kria, `pkill -f '[z]mq_ser''ver.py'` |
 | `daq-client` cannot bind 6001 | `pkill -f '[d]aq-client'` |
-| The gate says `no summary.json`, the run directory holds only `initial_full_config.yaml`, and `~/daq-server.log` ends in a healthy `STOP` | Stop the second puller: during a scan `ssh kria 'ss -tn \| grep 8888'` must show only your client. Section B6, "One puller at a time" |
+| The gate says `no summary.json`, the run directory holds only `initial_full_config.yaml`, and `~/daq-server.log` ends in a healthy `STOP` | Stop the second puller: during a scan `ss -tn \| grep 8888` on the Kria must show only your client. Section B6, "One puller at a time" |
 | `Error : serialization::archive ... not in dataTypeMap` in `$MMTS_ROOT/daq-client.log`, followed by pages of misparsed `link_capture_daq.link0` | Same second puller as the row above; do not rebuild anything |
 | A port test gives `rc=124` on a port that `ss` shows listening | Test with `timeout 5 bash -c "exec 3<>/dev/tcp/HOST/PORT"`, not `cat < /dev/tcp/...`. Section B6 |
 | The scan reaches `status after start cmd : running` and then nothing for minutes, and the gate says `no summary.json` | Open 6001 on the lab computer (`sudo firewall-cmd --list-ports` is empty). Section B6 |
@@ -1715,7 +1736,7 @@ half-ROCs below corruption 1.0, robust σ 0.741 ADC, a full gate first try,
 | Bring-up repeats `0/N ROCs` and the supply sits in **CV at 0.05 to 0.1 A**, well under the 0.4 A quiescent | Interrupt `up_verified.sh`. Check the supply is on at 1.72 V and the power distribution board to mux board data cable is in. Sweep `--module 1/2/3` and keep the one that jumps the meter to ~1.2 A; if none does, check the module's flex and seating |
 | `daq-server.log` says `Device ID , "TOP_A", does not exist in connection map` then `impossible to process configure when state is Error` | Replace the stock `connections.xml` per B4, again after every firmware install |
 | The gate prints `no summary.json -- the scan did not produce output` or `STALE: newest summary is ...` | Act on the log tails `delay_scan.sh` prints below it: connection map (row above), uio rule (B7), or, for empty logs, `KRIA_IP` or the firewall. Section 2.5 |
-| `bringup try N of 8: running ...` and then a silent minute | Normal (60 to 90 s per try). Watch with `ssh kria 'tail -f ~/bu_<slot>.log'`. Section 2.4 |
+| `bringup try N of 8: running ...` and then a silent minute | Normal (60 to 90 s per try). Watch with `tail -f ~/bu_<slot>.log` on the Kria. Section 2.4 |
 | Bring-up enables 2 of N with a different chip missing each time, or `0/N` once and then `READY bringup=2` | Re-run back to back |
 | Gate FAIL on a `READY` bring-up, one DAQ or trigger link reading 0 | Re-run the bring-up. Do not make a config that drops the link |
 | A zero-byte run behind a clean gate | Diff the run directory's `initial_full_config.yaml` against the shipped `EdgeSel_T1` for the slot. `header positions` in `daq-server.log` must be 23 on every link |

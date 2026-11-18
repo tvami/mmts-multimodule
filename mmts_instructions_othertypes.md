@@ -50,33 +50,48 @@ SKIP_PROBE=1 "$MM/run_slot.sh" A initLD-Five-3b LD-Five 3 ldfive 5
 
 ## 4.1 Slot A
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --external-power --board LD-Five
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh A --external-power --board LD-Five"
 "$MM/delay_scan.sh" A configs/initLD-Five-3b_muxA_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Five "$MM/ped_run.sh" A 5 ldfive 10000
 ```
 
 ## 4.2 Slot B
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh B --external-power --board LD-Five
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh B --external-power --board LD-Five"
 "$MM/delay_scan.sh" B configs/initLD-Five-3b_muxB_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Five "$MM/ped_run.sh" B 5 ldfive 10000
 ```
 
 ## 4.3 Slot C
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh C --external-power --board LD-Five
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh C --external-power --board LD-Five"
 "$MM/delay_scan.sh" C configs/initLD-Five-3b_muxC_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Five "$MM/ped_run.sh" C 5 ldfive 10000
 ```
@@ -121,33 +136,48 @@ this line, so section 6 uses it unchanged. No `--power-board`:
 
 ## 5.1 Slot A
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh A --external-power --board LD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh A --external-power --board LD-Semi"
 "$MM/delay_scan.sh" A configs/initLD-Left-3b_muxA_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" A 5 ldleft 10000
 ```
 
 ## 5.2 Slot B
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh B --external-power --board LD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh B --external-power --board LD-Semi"
 "$MM/delay_scan.sh" B configs/initLD-Left-3b_muxB_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" B 5 ldleft 10000
 ```
 
 ## 5.3 Slot C
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh C --external-power --board LD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh C --external-power --board LD-Semi"
 "$MM/delay_scan.sh" C configs/initLD-Left-3b_muxC_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 ldleft 10000
 ```
@@ -189,33 +219,48 @@ SKIP_PROBE=1 "$MM/run_slot.sh" A initLD-Bottom-3b LD-Semi 2 ldbottom 5
 
 ## 6.1 Slot A
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh A --external-power --board LD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh A --external-power --board LD-Semi"
 "$MM/delay_scan.sh" A configs/initLD-Bottom-3b_muxA_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" A 5 ldbottom 10000
 ```
 
 ## 6.2 Slot B
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh B --external-power --board LD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh B --external-power --board LD-Semi"
 "$MM/delay_scan.sh" B configs/initLD-Bottom-3b_muxB_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" B 5 ldbottom 10000
 ```
 
 ## 6.3 Slot C
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh C --external-power --board LD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh C --external-power --board LD-Semi"
 "$MM/delay_scan.sh" C configs/initLD-Bottom-3b_muxC_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=LD-Semi "$MM/ped_run.sh" C 5 ldbottom 10000
 ```
@@ -263,33 +308,48 @@ POWER= SKIP_PROBE=1 "$MM/run_slot.sh" A initHD-Full-trophyV3 HD-Full 6 hdfull 5
 
 ## 7.1 Slot A
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 ~/up_verified.sh A --board HD-Full
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 \
-  ~/up_verified.sh A --board HD-Full"
 "$MM/delay_scan.sh" A configs/initHD-Full-trophyV3_muxA_ped.yaml
 PED_BOARD=HD-Full "$MM/ped_run.sh" A 5 hdfull 10000
 ```
 
 ## 7.2 Slot B
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 ~/up_verified.sh B --board HD-Full
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 \
-  ~/up_verified.sh B --board HD-Full"
 "$MM/delay_scan.sh" B configs/initHD-Full-trophyV3_muxB_ped.yaml
 PED_BOARD=HD-Full "$MM/ped_run.sh" B 5 hdfull 10000
 ```
 
 ## 7.3 Slot C
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 ~/up_verified.sh C --board HD-Full
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=6 \
-  ~/up_verified.sh C --board HD-Full"
 "$MM/delay_scan.sh" C configs/initHD-Full-trophyV3_muxC_ped.yaml
 PED_BOARD=HD-Full "$MM/ped_run.sh" C 5 hdfull 10000
 ```
@@ -321,11 +381,11 @@ write fails with `retry 5/5` and a `write_byte` traceback, or the probe reads
 channel. Add the flag; one recover-form bring-up clears it without a power
 cycle:
 
-**(on the lab computer)**
+**(on the Kria)**
 
 ```bash
-ssh kria "pkill -f '[z]mq_server'; sleep 2; cd ~/multimodule && \
-  ./mmts_bringup.sh A --recover --external-power --board HD-Top"
+pkill -f '[z]mq_server'; sleep 2
+cd ~/multimodule && ./mmts_bringup.sh A --recover --external-power --board HD-Top
 ```
 
 **HD trophies swap four P/N pairs per module.** A dead set of trigger links
@@ -353,33 +413,48 @@ hand-typed `mmts_bringup.sh` needs the `pkill` above.
 
 ## 8.1 Slot A
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh A --external-power --board HD-Top
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh A --external-power --board HD-Top"
 "$MM/delay_scan.sh" A configs/initHD-Top-trophyV3_muxA_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Top "$MM/ped_run.sh" A 5 hdtop 10000
 ```
 
 ## 8.2 Slot B
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh B --external-power --board HD-Top
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh B --external-power --board HD-Top"
 "$MM/delay_scan.sh" B configs/initHD-Top-trophyV3_muxB_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Top "$MM/ped_run.sh" B 5 hdtop 10000
 ```
 
 ## 8.3 Slot C
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 ~/up_verified.sh C --external-power --board HD-Top
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=3 \
-  ~/up_verified.sh C --external-power --board HD-Top"
 "$MM/delay_scan.sh" C configs/initHD-Top-trophyV3_muxC_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Top "$MM/ped_run.sh" C 5 hdtop 10000
 ```
@@ -422,33 +497,48 @@ live links are written into the configs, then use the blocks below.
 
 ## 9.1 Slot A
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 ~/up_verified.sh A --external-power --board HD-Bottom
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 \
-  ~/up_verified.sh A --external-power --board HD-Bottom"
 "$MM/delay_scan.sh" A configs/initHD-Bottom-trophyV3_muxA_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Bottom "$MM/ped_run.sh" A 5 hdbottom 10000
 ```
 
 ## 9.2 Slot B
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 ~/up_verified.sh B --external-power --board HD-Bottom
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 \
-  ~/up_verified.sh B --external-power --board HD-Bottom"
 "$MM/delay_scan.sh" B configs/initHD-Bottom-trophyV3_muxB_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Bottom "$MM/ped_run.sh" B 5 hdbottom 10000
 ```
 
 ## 9.3 Slot C
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 ~/up_verified.sh C --external-power --board HD-Bottom
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=4 \
-  ~/up_verified.sh C --external-power --board HD-Bottom"
 "$MM/delay_scan.sh" C configs/initHD-Bottom-trophyV3_muxC_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Bottom "$MM/ped_run.sh" C 5 hdbottom 10000
 ```
@@ -472,33 +562,48 @@ so the live links are written into the configs, then use the blocks below.
 
 ## 10.1 Slot A
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh A --external-power --board HD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh A --external-power --board HD-Semi"
 "$MM/delay_scan.sh" A configs/initHD-Semi-trophyV3_muxA_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Semi "$MM/ped_run.sh" A 5 hdsemi 10000
 ```
 
 ## 10.2 Slot B
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh B --external-power --board HD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh B --external-power --board HD-Semi"
 "$MM/delay_scan.sh" B configs/initHD-Semi-trophyV3_muxB_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Semi "$MM/ped_run.sh" B 5 hdsemi 10000
 ```
 
 ## 10.3 Slot C
 
+**(on the Kria)**
+
+```bash
+cd ~/multimodule
+MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 ~/up_verified.sh C --external-power --board HD-Semi
+```
+
 **(on the lab computer)**
 
 ```bash
-ssh kria "cd ~/multimodule && MMTS_FW=multimodule-hd-tester-trophy-v3 EXPECT_ROCS=2 \
-  ~/up_verified.sh C --external-power --board HD-Semi"
 "$MM/delay_scan.sh" C configs/initHD-Semi-trophyV3_muxC_ped.yaml
 PED_EXTPOWER=1 PED_BOARD=HD-Semi "$MM/ped_run.sh" C 5 hdsemi 10000
 ```
